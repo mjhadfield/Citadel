@@ -9,7 +9,7 @@ import httpx
 import pytest
 
 from app import api_news, content, db, newsrank, newstopics, spoilers
-from app.widgets import f1cal, mostread, news
+from app.widgets import f1cal, guardianread, mostread, news
 
 FIXTURES = Path(__file__).parent / "fixtures"
 API = "/api/owner/news"
@@ -48,7 +48,7 @@ def _clean(client):
             for t in ("feed_items", "news_topic_weights", "news_rules", "followed_artists"):
                 con.execute(f"DELETE FROM {t}")
             con.execute("DELETE FROM widget_settings WHERE widget = 'news'")
-            con.execute("DELETE FROM widget_cache WHERE widget IN ('news', 'mostread', 'f1cal')")
+            con.execute("DELETE FROM widget_cache WHERE widget IN ('news', 'mostread', 'guardianread', 'f1cal')")
     wipe()
     yield
     wipe()
@@ -105,7 +105,7 @@ def test_settings_page_gets_suggestions_and_the_upgraded_shape(owner_client):
 
 def test_most_read_parser_reads_the_real_page_and_only_the_list():
     items = mostread.parse((FIXTURES / "bbc_most_read.html").read_text())
-    assert len(items) == 10 and [i["rank"] for i in items] == list(range(1, 11))
+    assert len(items) == 5 and [i["rank"] for i in items] == list(range(1, 6))             # the BBC's own list is a top 5 now
     assert items[1] == {"rank": 2, "title": "Firing squad execution to be livestreamed, Pentagon says", "url": "https://www.bbc.co.uk/news/articles/cmy0r96xygx6o"}
     assert all("decoy" not in i["url"] for i in items)                                 # a promo list before the block isn't Most read
     assert items[0]["title"] == "Alison Hammond: 'I thought I was having heart attack on air'"   # entities decoded
@@ -126,7 +126,41 @@ def test_most_read_fetch_tracks_movement_and_peak(monkeypatch):
     assert second["items"][0]["prev_rank"] == 4 and second["items"][1]["prev_rank"] == 2
     with db.db() as con:
         metas = [json.loads(r["meta"]) for r in con.execute("SELECT meta FROM feed_items WHERE source = 'bbc-most-read'")]
-    assert len(metas) == 10 and sorted(m["peak_rank"] for m in metas) == list(range(1, 11))
+    assert len(metas) == 5 and sorted(m["peak_rank"] for m in metas) == list(range(1, 6))
+
+
+def _trail(n, pillar="news", section="world"):
+    return {"url": f"https://www.theguardian.com/{section}/2026/nov/17/story-{n}", "headline": f"Story {n} &amp; more", "pillar": pillar,
+            "trailText": f"<strong>Summary</strong> {n}", "image": f"https://i.guim.co.uk/img/{n}.jpg", "webPublicationDate": "2026-11-17T10:30:22.000Z"}
+
+
+def test_guardian_list_keeps_news_and_sport_and_tops_up_from_the_sections():
+    uk = {"tabs": [{"trails": [_trail(1), _trail(2, "culture"), _trail(3, "sport", "football"), _trail(4, "lifestyle"), _trail(5, "opinion")]},
+                   {"trails": [_trail(1), _trail(6, section="uk-news"), _trail(8, section="uk-news")]}]}
+    world = {"tabs": [uk["tabs"][0], {"trails": [_trail(7), _trail(9)]}]}
+    items = guardianread.parse([uk, world])
+    assert [i["url"].rsplit("-", 1)[1] for i in items] == ["1", "3", "7", "6", "9"]       # site-wide first, then UK and World by turns (a repeat skipped)
+    assert [i["rank"] for i in items] == [1, 2, 3, 4, 5]
+    assert items[0]["title"] == "Story 1 & more" and items[0]["summary"] == "Summary 1" and items[0]["published"] == 1794911422.0
+    with pytest.raises(ValueError, match="found no stories"):
+        guardianread.parse([{"tabs": []}])
+
+
+def test_both_most_read_lists_show_and_a_story_wears_its_best_place(owner_client):
+    settings()
+    story("grd", "g1", "Ukraine damages Kerch bridge", url="https://www.theguardian.com/world/2026/nov/17/kerch")
+    mostread.store([{"rank": 2, "title": "Kerch bridge partly collapses", "url": "https://www.bbc.co.uk/news/articles/k1"}])
+    db.cache_put("mostread", {"items": [{"rank": 2, "title": "x", "url": "https://www.bbc.co.uk/news/articles/k1"}], "had_previous": False})
+    mostread.store([{"rank": 1, "title": "Ukraine damages Kerch bridge", "url": "https://www.theguardian.com/world/2026/nov/17/kerch"}], news.GUARDIAN_READ_SOURCE, "The Guardian")
+    db.cache_put("guardianread", {"items": [{"rank": 1, "title": "y", "url": "https://www.theguardian.com/world/2026/nov/17/kerch"}], "had_previous": False})
+    front = owner_client.get(f"{API}/front").json()
+    assert [(m["name"], len(m["items"])) for m in front["most_read"]] == [("BBC", 1), ("Guardian", 1)]
+    lead = next(b for b in front["sections"] if b["id"] == "world")["lead"]
+    assert (lead["most_read"], lead["most_read_by"]) == (1, "Guardian")
+    owner_client.put("/api/owner/widgets/news/settings", json={"most_read_guardian": False})
+    assert [m["name"] for m in owner_client.get(f"{API}/front").json()["most_read"]] == ["BBC"]
+    arch = owner_client.get(f"{API}/archive?section=mostread").json()
+    assert len(arch["items"]) == 2 and [x["name"] for x in arch["sections"][-1]["sources"]] == ["BBC", "Guardian"]
 
 
 # =============================================================== merging and ranking
@@ -157,7 +191,7 @@ def test_front_page_lead_and_most_read_badges():
     front = run(api_news.front())
     world = next(b for b in front["sections"] if b["id"] == "world")
     assert world["lead"]["most_read"] == 7
-    mr = front["most_read"]["items"][0]
+    mr = front["most_read"][0]["items"][0]
     assert mr["rank"] == 7 and mr["read"] is True                                     # read in its section counts for Most read too
 
 
@@ -227,7 +261,7 @@ def test_never_show_rules_hide_everywhere_and_keep_most_read_ranks(owner_client)
     owner_client.post(f"{API}/rules", json={"term": "The Guardian", "kind": "source", "section": "world"})
     v = owner_client.get(f"{API}/section/world").json()
     assert v["stories"] == [] and v["muted"] == 2
-    mr = owner_client.get(f"{API}/front").json()["most_read"]["items"]
+    mr = owner_client.get(f"{API}/front").json()["most_read"][0]["items"]
     assert mr[0] == {"id": mr[0]["id"], "rank": 1, "muted": "Love Island"} and mr[1]["title"] == "Rishi Sunak backs new housing plan"   # the outlet rule is World-only
     arch = owner_client.get(f"{API}/archive").json()["items"]
     assert all("Love Island" not in (i.get("title") or "") for i in arch)

@@ -1,9 +1,10 @@
 """A polite MusicBrainz client. MusicBrainz allows ~1 request/second for anonymous clients and returns 503 when it
-is busy (we saw this while testing), so every call goes through one lock + minimum spacing, and busy responses
-back off and retry. All widgets share the single instance so their combined rate still respects the limit."""
+is busy (we saw this while testing), so every send goes through one lock + minimum spacing, and busy responses
+back off (outside the lock) and retry. All widgets share the single instance so their combined rate still respects the limit."""
 from __future__ import annotations
 
 import asyncio
+import random
 import time
 from typing import Any
 
@@ -13,6 +14,19 @@ from . import __version__, config
 
 BASE = "https://musicbrainz.org/ws/2/"
 MIN_GAP = 1.1          # seconds between requests
+ATTEMPTS = 6
+
+
+def backoff(attempt: int, retry_after: str | None) -> float:
+    """MusicBrainz sheds a share of everyone's traffic when it's loaded (503, `x-ratelimit-who: search-shed` or `global`,
+    `Retry-After: 0`) — not aimed at us, so a quick retry usually gets through. Honour a real Retry-After, else 1.5 s doubling
+    to 20 s with a little jitter: about a minute in all before giving up."""
+    try:
+        if retry_after and float(retry_after) > 0:
+            return min(60.0, float(retry_after))
+    except ValueError:
+        pass
+    return min(20.0, 1.5 * 2 ** attempt) + random.uniform(0, 0.5)
 
 
 class MusicBrainzBusy(RuntimeError):
@@ -31,18 +45,18 @@ class Client:
         return self._http
 
     async def get(self, path: str, **params: Any) -> dict[str, Any]:
-        async with self._lock:
-            for attempt in range(4):
+        for attempt in range(ATTEMPTS):
+            async with self._lock:                                       # the lock only paces the sends ...
                 wait = self._last + MIN_GAP - time.monotonic()
                 if wait > 0:
                     await asyncio.sleep(wait)
                 resp = await self._client().get(BASE + path, params={**params, "fmt": "json"})
                 self._last = time.monotonic()
-                if resp.status_code in (429, 503):                       # busy: back off, then try again
-                    await asyncio.sleep(min(30.0, 2.0 ** (attempt + 1)))
-                    continue
-                resp.raise_for_status()
-                return resp.json()
+            if resp.status_code in (429, 503):                           # ... so a back-off here doesn't hold everyone else up
+                await asyncio.sleep(backoff(attempt, resp.headers.get("retry-after")))
+                continue
+            resp.raise_for_status()
+            return resp.json()
         raise MusicBrainzBusy("MusicBrainz is busy — will try again next sync")
 
     async def close(self) -> None:

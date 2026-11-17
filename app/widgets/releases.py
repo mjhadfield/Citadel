@@ -109,22 +109,34 @@ class ReleasesWidget(Widget):
         cutoff = (today - timedelta(days=settings["lookback_days"])).isoformat()
         horizon = (today + timedelta(days=settings["horizon_days"])).isoformat()
         min_age = content.FORCED_SECONDS if settings.get("_forced") else content.FRESH_SECONDS
-        checked = added = 0
+        checked = added = skipped = busy_run = 0
         for a in content.pick_artists("mb_checked_at", settings["batch"], min_age=min_age):
-            mbid = a["mbid"]
-            if not mbid and (mbid := await mb.resolve_artist_id(a["name"])):
-                content.set_mbid(a["id"], mbid)
-            if mbid:
-                data = await mb.client.get("release-group", query=search_query(mbid, cutoff, horizon, settings["types"]), limit=100)
-                if "release-groups" not in data:                    # MusicBrainz always sends the key (empty list if nothing): its absence means the API changed
-                    log.warning("MusicBrainz answered without a 'release-groups' list for %s — has its API changed? Keys: %s", a["name"], ", ".join(sorted(data)) or "none")
-                items = parse_release_groups(data, a["name"], cutoff=cutoff, horizon=horizon, types=settings["types"], include_extras=settings.get("include_extras", False))
-                await attach_art(items)
-                added += content.upsert_items("release", "musicbrainz", items, baseline=a["mb_checked_at"] is None)
+            try:
+                mbid = a["mbid"]
+                if not mbid and (mbid := await mb.resolve_artist_id(a["name"])):
+                    content.set_mbid(a["id"], mbid)
+                if mbid:
+                    data = await mb.client.get("release-group", query=search_query(mbid, cutoff, horizon, settings["types"]), limit=100)
+                    if "release-groups" not in data:                # MusicBrainz always sends the key (empty list if nothing): its absence means the API changed
+                        log.warning("MusicBrainz answered without a 'release-groups' list for %s — has its API changed? Keys: %s", a["name"], ", ".join(sorted(data)) or "none")
+                    items = parse_release_groups(data, a["name"], cutoff=cutoff, horizon=horizon, types=settings["types"], include_extras=settings.get("include_extras", False))
+                    await attach_art(items)
+                    added += content.upsert_items("release", "musicbrainz", items, baseline=a["mb_checked_at"] is None)
+            except mb.MusicBrainzBusy:                              # left unchecked, so it's first in line next time
+                skipped += 1
+                busy_run += 1
+                if busy_run >= 3:                                   # three artists in a row: it's properly down, stop for now
+                    break
+                continue
+            busy_run = 0
             content.mark_checked(a["id"], "mb_checked_at")        # committed per artist: a timeout loses nothing already done
             checked += 1
+        if skipped and not checked:
+            raise mb.MusicBrainzBusy("MusicBrainz is busy — will try again next sync")
         content.prune("release", older_than_days=400)
-        return {"checked": checked, "new": added, "pending": content.count_stale("mb_checked_at", min_age)}
+        if skipped:
+            log.info("Releases: MusicBrainz was too busy for %d artist(s) — they'll be first next sync", skipped)
+        return {"checked": checked, "new": added, "skipped": skipped, "pending": content.count_stale("mb_checked_at", min_age)}
 
     def summarise(self, data: dict[str, Any] | None) -> str:
         d = data or {}

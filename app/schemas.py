@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field, field_validator
 
 # Must match the symbols in web/js/icons.js.
 ICONS = ["globe", "film", "router", "disc", "bolt", "play", "term", "chip", "server", "cards", "heart",
-         "news", "cal", "grid", "home", "bin", "star", "radar", "alert", "pin", "wave", "spark", "tool"]
+         "news", "cal", "grid", "home", "bin", "star", "radar", "alert", "pin", "wave", "spark", "tool", "spade"]
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,40}$")
 ENV_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,60}$")
 
@@ -41,6 +41,7 @@ class LinkIn(BaseModel):
     for_sql: bool = False               # same idea, for the SQL DB page — independent of the other two
     for_ai: bool = False                # same idea, for the Odysseus page — independent of the other three
     for_house: bool = False             # same idea, for the House page (Home Improvements)
+    for_casino: bool = False            # same idea, for the Casino page (Casino World)
 
     @field_validator("url")
     @classmethod
@@ -140,7 +141,7 @@ class ProjectCreate(ProjectIn):
         return v
 
 
-# What vncviewer takes as a server: host, host:display, host::port, or [IPv6] with either. It's passed as one argv
+# What vncviewer takes as a server (KRDC gets the same, turned into a vnc:// URL by procs.viewer_argv): host, host:display, host::port, or [IPv6] with either. It's passed as one argv
 # entry (never through a shell); the leading-character rule stops it being read as one of vncviewer's own -options.
 VNC_ADDRESS_RE = re.compile(r"^[A-Za-z0-9\[][A-Za-z0-9.\-:\[\]]{0,252}$")
 
@@ -148,6 +149,7 @@ VNC_ADDRESS_RE = re.compile(r"^[A-Za-z0-9\[][A-Za-z0-9.\-:\[\]]{0,252}$")
 class RemoteHostIn(BaseModel):
     name: str = Field(min_length=1, max_length=40)
     address: str = Field(min_length=1, max_length=253)
+    viewer: Literal["krdc", "tigervnc"] = "krdc"   # KRDC scales to its window; TigerVNC for servers KRDC can't log in to
 
     @field_validator("name")
     @classmethod
@@ -191,6 +193,26 @@ class AlertSettingsIn(BaseModel):
     fresh: bool = True
     down: bool = True
     top_artists: int = Field(50, ge=1, le=500)
+
+
+class NavPageIn(BaseModel):
+    id: str = Field(min_length=1, max_length=20)
+    label: str = Field("", max_length=16)
+    phone: bool = True
+    rail: bool = True
+
+
+class NavigationIn(BaseModel):
+    """Settings → Navigation: every page in its new order, with its name ("" = the default), whether phones get a tab and
+    whether the desktop rail shows it. `device` saves it as this device's own set instead of every device's."""
+    pages: list[NavPageIn] = Field(max_length=30)
+    device: bool = False
+
+    @field_validator("pages")
+    @classmethod
+    def _unique(cls, v: list[NavPageIn]) -> list[NavPageIn]:
+        seen: set[str] = set()
+        return [p for p in v if not (p.id in seen or seen.add(p.id))]
 
 
 class ScreensIn(BaseModel):

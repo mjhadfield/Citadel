@@ -35,7 +35,7 @@
 /* ---- Views (Home / News / Media / Companion / future sections) ----------------------- */
 .view { display: none; }
 .view.is-active { display: block; }
-#view-media, #view-music, #view-sql, #view-ai, #view-house, #view-curate, #view-settings { position: relative; }
+#view-media, #view-music, #view-sql, #view-ai, #view-house, #view-casino, #view-curate, #view-settings { position: relative; }
 /* Same chamfered, hairline-gradient-border shell as .card (components.css) — an iframe can't carry
    ::before/::after itself, so the shell is a real wrapper element around it instead. This only reaches
    the iframe's own border/frame; whatever renders *inside* it (Jellyfin's or Companion's own UI, incl.
@@ -81,7 +81,7 @@ html.has-bg .frame-shell iframe { background: transparent; }    /* a custom them
     position: fixed; inset: 0 0 calc(63px + env(safe-area-inset-bottom)) 0;
     display: flex; flex-direction: column; padding: 14px 16px 16px;
   }
-  #view-media.is-active, #view-music.is-active, #view-sql.is-active, #view-ai.is-active, #view-house.is-active, #view-curate.is-active, #view-settings.is-active { flex: 1; height: auto; min-height: 0; }
+  #view-media.is-active, #view-music.is-active, #view-sql.is-active, #view-ai.is-active, #view-house.is-active, #view-casino.is-active, #view-curate.is-active, #view-settings.is-active { flex: 1; height: auto; min-height: 0; }
 }
 
 /* z-index: the header's middle slot is a size container (its own stacking layer), so the bookmarks panel it drops can
@@ -176,8 +176,8 @@ html.has-bg .frame-shell iframe { background: transparent; }    /* a custom them
    opens Monitoring's full view, so where it shows, that card has no tile of its own (.card--popout). */
 .readout { cursor: pointer; }
 .readout:focus-visible { outline: 1px solid var(--accent-soft); outline-offset: 4px; }
-/* heat levels (app.js renderReadout sets data-heat 1–3 from each number's own thresholds); the change flash
-   (.is-tick) still lights a number up and drops it back to its heat colour. Specific enough to beat both themes' dd. */
+/* heat levels (motion.js updateReadout sets data-heat 1–3 from each number's own thresholds, HEAT in app.js); LCARS's
+   change cue (.is-cue) still lights a number up and drops it back to its heat colour. Specific enough to beat both themes' dd. */
 html:root body .readout dd[data-heat="1"] { color: var(--heat-1); }
 html:root body .readout dd[data-heat="2"] { color: var(--heat-2); }
 html:root body .readout dd[data-heat="3"] { color: var(--heat-3); text-shadow: 0 0 10px color-mix(in srgb, var(--heat-3) 45%, transparent); }
@@ -196,6 +196,31 @@ html[data-theme="light"] body .readout dd[data-heat="3"] { text-shadow: none; } 
 .look-btn .look-btn__chev { width: 11px; height: 11px; color: var(--silver-mute); }
 .look-btn[aria-expanded="true"] { color: var(--silver-hi); border-color: var(--edge-strong); background: var(--accent-wash); }
 @media (max-width: 760px) { .look-btn { padding: 5px; } .look-btn__word, .look-btn .look-btn__chev { display: none; } }
+.look-btn .look-btn__chev { transition: transform .25s var(--ease); }
+.look-btn[aria-expanded="true"] .look-btn__chev { transform: rotate(180deg); }
+/* Day/Night and Style sit as a pair (#look-group). Style drops the bookmarks panel (.bmbar) with small theme tiles, the
+   one in use lit. On desktop it hangs from the pair, one column as wide as both: open, the pair joins into one cap (the
+   gap filled, inner edges square, only the outer top corners rounded) that runs straight into the panel. */
+.look-group { display: inline-flex; align-items: center; gap: 6px; }
+.stylebar .bm { width: 100%; gap: 7px; padding: 6px 7px; font: inherit; text-align: left; cursor: pointer; }
+.stylebar .bm > .tm__sw { width: 18px; height: 13px; }
+.stylebar .bm > .tm__sw::after { left: 2px; right: 2px; bottom: 2px; height: 2px; }
+.stylebar .bm b { font-size: 13px; font-weight: 500; }
+.stylebar .bm[aria-checked="true"] { color: var(--silver-hi); border-color: var(--accent-soft); background: var(--accent-wash); }
+.stylebar .bm[aria-checked="true"] b { color: var(--accent-soft); }
+@media (min-width: 761px) {
+  .look-btn[data-theme-menu] { padding: 5px 16px 5px 14px; }
+  .look-group.is-open { border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    background: linear-gradient(var(--edge-strong) 0 0) top / 100% 1px no-repeat, linear-gradient(var(--accent-wash) 0 0) var(--bg-2); }
+  .look-group.is-open > .look-btn { color: var(--silver-hi); border-color: var(--edge-strong); border-bottom-color: transparent;
+    background: linear-gradient(var(--accent-wash) 0 0) var(--bg-2); border-radius: 0; }
+  .look-group.is-open > .look-btn:first-child { border-right-color: transparent; border-top-left-radius: var(--radius-sm); }
+  .look-group.is-open > .look-btn:last-child { border-left-color: transparent; border-top-right-radius: var(--radius-sm); }
+  .stylebar { left: auto; right: var(--bm-right, 0); padding: 6px;
+    background: linear-gradient(var(--accent-wash) 0 0) var(--bg-2); }
+  .stylebar .bmbar__list { gap: 6px; grid-auto-columns: var(--bm-col, 96px); }
+  .stylebar .bmbar__edit { margin-top: 8px; }
+}
 .badge-role { display: inline-flex; align-items: center; gap: 6px; }
 
 /* ---- Alert strip -------------------------------------------------------- */
@@ -362,17 +387,38 @@ button.tile:disabled { cursor: default; opacity: .6; transform: none; }
   .feed__date { min-width: 0; text-align: left; }
   .meta--opt { display: none; }
   .tabbar {
-    display: grid; grid-template-columns: repeat(7, 1fr);
+    display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);     /* one column per tab: Settings → Navigation picks them */
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
     padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
     background: color-mix(in srgb, var(--bg-2) 92%, transparent); backdrop-filter: blur(10px);
     border-top: 1px solid var(--edge-strong);
   }
-  .tabbar a { display: grid; justify-items: center; gap: 2px; padding: 4px 0; color: var(--silver-mute); font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; }
-  .tabbar a[aria-current] { color: var(--accent-soft); }
+  .tabbar a, .tabbar__more { display: grid; justify-items: center; gap: 2px; padding: 4px 0; color: var(--silver-mute); font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; }
+  .tabbar__more { margin: 0; background: none; border: 0; cursor: pointer; line-height: inherit; }
+  .tabbar a[aria-current], .tabbar__more.is-current, .tabbar__more[aria-expanded="true"] { color: var(--accent-soft); }
   .tabbar .i { width: 22px; height: 22px; }
+  .tabbar__label { max-width: 100%; padding: 0 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .mockbar { bottom: 74px; }
+  /* More: the pages without a tab, in a sheet sitting on the tab bar's right-hand end */
+  .more-sheet:not([hidden]) {
+    position: fixed; right: 8px; bottom: calc(66px + env(safe-area-inset-bottom)); z-index: 51;
+    display: grid; min-width: 190px; max-width: calc(100vw - 16px); padding: 6px;
+    background: color-mix(in srgb, var(--bg-2) 96%, transparent); backdrop-filter: blur(10px);
+    border: 1px solid var(--edge-strong); box-shadow: 0 10px 30px color-mix(in srgb, var(--bg) 70%, transparent);
+  }
+  .more-sheet a { display: flex; align-items: center; gap: 12px; padding: 11px 12px; color: var(--silver); font-family: var(--font-mono); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; }
+  .more-sheet a + a { border-top: 1px solid var(--edge); }
+  .more-sheet a[aria-current] { color: var(--accent-soft); }
+  .more-sheet .i { width: 20px; height: 20px; flex: none; }
+  /* a swipe to the next or previous page slides it in (app.js); .main clips it meanwhile so the page never widens */
+  html.is-sliding .main { overflow-x: clip; }
+  .view.is-active[data-slide="next"] { animation: view-in-next .24s ease-out; }
+  .view.is-active[data-slide="prev"] { animation: view-in-prev .24s ease-out; }
 }
+.more-sheet { display: none; }
+.rail a[data-view][hidden] { display: none; }        /* Settings → Navigation took it off the rail */
+@keyframes view-in-next { from { opacity: 0; transform: translateX(36px); } }
+@keyframes view-in-prev { from { opacity: 0; transform: translateX(-36px); } }
 
 
 /* ==========================================================================
@@ -695,16 +741,8 @@ body.has-max::before { content: ""; position: fixed; inset: 0; z-index: 80; back
   .preorder__row { width: 100%; justify-content: space-between; }
 }
 
-/* ---- Theme menu (the header's theme button) --------------------------------- */
+/* ---- Style panel swatches (a theme's colours in this device's mode) --------------------------------- */
 .top__right { position: relative; }
-.tm { position: absolute; top: calc(100% + 8px); right: 0; z-index: 120; min-width: 220px; padding: 6px; display: grid; gap: 2px;
-  background: var(--bg-2); border: 1px solid var(--edge-strong); box-shadow: 0 18px 40px rgba(0, 0, 0, .45); }
-.tm button, .tm__more { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: 0; background: none; text-align: left;
-  color: var(--silver); font: 500 14px var(--font-display); cursor: pointer; }
-.tm button:hover, .tm button:focus-visible, .tm__more:hover { background: var(--accent-wash); color: var(--silver-hi); outline: none; }
-.tm button[aria-checked="true"] { color: var(--accent-soft); }
-.tm button .i { margin-left: auto; width: 14px; height: 14px; }
-.tm__more { font: 11px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--silver-mute); border-top: 1px solid var(--edge); margin-top: 4px; padding-top: 10px; }
 .tm__sw { position: relative; flex: none; width: 26px; height: 18px; overflow: hidden; border: 1px solid var(--edge); background: var(--sw-bg); }
 .tm__sw::after { content: ""; position: absolute; left: 3px; right: 3px; bottom: 3px; height: 3px; background: var(--sw-ac); }
 .tm__sw img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .75; }

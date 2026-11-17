@@ -1,6 +1,7 @@
 // Card chrome and behaviour: builds each card, keeps its content fresh without flicker, and handles the
 // expand-to-full-view interaction (View Transitions morph, Esc / backdrop / button to close).
 import { $, $$, esc, ico } from './util.js';
+import * as motion from './motion.js';
 
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -48,15 +49,17 @@ export class Shell {
     return { expanded: c.def.pinnedOpen || c.el.classList.contains('is-max'), filter: c.filter, search: c.search };
   }
 
-  /** Replace a card's content — only touching the DOM if something actually changed. */
-  update(id, { meta = '', body = '' }) {
+  /** Replace a card's content — only touching the DOM if something actually changed. `fresh`: it comes from new data. */
+  update(id, { meta = '', body = '' }, { fresh = false } = {}) {
     const c = this.cards.get(id);
     const key = `${meta}\u0000${body}`;
     if (key === c.last) return;
+    const first = c.last === null;
     c.last = key;
-    const top = c.body.scrollTop;
+    const top = c.body.scrollTop, snap = first ? null : motion.before(c.body);
     c.meta.innerHTML = meta;
     c.body.innerHTML = body;
+    motion.after(c.el, c.body, snap, { ack: fresh });
     const on = c.def.pinnedOpen || c.el.classList.contains('is-max');
     $$('.more', c.body).forEach(e => { e.hidden = !on; });     // expanded-only content
     c.body.scrollTop = top;

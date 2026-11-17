@@ -34,7 +34,8 @@ class Ctx:
         self.settings = news.load()
         self.sections = self.settings["sections"]
         self.feeds = {f["id"]: {"name": f["name"], "section": s["id"], "order": i} for s in self.sections for i, f in enumerate(s["feeds"])}
-        self.feeds[news.MOST_READ_SOURCE] = {"name": "BBC News", "section": MOST_READ["id"], "order": 0}
+        for lst in news.MOST_READ_LISTS:
+            self.feeds[lst["source"]] = {"name": lst["outlet"], "section": MOST_READ["id"], "order": 0}
         self.weights = load_weights(self.now)
         self.rules = load_rules()
         cal = db.cache_get("f1cal")
@@ -113,11 +114,11 @@ def chips(it: dict[str, Any]) -> list[str]:
     return (strong + weak)[:4] if len(strong) < 2 else strong[:4]
 
 
-def present(it: dict[str, Any], ctx: Ctx, *, most_read: int | None = None, artists: list[str] | None = None, links: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+def present(it: dict[str, Any], ctx: Ctx, *, most_read: tuple[int, str] | None = None, artists: list[str] | None = None, links: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     meta = it.get("meta") or {}
     base = {"id": it["id"], "source": ctx.name(it), "section": ctx.section_of(it), "t": it.get("t") or newsrank.when(it)}
     if most_read:
-        base["most_read"] = most_read
+        base["most_read"], base["most_read_by"] = most_read
     if ctx.shielded(it):
         return {**base, "shielded": True}
     also = [{"name": ctx.name(m), "url": m["url"]} for m in it.get("also") or [] if not ctx.shielded(m)]
@@ -127,9 +128,19 @@ def present(it: dict[str, Any], ctx: Ctx, *, most_read: int | None = None, artis
             "peak_rank": meta.get("peak_rank"), "revealed": bool(meta.get("revealed"))}
 
 
-def most_read_ranks() -> dict[str, int]:
-    data = db.cache_get("mostread")["data"] or {}
-    return {newsrank.url_key(i["url"]): i["rank"] for i in data.get("items", [])}
+def most_read_lists(settings: dict[str, Any]) -> list[dict[str, Any]]:
+    return [lst for lst in news.MOST_READ_LISTS if settings.get(lst["setting"], True)]
+
+
+def most_read_ranks(settings: dict[str, Any] | None = None) -> dict[str, tuple[int, str]]:
+    """Each story in a shown Most read list → (its place, whose list); in both lists, the higher place."""
+    out: dict[str, tuple[int, str]] = {}
+    for lst in most_read_lists(news.load() if settings is None else settings):
+        for i in (db.cache_get(lst["id"])["data"] or {}).get("items", []):
+            k = newsrank.url_key(i["url"])
+            if k not in out or i["rank"] < out[k][0]:
+                out[k] = (i["rank"], lst["short"])
+    return out
 
 
 def _include(it: dict[str, Any], terms: list[str]) -> bool:
@@ -143,7 +154,7 @@ def section_view(sec: dict[str, Any], ctx: Ctx, ranks: dict[str, int] | None = N
     """A section's Latest: the last `latest_hours` of stories, merged and ranked, capped; what learning held back, apart.
     A "your artists" section (Music) ranks by how much the artists in a story mean to you, and — unless `everything` —
     shows only stories about them."""
-    ranks = most_read_ranks() if ranks is None else ranks
+    ranks = most_read_ranks(ctx.settings) if ranks is None else ranks
     ids = [f["id"] for f in sec["feeds"] if f.get("enabled")]
     since = ctx.now - ctx.settings["latest_hours"] * 3600
     found = [i for i in rows(f"{_in(ids)} AND {WHEN} >= ?", [*ids, since]) if _include(i, sec.get("include") or [])]
@@ -162,7 +173,7 @@ def section_view(sec: dict[str, Any], ctx: Ctx, ranks: dict[str, int] | None = N
         pref, drivers = newsrank.preference(st, ctx.weights, ctx.name(st))
         st["_mine"] = newsmusic.match(st["title"]) if personal else []
         lean = newsrank.leaning(st, sec.get("favour") or [], sec.get("play_down") or [], news.LEANING)
-        st["_rank"], st["_score"] = rank, newsrank.score(st, ctx.now, most_read=rank, pref=pref, lean=lean,
+        st["_rank"], st["_score"] = rank, newsrank.score(st, ctx.now, most_read=rank[0] if rank else None, pref=pref, lean=lean,
                                                          mine=max((a["affinity"] for a in st["_mine"]), default=0.0))
         if personal and not everything and not st["_mine"]:
             others += 1
@@ -192,15 +203,16 @@ def section_view(sec: dict[str, Any], ctx: Ctx, ranks: dict[str, int] | None = N
                        sorted({a for s in shown for a in (s.get("meta") or {}).get("artists") or []})}
 
 
-def most_read_view(ctx: Ctx) -> dict[str, Any]:
-    cache = db.cache_get("mostread")
+def most_read_view(ctx: Ctx, lst: dict[str, Any]) -> dict[str, Any]:
+    """One Most read tile."""
+    cache = db.cache_get(lst["id"])
     data = cache["data"] or {}
     entries = data.get("items", [])
     keys = [newsrank.url_key(e["url"]) for e in entries]
-    stored = {newsrank.url_key(i["url"]): i for i in rows("source = ?", [news.MOST_READ_SOURCE], limit=400)}
+    stored = {newsrank.url_key(i["url"]): i for i in rows("source = ?", [lst["source"]], limit=400)}
     # The same article in a section feed knows more: its summary, picture, real publish time — and whether you've read it.
     others = {}
-    for i in rows(f"source != ? AND first_seen >= ?", [news.MOST_READ_SOURCE, ctx.now - 4 * 86400], limit=3000):
+    for i in rows(f"source NOT IN (?, ?) AND first_seen >= ?", [*news.MOST_READ_SOURCES, ctx.now - 4 * 86400], limit=3000):
         others.setdefault(newsrank.url_key(i["url"]), i)
     out = []
     for e, k in zip(entries, keys):
@@ -219,7 +231,7 @@ def most_read_view(ctx: Ctx) -> dict[str, Any]:
         p = present(merged, ctx)
         p.update({"rank": e["rank"], "prev_rank": e.get("prev_rank"), "fresh": data.get("had_previous") and e.get("prev_rank") is None})
         out.append(p)
-    return {"items": out, "at": cache["fetched_at"], "error": cache["error"], "enabled": ctx.settings.get("most_read", True)}
+    return {"id": lst["id"], "name": lst["short"], "items": out, "at": cache["fetched_at"], "error": cache["error"]}
 
 
 def _synced() -> dict[str, Any]:
@@ -233,15 +245,15 @@ def _synced() -> dict[str, Any]:
 async def overview():
     ctx = Ctx()
     return {"sections": [{"id": s["id"], "name": s["name"], "front": s["front"]} for s in ctx.sections if s["enabled"]],
-            "shield": ctx.public_lock(), "synced": _synced(), "most_read": ctx.settings.get("most_read", True)}
+            "shield": ctx.public_lock(), "synced": _synced(), "most_read": bool(most_read_lists(ctx.settings))}
 
 
 @router.get("/front")
 async def front():
-    """The Most read list and one tile per front-page section — or per group of sections that share a tile ("World & UK"):
+    """The Most read lists and one tile per front-page section — or per group of sections that share a tile ("World & UK"):
     a lead story (with a picture if one of the top few has one), then the next few, ranked across the group."""
     ctx = Ctx()
-    ranks = most_read_ranks()
+    ranks = most_read_ranks(ctx.settings)
     n = ctx.settings["front_per_section"]
     on_front = [s for s in ctx.sections if s["enabled"] and s["front"]]
     ids = {s["id"] for s in on_front}
@@ -276,7 +288,7 @@ async def front():
         blocks.append({"id": root, "name": " & ".join(m["name"] for m in members), "lead": lead, "items": rest,
                        "total": sum(v["total"] for v in views), "personal": any(v["personal"] for v in views),
                        "tabs": [{"id": v["id"], "name": v["name"], "total": v["total"]} for v in views]})
-    return {"most_read": most_read_view(ctx) if ctx.settings.get("most_read", True) else None, "sections": blocks,
+    return {"most_read": [most_read_view(ctx, lst) for lst in most_read_lists(ctx.settings)], "sections": blocks,
             "shield": ctx.public_lock(), "synced": _synced()}
 
 
@@ -298,7 +310,7 @@ async def archive(section: str = "", source: str = "", q: str = Query("", max_le
     ctx = Ctx()
     where, args = [], []
     if section == MOST_READ["id"]:
-        where.append("source = ?"); args.append(news.MOST_READ_SOURCE)
+        where.append(_in(list(news.MOST_READ_SOURCES))); args += news.MOST_READ_SOURCES
     elif section:
         sec = next((s for s in ctx.sections if s["id"] == section), None)
         ids = [f["id"] for f in sec["feeds"]] if sec else []
@@ -315,7 +327,7 @@ async def archive(section: str = "", source: str = "", q: str = Query("", max_le
         like = f"%{q.strip()}%"
         where.append("(title LIKE ? OR json_extract(meta, '$.summary') LIKE ?)"); args += [like, like]
     # Most-read entries that are also in a section feed show once, as the section's story, wearing their best rank.
-    peaks = {newsrank.url_key(i["url"]): i["meta"].get("peak_rank") for i in rows("source = ?", [news.MOST_READ_SOURCE], limit=2000)}
+    peaks = {newsrank.url_key(i["url"]): i["meta"].get("peak_rank") for i in rows(_in(list(news.MOST_READ_SOURCES)), news.MOST_READ_SOURCES, limit=2000)}
     section_keys: set[str] | None = None
     out: list[dict[str, Any]] = []
     cur, cur_id = before, before_id
@@ -335,9 +347,9 @@ async def archive(section: str = "", source: str = "", q: str = Query("", max_le
                 cur = None                                     # nothing older left
             if ctx.muted(it):
                 continue
-            if it["source"] == news.MOST_READ_SOURCE and section != MOST_READ["id"]:
+            if it["source"] in news.MOST_READ_SOURCES and section != MOST_READ["id"]:
                 if section_keys is None:
-                    section_keys = {newsrank.url_key(i["url"]) for i in rows("source != ?", [news.MOST_READ_SOURCE], limit=20000)}
+                    section_keys = {newsrank.url_key(i["url"]) for i in rows(f"NOT {_in(list(news.MOST_READ_SOURCES))}", news.MOST_READ_SOURCES, limit=20000)}
                 if newsrank.url_key(it["url"]) in section_keys:
                     continue
             if ctx.shielded(it):
@@ -351,7 +363,7 @@ async def archive(section: str = "", source: str = "", q: str = Query("", max_le
                 break
     return {"items": out, "next": {"before": cur, "before_id": cur_id} if cur is not None else None, "shield": ctx.public_lock(),
             "sections": [{"id": s["id"], "name": s["name"], "sources": [{"id": f["id"], "name": f["name"]} for f in s["feeds"]]} for s in ctx.sections]
-                        + [{**MOST_READ, "sources": []}]}
+                        + [{**MOST_READ, "sources": [{"id": lst["source"], "name": lst["short"]} for lst in news.MOST_READ_LISTS]}]}
 
 
 # ---- story actions ------------------------------------------------------------------------------------------------------------

@@ -8,8 +8,9 @@ Citadel's frontend is plain ES modules reading a handful of /api/owner/* GETs, s
 1. copies the live database into a scratch folder (SQLite backup API, read-only on the original) and starts the app
    in-process on that copy with HUB_NO_FETCH=1, so the live service, its data and outside sites are left alone;
 2. saves the GET responses the dashboard, News and Music pages ask for, as data/<key>.json;
-3. censors them: bookmarks, the shortcut row, addresses, booked-gig order links and notes, calendar events (swapped
-   for made-up ones), machine names, and reminders that could name any of those;
+3. censors them: bookmarks (shown, every one "Redacted"), addresses (Launchpad, Remote Access: "Redacted"), booked-gig
+   order links and notes, calendar events (dates and times kept, every title "Redacted"), machine names, and reminders
+   that could name any of those;
 4. copies web/ with its absolute /static/ paths made relative, and adds demo.js (tools/demo/), which answers /api/*
    from data/, refuses every change, stubs the event stream and freezes the clock at the snapshot time;
 5. fails if any address, home path, calendar link or known secret turns up anywhere in the output.
@@ -28,9 +29,10 @@ import subprocess
 import sys
 import tempfile
 import time
-from datetime import date, datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parent.parent
 LIVE_DATA = ROOT / "data"
@@ -45,24 +47,23 @@ MONITOR_FRAMES, MONITOR_EVERY = 20, 1.5
 
 # The pages that only exist on the home network. Icons are Citadel's own (icons.js).
 NOT_HERE = {
-    "media": ("film", "Media runs on a Jellyfin server on my home network."),
-    "ai": ("spark", "Odysseus is a self-hosted AI app on my home network."),
-    "house": ("tool", "House is a private repair tracker for my home."),
+    "media": ("film", "Media is a Jellyfin server running locally"),
+    "casino": ("spade", "Casino World is a multiplayer game server running locally"),
+    "ai": ("spark", "Odysseus is an LLM container running locally"),
+    "house": ("tool", "This is too sensitive to share online"),
     "curate": ("tag", "Curate is Music Companion's private maintenance tool on my home network."),
-    "settings": ("gear", "Settings are private to my home dashboard."),
 }
+# Settings is in the demo as a read-only snapshot (settings.html, framed like the real one): these are the GETs it asks
+# for, censored by censor_settings. The log viewer opens on "warning" (Problems); Everything ("all") and Errors only are
+# saved too, with no source or search filter.
+SETTINGS_GETS = ["/api/owner/config", "/api/owner/maintenance", "/api/owner/gigs", "/api/owner/artists",
+                 "/api/owner/news/learning", "/api/owner/news/f1"] + [
+                 f"/api/owner/logs?level={lv}&limit=200" for lv in ("warning", "all", "error")]
 
-# Made-up diary entries, (days from the snapshot, start, end, title); None = all day.
-SAMPLE_DIARY = [
-    (0, "09:00", "13:00", "Record fair"),
-    (2, "19:30", "21:30", "Band practice"),
-    (4, None, None, "Bin day swap — check the council site"),
-    (6, "10:15", "10:45", "Dentist"),
-    (9, "18:00", None, "Pub quiz"),
-    (13, None, None, "Payday!"),
-    (17, "08:30", "09:30", "Car MOT"),
-    (24, "19:00", None, "Cinema"),
-]
+REDACTED = "Redacted"
+REDACTED_URL = "https://redacted/"     # a bookmark's address; demo.js stops it opening ("Bookmarks are redacted…")
+PRIVATE_HOST = re.compile(r"^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.|\[|[^.]+$|.*\.(local|lan|home|internal|ts\.net)$)")
+HAS_ADDRESS = re.compile(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|\.local\b|\.ts\.net\b")
 
 
 def key_of(path: str) -> str:
@@ -128,6 +129,8 @@ def snapshot(scratch: Path) -> tuple[dict[str, Any], list[dict[str, Any]], list[
                 get(f"/api/owner/music/discover?basis={basis}")
         get("/api/owner/music/rediscover")
         get("/api/owner/music/gigs")
+        for path in SETTINGS_GETS:
+            get(path)
         # No Spotify call for the player: the demo just shows "Nothing playing".
         out["/api/owner/music/player"] = {"ready": True, "active": False, "playing": False}
 
@@ -148,9 +151,33 @@ def snapshot(scratch: Path) -> tuple[dict[str, Any], list[dict[str, Any]], list[
 
 # ---- 2. censoring ----------------------------------------------------------------------------------------------------------
 
-def sample_diary(day: date) -> list[dict[str, Any]]:
-    return [{"date": (day + timedelta(days=d)).isoformat(), "until": None, "time": start, "end_time": end, "all_day": start is None,
-             "title": title, "location": "", "cal": "Google Calendar", "colour": "violet"} for d, start, end, title in SAMPLE_DIARY]
+def redact_diary(d: dict[str, Any]) -> dict[str, Any]:
+    """The real calendar's dates and times, nothing else: every title "Redacted", no places, no calendar names."""
+    keep = ("date", "until", "time", "end_time", "all_day", "colour")
+    d["events"] = [{**{k: e.get(k) for k in keep}, "title": REDACTED, "location": "", "cal": "Calendar"} for e in d.get("events") or []]
+    d["calendars"] = [{"name": "Calendar", "colour": c.get("colour", "violet")} for c in d.get("calendars") or []] or [{"name": "Calendar", "colour": "violet"}]
+    return {k: v for k, v in d.items() if k in ("events", "calendars")}
+
+
+def private_url(url: str | None) -> bool:
+    try:
+        host = urlsplit(url or "").hostname or ""
+    except ValueError:
+        return True
+    return not host or bool(PRIVATE_HOST.match(host))
+
+
+def clean_link(l: dict[str, Any]) -> dict[str, Any]:
+    """A Launchpad tile keeps its name and icon. One on the home network loses its address (demo.js: "home network
+    only"), and a subtitle that is an address says "Redacted". Music Companion opens the public copy."""
+    l = {k: v for k, v in l.items() if k not in ("status_url", "check_url")}
+    if "music companion" in (l.get("name") or "").lower():
+        return {**l, "url": COMPANION_URL, "subtitle": "The public copy", "up": True}
+    if HAS_ADDRESS.search(l.get("subtitle") or ""):
+        l["subtitle"] = REDACTED
+    if private_url(l.get("url")):
+        l["url"] = "#"
+    return l
 
 
 def clean_gig(g: dict[str, Any]) -> dict[str, Any]:
@@ -158,22 +185,24 @@ def clean_gig(g: dict[str, Any]) -> dict[str, Any]:
 
 
 def censor_state(s: dict[str, Any]) -> dict[str, Any]:
-    day = datetime.fromisoformat(s["now"]).date()
     s["host"], s["ip"] = "Online demo", ""
     s["device"] = {"id": 0, "name": "Demo", "role": "owner"}
-    s["links"] = [{"id": 1, "name": "Music Companion", "subtitle": "The public copy", "url": COMPANION_URL, "icon": "disc",
-                   "primary": False, "tier": "main", "pinned": False, "pin_order": None,
-                   "for_media": False, "for_music": True, "for_sql": False, "for_ai": False, "for_house": False, "up": True}]
-    s["projects"] = [{**p, "url": None} for p in s["projects"]]     # no addresses; ports and "this PC only" are harmless
-    s["remote"] = [{**r, "address": "", "lan_ip": None, "open": False} for r in s.get("remote", [])]   # device names only, no addresses
+    s["links"] = [clean_link(l) for l in s["links"]]
+    # no addresses (ports and "this PC only" are harmless), except Companion's page, which is the public copy
+    s["projects"] = [{**p, "url": COMPANION_URL if p.get("for_music") else None} for p in s["projects"]]
+    # device names only: the address reads "Redacted", and demo.js answers a click with "not available in the demo"
+    s["remote"] = [{**r, "address": REDACTED, "lan_ip": None, "open": False} for r in s.get("remote", [])]
     s["health"] = {k: v for k, v in s["health"].items() if k.startswith("project:")}
     s["alerts"] = [a for a in s["alerts"] if a.get("kind") in KEEP_ALERTS]
 
     w = s["widgets"]
-    if "shortcuts" in w and w["shortcuts"].get("data"):
-        w["shortcuts"]["data"] = {"show": False, "shortcuts": [], "failed": []}
+    if "shortcuts" in w and (sc := w["shortcuts"].get("data")):
+        # as many bookmarks as there really are, every one "Redacted", with the same plain icon and no address
+        w["shortcuts"]["data"] = {"show": bool(sc.get("show")), "failed": [], "shortcuts": [
+            {"id": i + 1, "label": REDACTED, "url": REDACTED_URL, "icon_mode": "builtin", "icon": "globe", "img": None}
+            for i, _ in enumerate(sc.get("shortcuts") or [])]}
     if "diary" in w and w["diary"].get("data"):
-        w["diary"]["data"]["events"] = sample_diary(day)
+        w["diary"]["data"] = redact_diary(w["diary"]["data"])
     if "gigs" in w and (g := w["gigs"].get("data")):
         if g.get("next"):
             g["next"] = clean_gig(g["next"])
@@ -193,13 +222,75 @@ def censor_state(s: dict[str, Any]) -> dict[str, Any]:
 
 def censor_music(path: str, data: dict[str, Any]) -> dict[str, Any]:
     if path == "/api/owner/music":
-        data["settings"] = {k: v for k, v in data.get("settings", {}).items() if k != "desktop_command"}
-        data.pop("services", None)                          # Settings' service forms (paths, client ids): the Music page never reads them
+        if "desktop_command" in data.get("settings", {}):
+            data["settings"]["desktop_command"] = REDACTED
+        # Settings' service forms: every filled-in value and the database path read "Redacted" (keys never reach here)
+        data["services"] = [{**sv, "path": REDACTED if sv.get("path") else "",
+                             "values": {k: (REDACTED if v else v) for k, v in (sv.get("values") or {}).items()}}
+                            for sv in data.get("services", [])]
         if isinstance(data.get("spotify"), dict):
             data["spotify"]["redirect_uri"] = ""
     if path == "/api/owner/music/gigs":
         data["booked"] = [clean_gig(g) for g in data.get("booked", [])]
-    return data
+    return scrub(data)
+
+
+def scrub(obj: Any) -> Any:
+    """The backstop under every Settings response: any address, home path, private host name or email address left in
+    a string becomes "Redacted". The explicit rules in censor_settings come first; the leak check still runs after."""
+    if isinstance(obj, dict):
+        return {k: scrub(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [scrub(v) for v in obj]
+    if isinstance(obj, str):
+        for rx in SCRUB:
+            obj = rx.sub(REDACTED, obj)
+    return obj
+
+
+SCRUB = [re.compile(r"https?://(localhost|127\.0\.0\.1|10\.|192\.168\.|\{host\})[^\s\"')]*"),
+         re.compile(r"\b(192\.168|10\.\d{1,3}|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7]))\.\d{1,3}\.\d{1,3}(:\d+)?\b"),
+         re.compile(r"/home/[^\s\"',)]*"), re.compile(r"/tmp/[^\s\"',)]*"),
+         re.compile(r"\b[\w.-]+\.(local|lan|ts\.net)\b"), re.compile(r"[\w.+-]+@[\w-]+\.[\w.]+"),
+         re.compile(r"\bGaming\b")]                       # the PC's host name
+
+
+def censor_settings(path: str, data: Any) -> Any:
+    """Settings, read-only: everything that shows how it works stays (sections, feeds, shops, schedules, artists, the
+    log's own lines); addresses, folders, commands, keys, device details, the bins' property number, the radar's
+    coordinates, calendar and bookmark names don't."""
+    if path == "/api/owner/config":
+        d = data
+        d["host"], d["ip"], d["public_url"] = "citadel", "", ""
+        d["paths"] = {k: REDACTED for k in d.get("paths", {})}
+        for l in d.get("links", []):
+            for k in ("url", "health_url"):
+                if l.get(k) and private_url(l[k].replace("{host}", "localhost")):
+                    l[k] = REDACTED
+            if HAS_ADDRESS.search(l.get("subtitle") or ""):
+                l["subtitle"] = REDACTED
+        for pr in d.get("projects", []):
+            pr.update(url=REDACTED if pr.get("url") else "", cwd=REDACTED, command=REDACTED,
+                      env={k: REDACTED for k in (pr.get("env") or {})})
+        d["remote"] = [{**x, "address": REDACTED} for x in d.get("remote", [])]
+        d["devices"] = [{**dv, "id": f"demo-{i + 1}", "name": REDACTED, "user_agent": REDACTED, "current": i == 0}
+                        for i, dv in enumerate(d.get("devices", []))]
+        w = d.get("widgets", {})
+        if "bins" in w:
+            w["bins"]["settings"]["uprn"] = REDACTED
+        if "radar" in w:
+            w["radar"]["settings"]["latlong"] = REDACTED
+        if "diary" in w:
+            w["diary"]["settings"]["calendars"] = [{**c, "name": "Calendar"} for c in w["diary"]["settings"].get("calendars", [])]
+        if "shortcuts" in w:
+            sc = w["shortcuts"]["settings"]
+            sc["shortcuts"] = [{**x, "label": REDACTED, "url": REDACTED_URL, "icon_mode": "builtin", "icon": "globe", "image": ""}
+                               for x in sc.get("shortcuts", [])]
+    elif path == "/api/owner/gigs":
+        data["gigs"] = [clean_gig(g) for g in data.get("gigs", [])]
+    elif path.startswith("/api/owner/logs"):
+        data["items"] = [{**i, "detail": None} for i in data.get("items", [])]   # tracebacks and request details
+    return scrub(data)
 
 
 # ---- 3. the frontend -------------------------------------------------------------------------------------------------------
@@ -215,9 +306,8 @@ def copy_frontend(out: Path, snap_label: str) -> None:
     for sub in ("css", "js", "fonts", "img"):
         shutil.copytree(WEB / sub, out / sub)
     for js in (out / "js").glob("*.js"):
-        if js.name in ("settings.js", "tv.js", "guest.js", "pair.js"):
+        if js.name in ("tv.js", "guest.js", "pair.js"):
             js.unlink()                                       # pages the demo doesn't have
-    (out / "css" / "settings.css").unlink(missing_ok=True)
     (out / "css" / "tv.css").unlink(missing_ok=True)
     (out / "css" / "guest.css").unlink(missing_ok=True)
     (out / "css" / "jellyfin-theme.css").unlink(missing_ok=True)
@@ -235,6 +325,13 @@ def copy_frontend(out: Path, snap_label: str) -> None:
     edit("js/content-cards.js", ("startsWith('/covers/')", "startsWith('covers/')"))
     edit("js/app.js", ('src="/backgrounds/', 'src="backgrounds/'),
          ("let MUSIC_ORIGIN = 'http://192.168.0.66:8642';", f"let MUSIC_ORIGIN = '{COMPANION_URL.split('/', 3)[0]}//{COMPANION_URL.split('/', 3)[2]}';"))
+    # Settings' example placeholders are this house's own: a LAN address and the radar's coordinates
+    edit("js/settings.js", ('placeholder="e.g. 192.168.0.70:8096"', 'placeholder="e.g. 10.0.0.20:8096"'),
+         ("input('latlong', s.latlong, 'placeholder=\"53.4808,-2.2426\"')", "input('latlong', s.latlong, 'placeholder=\"51.5074,-0.1278\"')"))
+    # Settings is the static settings.html here: the frame opens it, keeping any ?add=…#section a link asked for
+    edit("js/app.js",
+         ("if (l.pathname === '/settings') at = l.pathname + l.search + l.hash;", "if (l.pathname.endsWith('/settings.html')) at = 'settings.html' + l.search + l.hash;"),
+         ("const to = settingsNext || at || '/settings';", "const to = (settingsNext || at || '/settings').replace(/^\\/settings/, 'settings.html');"))
     # A url() in a custom property set from script is resolved against… it depends; an absolute URL settles it.
     edit("js/theme.js", ('`url("/backgrounds/${bg.file}")`', '`url("${new URL(`backgrounds/${bg.file}`, document.baseURI).href}")`'))
 
@@ -261,6 +358,16 @@ def copy_frontend(out: Path, snap_label: str) -> None:
     if html.count('class="frame-shell" hidden') != len(NOT_HERE):
         raise SystemExit("build_demo: couldn't hide every home-network frame in index.html")
     (out / "index.html").write_text(html)
+
+    sx = (WEB / "settings.html").read_text()
+    sx = must_replace(sx, '"/static/', '"', "settings.html")
+    sx = must_replace(sx, '<script src="js/theme-init.js"></script>', '<script src="demo.js"></script>\n<script src="js/theme-init.js"></script>', "settings.html", 1)
+    sx = must_replace(sx, '<link rel="stylesheet" href="css/lcars-settings.css">', '<link rel="stylesheet" href="css/lcars-settings.css">\n<link rel="stylesheet" href="demo.css">', "settings.html", 1)
+    sx = must_replace(sx, '<a class="btn" href="/">', '<a class="btn" href="index.html">', "settings.html", 1)
+    sx = must_replace(sx, '<div class="sx">', '<div class="sx">\n  <div class="demo-banner" role="note"><b>Read-only snapshot</b>'
+                      f'<span>These are my real settings as they were on {snap_label}, with anything private redacted. Look around freely: '
+                      'nothing you change here is saved.</span></div>', "settings.html", 1)
+    (out / "settings.html").write_text(sx)
 
     for p in out.rglob("*"):
         if p.suffix in (".js", ".css", ".html") and "/static/" in p.read_text():
@@ -387,6 +494,8 @@ def main() -> None:
             data = censor_state(data)
         elif path.startswith("/api/owner/music"):
             data = censor_music(path, data)
+        elif path in SETTINGS_GETS:
+            data = censor_settings(path, data)
         cleaned[path] = rewrite_paths(data, files)
 
     tmp_out = out.with_name(out.name + ".building")

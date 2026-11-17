@@ -14,7 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from . import __version__, alerts, appearance, auth, config, db, notify, procs, schemas, state
+from . import __version__, alerts, appearance, auth, config, db, navigation, notify, procs, schemas, state
 from .bus import bus
 from .health import Health
 from .widgets import discover
@@ -76,6 +76,28 @@ async def put_alert_settings(body: schemas.AlertSettingsIn):
     return alerts.settings()
 
 
+@router.get("/navigation")
+async def get_navigation(request: Request):
+    return navigation.for_settings(auth.current_device(request)["id"])
+
+
+@router.put("/navigation")
+async def put_navigation(body: schemas.NavigationIn, request: Request):
+    me = auth.current_device(request)["id"]
+    navigation.save([p.model_dump() for p in body.pages], me if body.device else None)
+    notify.config()
+    return navigation.for_settings(me)
+
+
+@router.delete("/navigation/device")
+async def forget_device_navigation(request: Request):
+    """This device goes back to every device's set."""
+    me = auth.current_device(request)["id"]
+    navigation.forget(me)
+    notify.config()
+    return navigation.for_settings(me)
+
+
 # ---- project control ---------------------------------------------------------------------------
 
 def _project(slug: str, *, enabled_only: bool = True) -> dict[str, Any]:
@@ -121,7 +143,8 @@ def _link_cfg(r: sqlite3.Row) -> dict[str, Any]:
     return {"id": r["id"], "name": r["name"], "subtitle": r["subtitle"], "url": r["url"], "icon": r["icon"],
             "health_url": r["health_url"] or "", "is_primary": bool(r["is_primary"]), "show_guest": bool(r["show_guest"]), "tier": r["tier"],
             "pinned": r["pin_order"] is not None, "for_media": bool(r["for_media"]), "for_music": bool(r["for_music"]), "for_sql": bool(r["for_sql"]),
-            "for_ai": bool(r["for_ai"]), "for_house": bool(r["for_house"])}
+            "for_ai": bool(r["for_ai"]), "for_house": bool(r["for_house"]),
+            "for_casino": bool(r["for_casino"])}
 
 
 def _project_cfg(r: sqlite3.Row) -> dict[str, Any]:
@@ -137,7 +160,7 @@ async def get_config(request: Request):
     with db.db() as con:
         links = [_link_cfg(r) for r in con.execute("SELECT * FROM links ORDER BY pin_order IS NULL, pin_order, sort, name")]
         projects = [_project_cfg(r) for r in con.execute("SELECT * FROM projects ORDER BY pin_order IS NULL, pin_order, sort, name")]
-        remote = [{"id": r["id"], "name": r["name"], "address": r["address"]} for r in con.execute("SELECT * FROM remote_hosts ORDER BY sort, id")]
+        remote = [{"id": r["id"], "name": r["name"], "address": r["address"], "viewer": r["viewer"]} for r in con.execute("SELECT * FROM remote_hosts ORDER BY sort, id")]
     me = auth.current_device(request)["id"]
     return {
         "version": __version__, "host": socket.gethostname(), "ip": config.lan_ip(), "public_url": config.public_url(),
@@ -145,7 +168,7 @@ async def get_config(request: Request):
         "links": links, "projects": projects, "remote": remote,
         "widgets": {wid: {"title": w.title, "settings": w.public_settings(db.get_settings(w.id, w.defaults))} for wid, w in discover().items()},
         "devices": [{**d, "current": d["id"] == me} for d in auth.list_devices() if not d["revoked"]],
-        "screens": state.tv_settings(), "tv_panels": list(schemas.TV_PANELS), "alerts": alerts.settings(),
+        "screens": state.tv_settings(), "tv_panels": list(schemas.TV_PANELS), "alerts": alerts.settings(), "navigation": navigation.for_settings(me),
         "icons": schemas.ICONS, "streams": {k: v["title"] for k, v in STREAMS.items()}, "colours": ["violet", "silver", "indigo"],
         "appearance": {"themes": appearance.themes(), "skins": list(appearance.SKINS), "modes": list(appearance.MODES),
                        "base_panel": appearance.BASE_PANEL, "base_accent": appearance.BASE_ACCENT,
@@ -248,6 +271,16 @@ def _apply_for_house(con: sqlite3.Connection, link_id: Any, for_house: bool) -> 
     con.execute("UPDATE links SET for_house = 1 WHERE id = ?", (link_id,))
 
 
+def _apply_for_casino(con: sqlite3.Connection, link_id: Any, for_casino: bool) -> None:
+    """Same idea as _apply_for_house, for the Casino page's iframe (Casino World). Link-only too: the server itself is
+    a project (casino-world), but the page embeds whatever link is marked."""
+    if not for_casino:
+        con.execute("UPDATE links SET for_casino = 0 WHERE id = ?", (link_id,))
+        return
+    con.execute("UPDATE links SET for_casino = 0 WHERE id != ?", (link_id,))
+    con.execute("UPDATE links SET for_casino = 1 WHERE id = ?", (link_id,))
+
+
 def _apply_page(con: sqlite3.Connection, slug: str, column: str, on: bool | None) -> None:
     """A project as the Companion (for_music) or SQL DB (for_sql) page's source. One source per page across links
     and projects together, so choosing a project here takes the job from whichever link or project had it."""
@@ -273,6 +306,7 @@ async def create_link(body: schemas.LinkIn, request: Request):
         _apply_for_sql(con, cur.lastrowid, body.for_sql)
         _apply_for_ai(con, cur.lastrowid, body.for_ai)
         _apply_for_house(con, cur.lastrowid, body.for_house)
+        _apply_for_casino(con, cur.lastrowid, body.for_casino)
     notify.config()
     asyncio.create_task(request.app.state.health.sweep_now())
     return {"id": cur.lastrowid}
@@ -297,6 +331,7 @@ async def update_link(link_id: int, body: schemas.LinkIn, request: Request):
             _apply_for_sql(con, link_id, body.for_sql)
             _apply_for_ai(con, link_id, body.for_ai)
             _apply_for_house(con, link_id, body.for_house)
+            _apply_for_casino(con, link_id, body.for_casino)
     if not n:
         raise HTTPException(404, "no such link")
     notify.config()
@@ -410,7 +445,7 @@ def _remote(host_id: int) -> dict[str, Any]:
 async def create_remote(body: schemas.RemoteHostIn, request: Request):
     with db.db() as con:
         sort = con.execute("SELECT COALESCE(MAX(sort), 0) + 10 FROM remote_hosts").fetchone()[0]
-        cur = con.execute("INSERT INTO remote_hosts (name, address, sort) VALUES (?, ?, ?)", (body.name, body.address, sort))
+        cur = con.execute("INSERT INTO remote_hosts (name, address, viewer, sort) VALUES (?, ?, ?, ?)", (body.name, body.address, body.viewer, sort))
     notify.config()
     asyncio.create_task(request.app.state.health.sweep_now())
     return {"id": cur.lastrowid}
@@ -429,7 +464,7 @@ async def reorder_remote(body: schemas.IdList):
 async def update_remote(host_id: int, body: schemas.RemoteHostIn, request: Request):
     _remote(host_id)
     with db.db() as con:
-        con.execute("UPDATE remote_hosts SET name = ?, address = ? WHERE id = ?", (body.name, body.address, host_id))
+        con.execute("UPDATE remote_hosts SET name = ?, address = ?, viewer = ? WHERE id = ?", (body.name, body.address, body.viewer, host_id))
     notify.config()
     asyncio.create_task(request.app.state.health.sweep_now())
     return {"ok": True}
@@ -634,6 +669,8 @@ async def delete_device(device_id: str, request: Request):
         raise HTTPException(400, "You can't revoke the device you're using.")
     if not auth.revoke_device(device_id):
         raise HTTPException(404, "no such device")
+    if navigation.forget(device_id):                   # its own navigation, if it had one, goes with it
+        notify.config()
     return {"ok": True}
 
 

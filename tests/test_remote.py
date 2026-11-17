@@ -35,6 +35,41 @@ def test_crud_and_order(owner_client):
     assert owner_client.delete(f"{BASE}/remote/{b}").status_code == 404
 
 
+def test_viewer_defaults_to_krdc_and_can_be_tigervnc(owner_client):
+    a = mk(owner_client, "NZXT", "192.168.0.70")
+    assert cfg(owner_client)[0]["viewer"] == "krdc"
+    assert owner_client.put(f"{BASE}/remote/{a}", json={"name": "Pi 2", "address": "pi-2.local", "viewer": "tigervnc"}).status_code == 200
+    assert cfg(owner_client)[0]["viewer"] == "tigervnc"
+    assert owner_client.put(f"{BASE}/remote/{a}", json={"name": "x", "address": "pi-2.local", "viewer": "rustdesk"}).status_code == 422
+
+
+@pytest.mark.parametrize("address,viewer,argv", [
+    ("192.168.0.70", "krdc", ["krdc", "vnc://192.168.0.70"]),          # port 5900 left off: krdcrc keys settings by this URL
+    ("pi-2.local", "tigervnc", ["vncviewer", "pi-2.local"]),
+    ("server:1", "krdc", ["krdc", "vnc://server:5901"]),
+    ("server::6000", "krdc", ["krdc", "vnc://server:6000"]),
+    ("[fd00::1]", "krdc", ["krdc", "vnc://[fd00::1]"]),
+    ("server::6000", "tigervnc", ["vncviewer", "server::6000"]),
+])
+def test_viewer_argv(address, viewer, argv):
+    assert procs.viewer_argv({"address": address, "viewer": viewer}) == argv
+
+
+def test_open_viewer_runs_the_chosen_viewer(monkeypatch):
+    import asyncio
+    calls = []
+
+    async def fake_run(*args):
+        calls.append(args)
+        return 0, "", ""
+
+    monkeypatch.setattr(procs, "_run", fake_run)
+    assert asyncio.run(procs.open_viewer({"id": 7, "name": "NZXT", "address": "192.168.0.70", "viewer": "krdc"})) is True
+    args = calls[0]
+    assert args[0] == "systemd-run" and "--unit=hub-vnc-7.service" in args
+    assert list(args[args.index("--") + 1:]) == ["krdc", "vnc://192.168.0.70"]
+
+
 @pytest.mark.parametrize("address", ["-via evil", "--help", "host name", "pi;rm", "", "a" * 300])
 def test_address_is_validated(owner_client, address):
     """An address starting with '-' would be read as one of vncviewer's own options."""

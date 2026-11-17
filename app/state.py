@@ -7,7 +7,7 @@ import socket
 from datetime import date, datetime, timedelta
 from typing import Any
 
-from . import __version__, alerts as alert_settings, appearance, config, content, db, procs
+from . import __version__, alerts as alert_settings, appearance, config, content, db, navigation, procs
 from .health import Health
 from .monitor import Monitor, low_disks
 from .schemas import TV_DEFAULTS, TV_PANELS
@@ -116,7 +116,7 @@ def links_state(health: Health, guest_only: bool = False) -> list[dict[str, Any]
             "id": r["id"], "name": r["name"], "subtitle": r["subtitle"], "url": r["url"], "icon": r["icon"],
             "primary": bool(r["is_primary"]), "tier": r["tier"], "pinned": r["pin_order"] is not None, "pin_order": r["pin_order"],
             "for_media": bool(r["for_media"]), "for_music": bool(r["for_music"]), "for_sql": bool(r["for_sql"]),
-            "for_ai": bool(r["for_ai"]), "for_house": bool(r["for_house"]),
+            "for_ai": bool(r["for_ai"]), "for_house": bool(r["for_house"]), "for_casino": bool(r["for_casino"]),
             "up": (h["ok"] if h else None),   # None = no health check configured / not probed yet
         })
     return out
@@ -346,6 +346,7 @@ async def owner_state(health: Health, device: dict[str, Any], attention: list[di
         # owner only: a sync that keeps failing, or a service that's down, is a thing to know about
         "alerts": alert_settings.visible([*compute_alerts(widgets, at), *service_alerts(projects, links, health, monitor, at), *(attention or [])]),
         "appearance": {"themes": appearance.themes()},
+        "navigation": navigation.settings(device["id"]),
     }
 
 

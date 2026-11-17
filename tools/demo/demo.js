@@ -1,10 +1,12 @@
 // Citadel online demo: runs before anything else on the page and turns the dashboard into a frozen, read-only snapshot.
 // Written by tools/build_demo.py (the snapshot time below is filled in by the build). Nothing here talks to a server:
-//  - the clock starts at the moment the snapshot was taken and ticks on from there, so "tomorrow", bin days and
-//    countdowns read the way they did that day, however long ago it was built;
+//  - the clock reads the visitor's own time of day, on the day the snapshot was taken, so "tomorrow", bin days and
+//    countdowns read the way they did that day however long ago it was built (and it isn't forever 3am);
 //  - /api/* GETs are answered from the saved JSON in data/ (anything not saved says so), every change is refused;
 //  - the event stream is a stub that "connects" and then never says anything changed;
-//  - the website's ?theme= picks the first theme, and Settings links say they aren't part of the demo.
+//  - it opens in LCARS at Night (the header buttons still switch, and a visitor's own pick is kept for next time);
+//  - redacted bookmarks and Remote Access say they aren't part of the demo; Settings is a read-only snapshot
+//    (settings.html, which loads this file too).
 (function () {
   'use strict';
   var SNAPSHOT = __SNAPSHOT_MS__;
@@ -14,18 +16,28 @@
 
   // ---- the clock ----------------------------------------------------------------------------------------------------
   var RealDate = Date;
-  var offset = SNAPSHOT - RealDate.now();
+  var snap = new RealDate(SNAPSHOT), real = new RealDate();
+  var offset = new RealDate(snap.getFullYear(), snap.getMonth(), snap.getDate(),
+    real.getHours(), real.getMinutes(), real.getSeconds(), real.getMilliseconds()).getTime() - real.getTime();
   class DemoDate extends RealDate {
     constructor(...args) { if (args.length) super(...args); else super(RealDate.now() + offset); }
     static now() { return RealDate.now() + offset; }
   }
   window.Date = DemoDate;
 
-  // ---- the mode the website opened us in (?theme=dark|light → Night/Day; the visitor's Citadel/LCARS pick is kept) ----
+  // ---- first visit: LCARS at Night (theme-init.js reads these next). The website's ?theme= is ignored on purpose.
+  // DEFAULTS_V moves visitors of an older build (which followed the website's Day/Night) onto the new default once.
+  var DEFAULTS_V = '2';
   try {
-    var t = new URLSearchParams(location.search).get('theme');
-    if (t === 'dark' || t === 'light') { localStorage.setItem('mode', t === 'light' ? 'day' : 'night'); localStorage.removeItem('theme'); }
-  } catch (e) { /* storage blocked: the page just starts at Night */ }
+    if (localStorage.getItem('demo-defaults') !== DEFAULTS_V) {
+      localStorage.setItem('mode', 'night'); localStorage.setItem('look', 'lcars');
+      localStorage.removeItem('look-spec'); localStorage.removeItem('theme');
+      localStorage.setItem('demo-defaults', DEFAULTS_V);
+    }
+  } catch (e) {
+    // storage blocked: theme-init.js can't read anything either, so put LCARS on the page by hand
+    document.documentElement.dataset.skin = 'lcars';
+  }
 
   // ---- the API, from saved files ------------------------------------------------------------------------------------
   // The file name rule must match key_of() in tools/build_demo.py.
@@ -70,8 +82,10 @@
     var key = keyOf(url);
     if (key === 'monitoring') return monitoring();
     return saved(key).then(function (text) {
-      return text === null ? reply(503, { detail: NOT_HERE })
-        : new Response(text, { status: 200, headers: { 'Content-Type': 'application/json' } });
+      if (text === null) return reply(503, { detail: NOT_HERE });
+      // the server's own "now" (bins' morning/evening wording, service uptimes) follows the demo clock too
+      if (key === 'state') { var s = JSON.parse(text); s.now = new DemoDate().toISOString(); return reply(200, s); }
+      return new Response(text, { status: 200, headers: { 'Content-Type': 'application/json' } });
     });
   };
 
@@ -103,12 +117,32 @@
     clearTimeout(toastTimer);
     toastTimer = setTimeout(function () { el.classList.remove('is-on'); }, 5000);
   }
+  // A small notice in the middle of the screen, dismissed by its button, Esc or a click outside it (demo.css).
+  function popup(title, message) {
+    var d = document.createElement('dialog');
+    d.className = 'demo-pop';
+    d.innerHTML = '<b></b><p></p><button type="button" class="btn">OK</button>';
+    d.querySelector('b').textContent = title;
+    d.querySelector('p').textContent = message;
+    d.querySelector('button').addEventListener('click', function () { d.close(); });
+    d.addEventListener('click', function (ev) { if (ev.target === d) d.close(); });
+    d.addEventListener('close', function () { d.remove(); });
+    document.body.append(d);
+    d.showModal();
+    d.querySelector('button').focus();
+  }
   document.addEventListener('click', function (e) {
-    var a = e.target.closest && e.target.closest('a[href]');
+    if (!e.target.closest) return;
+    var vnc = e.target.closest('[data-vnc], [data-vnc-close]');
+    if (vnc) { e.preventDefault(); e.stopPropagation(); popup('Remote access', 'Remote access to networked devices is not available in the Demo'); return; }
+    var a = e.target.closest('a[href]');
     if (!a) return;
     var href = a.getAttribute('href');
-    // Settings, and the Launchpad tiles of apps that only exist on the home network (their address was removed: "#").
-    if (href.indexOf('/settings') === 0) { e.preventDefault(); e.stopPropagation(); toast('Settings aren’t available in the online demo'); }
+    // Redacted bookmarks, and the Launchpad tiles of apps that only exist on the home network (their address was
+    // removed: "#"). Inside Settings: a link to a dashboard page goes to that page of the dashboard around it.
+    if (href.indexOf('https://redacted/') === 0) { e.preventDefault(); e.stopPropagation(); toast('Bookmarks are redacted in the online demo'); }
+    else if (href.indexOf('/#') === 0 && window.parent !== window) { e.preventDefault(); e.stopPropagation(); window.parent.location.hash = href.slice(1); }
+    else if (href === '/tv') { e.preventDefault(); e.stopPropagation(); toast('The TV screen isn’t part of the online demo'); }
     else if (href === '#' && a.target === '_blank') { e.preventDefault(); e.stopPropagation(); toast('That app runs on my home network only — ' + NOT_HERE.toLowerCase()); }
   }, true);
 })();

@@ -31,6 +31,12 @@ log = logging.getLogger("hub.news")
 MAX_BYTES = 5_000_000
 GENERAL_KEEP = 30              # days, for a new section and for stories whose feed has since been removed
 MOST_READ_SOURCE = "bbc-most-read"
+GUARDIAN_READ_SOURCE = "guardian-most-read"
+# The front page's Most read tiles, top to bottom: the widget that fetches each, where its stories are kept, the outlet,
+# and the setting that shows it.
+MOST_READ_LISTS = ({"id": "mostread", "source": MOST_READ_SOURCE, "outlet": "BBC News", "short": "BBC", "setting": "most_read"},
+                   {"id": "guardianread", "source": GUARDIAN_READ_SOURCE, "outlet": "The Guardian", "short": "Guardian", "setting": "most_read_guardian"})
+MOST_READ_SOURCES = tuple(lst["source"] for lst in MOST_READ_LISTS)
 
 # Never shown, whatever feed they arrive through: UK tabloids (and their sister/regional sites).
 TABLOIDS = ("thesun.co.uk", "thesun.ie", "the-sun.com", "dailymail.co.uk", "mailonsunday.co.uk", "mailplus.co.uk", "express.co.uk",
@@ -238,7 +244,7 @@ def rekey() -> int:
     and same-address copies within a feed folded into one — keeping whichever you saved, voted on or read. Cheap and
     idempotent, so it simply runs with every fetch."""
     with db.db() as con:
-        rows = con.execute("SELECT id, source, external_id, url, status, meta FROM feed_items WHERE kind = 'news' AND source != ?", (MOST_READ_SOURCE,)).fetchall()
+        rows = con.execute("SELECT id, source, external_id, url, status, meta FROM feed_items WHERE kind = 'news' AND source NOT IN (?, ?)", MOST_READ_SOURCES).fetchall()
         media = [r for r in rows if is_media(r["url"]) and r["status"] != "pinned" and not json.loads(r["meta"] or "{}").get("vote")]
         for r in media:                                    # stored before "text articles only": gone, unless you saved or voted on it
             con.execute("DELETE FROM feed_items WHERE id = ?", (r["id"],))
@@ -323,7 +329,7 @@ def _sections(value: Any) -> list[dict[str, Any]]:
             if is_tabloid(url):
                 raise ValueError(f"{fname} is a tabloid site — those are never allowed")
             fid = _slug(f.get("id") or f"{sid}-{fname}") or "feed"
-            while fid in fids or fid == MOST_READ_SOURCE:
+            while fid in fids or fid in MOST_READ_SOURCES:
                 fid += "-2"
             fids.add(fid)
             clean_feeds.append(_feed(fid, fname, url, bool(f.get("enabled", True))))
@@ -346,7 +352,7 @@ class NewsWidget(Widget):
     min_interval = 30 * 60
     log_success = False
     timeout = 120
-    defaults = {"sections": DEFAULT_SECTIONS, "most_read": True, "latest_hours": 48, "latest_cap": 20, "front_per_section": 4,
+    defaults = {"sections": DEFAULT_SECTIONS, "most_read": True, "most_read_guardian": True, "latest_hours": 48, "latest_cap": 20, "front_per_section": 4,
                 "f1_shield": True, "f1_watched": None, "f1_extra_terms": []}
 
     def public_settings(self, settings: dict[str, Any]) -> dict[str, Any]:
@@ -358,7 +364,7 @@ class NewsWidget(Widget):
         merged = {**self.defaults, **upgrade(old)}
         if "sections" in new:
             merged["sections"] = _sections(new["sections"])
-        for key in ("most_read", "f1_shield"):
+        for key in ("most_read", "most_read_guardian", "f1_shield"):
             if key in new:
                 merged[key] = bool(new[key])
         if "latest_hours" in new:
@@ -413,7 +419,7 @@ class NewsWidget(Widget):
     def _prune(self, settings: dict[str, Any]) -> None:
         """Each section keeps its stories for its own number of days (saved and liked ones for good); stories from feeds
         that are no longer in any section go after GENERAL_KEEP."""
-        known = {MOST_READ_SOURCE}
+        known = set(MOST_READ_SOURCES)
         for sec in settings["sections"]:
             ids = [f["id"] for f in sec["feeds"]]
             known.update(ids)

@@ -125,12 +125,24 @@ def vnc_port(address: str) -> tuple[str, int]:
     return host, 5900
 
 
+def viewer_argv(host: dict[str, Any]) -> list[str]:
+    """The command for a host's viewer. KRDC takes a vnc:// URL and leaves the port off when it's 5900, because it keys
+    each machine's saved settings (scale to window, skip the settings dialog) by that exact URL in ~/.config/krdcrc."""
+    if host.get("viewer") == "tigervnc":
+        return ["vncviewer", host["address"]]
+    name, port = vnc_port(host["address"])
+    if ":" in name:
+        name = f"[{name}]"
+    return ["krdc", f"vnc://{name}" + ("" if port == 5900 else f":{port}")]
+
+
 async def open_viewer(host: dict[str, Any]) -> bool:
-    """Open a VNC viewer window on this PC's desktop, as a transient unit like a desktop project (the user manager
-    carries the session's DISPLAY/WAYLAND_DISPLAY). False if that host's viewer is already open."""
+    """Open a VNC viewer window (KRDC or TigerVNC, per host) on this PC's desktop, as a transient unit like a desktop
+    project (the user manager carries the session's DISPLAY/WAYLAND_DISPLAY). False if that host's viewer is already
+    open. KRDC runs one process per window, so the unit lives as long as the window, as vncviewer's does."""
     args = ["systemd-run", "--user", f"--unit={vnc_unit(host['id'])}", "--collect", "--quiet",
             f"--description=Citadel: remote desktop on {host['name']}", "--property=TimeoutStopSec=5"]
-    rc, _, err = await _run(*args, "--", "vncviewer", host["address"])
+    rc, _, err = await _run(*args, "--", *viewer_argv(host))
     if rc != 0:
         if "already" in err.lower():
             return False
