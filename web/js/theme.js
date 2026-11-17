@@ -85,6 +85,14 @@ export function applySpec(spec = storedSpec(), m = mode(), skin = spec ? spec.sk
 
 const changed = () => document.dispatchEvent(new CustomEvent('theme:change', { detail: { base: currentTheme(), skin: currentSkin() } }));
 
+// The same device's other pages follow a change at once: the dashboard and the Settings page it frames (and any other
+// open tab). The browser tells every other page of this origin when localStorage changes.
+addEventListener('storage', e => {
+  if (e.key !== null && ![MODE_KEY, LOOK_KEY, SPEC_KEY].includes(e.key)) return;
+  applySpec();
+  changed();
+});
+
 /** Switch this device between Day and Night (whatever theme it uses). */
 export function setMode(m) {
   store.set(MODE_KEY, m === 'day' ? 'day' : 'night');

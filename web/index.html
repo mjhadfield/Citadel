@@ -28,14 +28,15 @@
     <a href="#ai" data-view="ai" title="Odysseus"><svg class="i"><use href="#i-spark"/></svg><span class="rail__label">Odysseus</span></a>
     <a href="#house" data-view="house" title="House"><svg class="i"><use href="#i-tool"/></svg><span class="rail__label">House</span></a>
     <span class="spacer"></span>
-    <a href="/settings" class="rail__settings" title="Settings"><svg class="i"><use href="#i-gear"/></svg><span class="rail__label">Settings</span></a>
+    <a href="#curate" data-view="curate" title="Curate (Music Maintenance)"><svg class="i"><use href="#i-tag"/></svg><span class="rail__label">Curate</span></a>
+    <a href="#settings" data-view="settings" class="rail__settings" title="Settings"><svg class="i"><use href="#i-gear"/></svg><span class="rail__label">Settings</span></a>
   </nav>
 
   <main class="main">
     <header class="top">
-      <div class="top__brand"><span class="wordmark">Citadel</span><span class="hud" id="host-label"></span></div>
+      <div class="top__brand"><button class="top__logo" type="button" data-alerts-toggle aria-expanded="false" aria-controls="alerts" aria-label="Reminders" title="Reminders"><svg class="i"><use href="#i-logo"/></svg><span class="top__badge" id="alerts-count" hidden></span></button><span class="wordmark">Citadel</span><span class="hud" id="host-label"></span></div>
       <div class="top__mid"><nav class="shortcuts" id="shortcuts" aria-label="Bookmarks" hidden></nav><div class="bmbar" id="bm-bar" hidden></div><dl class="readout" id="readout" aria-label="At a glance"></dl><section class="mu-bar" id="mu-bar" aria-label="Now playing"></section></div>
-      <div class="top__right"><a class="btn btn--icon top__settings" href="/settings" aria-label="Settings"><svg class="i"><use href="#i-gear"/></svg></a><button class="btn look-btn" type="button" data-mode-toggle aria-label="Switch to Day" title="Switch to Day"><svg class="i"><use href="#i-sun"/></svg><span class="look-btn__word">Day</span></button><button class="btn look-btn" type="button" data-theme-menu aria-haspopup="menu" aria-expanded="false" aria-label="Theme" title="Theme"><svg class="i"><use href="#i-palette"/></svg><span class="look-btn__word">Citadel</span><svg class="i look-btn__chev"><use href="#i-down"/></svg></button><span class="hud hud--plain badge-role"><span class="dot" id="conn-dot" title="connecting…"></span><span id="device-label">Owner device</span></span></div>
+      <div class="top__right"><a class="btn btn--icon top__settings" href="#settings" aria-label="Settings"><svg class="i"><use href="#i-gear"/></svg></a><button class="btn look-btn" type="button" data-mode-toggle aria-label="Switch to Day" title="Switch to Day"><svg class="i"><use href="#i-sun"/></svg><span class="look-btn__word">Day</span></button><button class="btn look-btn" type="button" data-theme-menu aria-haspopup="menu" aria-expanded="false" aria-label="Theme" title="Theme"><svg class="i"><use href="#i-palette"/></svg><span class="look-btn__word">Citadel</span><svg class="i look-btn__chev"><use href="#i-down"/></svg></button><span class="hud hud--plain badge-role"><span class="dot" id="conn-dot" title="connecting…"></span><span id="device-label">Owner device</span></span></div>
     </header>
     <section class="view is-active" id="view-home" data-view="home">
       <section class="alerts" id="alerts" aria-label="Reminders"></section>
@@ -57,6 +58,12 @@
     </section>
     <section class="view" id="view-house" data-view="house" aria-label="House">
       <div class="frame-shell"><iframe id="house-frame" title="Home Improvements" allow="fullscreen" allowfullscreen></iframe></div>
+    </section>
+    <section class="view" id="view-curate" data-view="curate" aria-label="Curate">
+      <div class="frame-shell"><iframe id="curate-frame" title="Music Maintenance"></iframe></div>
+    </section>
+    <section class="view" id="view-settings" data-view="settings" aria-label="Settings">
+      <div class="frame-shell"><iframe id="settings-frame" title="Settings"></iframe></div>
     </section>
   </main>
 </div>

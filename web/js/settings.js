@@ -158,8 +158,7 @@ const scRow = (x = {}) => {
 
 function shortcutsCard() {
   const s = cfg.widgets.shortcuts.settings, failed = live?.shortcuts?.data?.failed || [];
-  return card('Bookmarks — the top bar',
-    'The first four sit in the bar; the Bookmarks button drops down the rest. Use the arrows to choose which four.',
+  return card('Bookmarks — the top bar', '',
     `${statusLine(live?.shortcuts, 'shortcuts')}${failed.length ? `<div class="status-line"><span class="dot"></span>No icon found for ${esc(failed.join(', '))} — showing its first letter.</div>` : ''}
     <form class="form" data-form="shortcuts" style="padding:0 18px 12px">
       <div class="checks" style="margin-bottom:6px">${check('sc_show', 'Show the bookmarks bar', s.show, '')}</div>
@@ -1048,5 +1047,10 @@ api.subscribe(() => {
   }, 500);
 }, () => {});
 
+// The device's look changed on the dashboard (or another tab): theme.js has applied it; the Appearance tab shows the
+// current choice, so it redraws (not while a custom theme is open in the editor).
+document.addEventListener('theme:change', () => { if (tab === 'appearance' && !editing) render(); });
+
 await load();
+document.documentElement.classList.remove('lc-boot');    // the LCARS boot animation is the dashboard's; theme-init sets it everywhere
 if (addParam === 'gig') $('[data-form="gig"] input')?.focus();

@@ -54,6 +54,10 @@ function openStream(url, s) {
 }
 
 export function subscribe(onChange, onStatus = () => {}, url = '/api/owner/events', names = DEFAULT_EVENTS) {
+  // A page the dashboard frames (Settings) listens on the dashboard's stream instead of holding a connection of its
+  // own, and lets go when it unloads (it's reloaded each time it's opened).
+  const host = framer();
+  if (host) { const off = host.subscribe(onChange, onStatus, url, names); addEventListener('pagehide', off); return off; }
   let s = streams.get(url);
   if (!s) streams.set(url, s = { es: null, subs: new Set(), timer: 0 });
   const sub = { onChange, onStatus, names };
@@ -62,7 +66,13 @@ export function subscribe(onChange, onStatus = () => {}, url = '/api/owner/event
     for (const name of names) s.es.addEventListener(name, onChange);
     if (s.es.readyState === EventSource.OPEN) onStatus(true);
   } else if (!document.hidden) openStream(url, s);
+  return () => { s.subs.delete(sub); for (const name of names) s.es?.removeEventListener(name, onChange); };
 }
+/** The dashboard's subscribe(), when this page is framed by it (same origin), else null. */
+function framer() {
+  try { return window.parent !== window ? window.parent.citadelEvents || null : null; } catch { return null; }
+}
+if (window.parent === window) window.citadelEvents = { subscribe };
 
 document.addEventListener('visibilitychange', () => {
   for (const [url, s] of streams) {

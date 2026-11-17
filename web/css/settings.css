@@ -2,6 +2,9 @@
 .sx { max-width: 1240px; margin: 0 auto; padding: 22px 28px 80px; }
 .sx__top { display: flex; align-items: center; gap: 18px; margin-bottom: 22px; }
 .sx__top .wordmark { font-size: 20px; }
+/* inside the dashboard's Settings view (theme-init.js marks it): the dashboard's own header and nav are right there */
+.in-frame .sx__top { display: none; }
+.in-frame .sx { max-width: none; padding-top: 18px; }
 .sx__body { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 26px; align-items: start; }
 
 .sx__tabs { position: sticky; top: 18px; display: grid; gap: 4px; }
@@ -79,6 +82,7 @@ select.input option { background: var(--surface-3); }
 
 @media (max-width: 860px) {
   .sx { padding: 16px 16px 60px; }
+  .in-frame .sx { padding: 10px 8px 24px; }          /* the dashboard's frame already has its margin */
   .sx__body { grid-template-columns: 1fr; gap: 16px; }
   .sx__tabs { position: static; display: flex; overflow-x: auto; gap: 2px; padding-bottom: 4px; }
   .sx__tabs button { white-space: nowrap; width: auto; border-left: 0; border-bottom: 2px solid transparent; }

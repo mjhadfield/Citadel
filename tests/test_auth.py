@@ -89,7 +89,9 @@ def test_owner_root_serves_dashboard(owner_client):
 def test_security_headers(guest_client):
     r = guest_client.get("/")
     assert "script-src 'self'" in r.headers["content-security-policy"]
-    assert "frame-src http://192.168.0.70:8096" in r.headers["content-security-policy"]   # lets the Media page embed Jellyfin
+    csp = r.headers["content-security-policy"]
+    assert "frame-src 'self' http://192.168.0.70:8096" in csp   # the Settings view frames Citadel's own page; the Media page embeds Jellyfin
+    assert "frame-ancestors 'self';" in csp                     # only Citadel itself may frame Citadel
     assert r.headers["x-content-type-options"] == "nosniff"
     # API docs are not exposed
     assert guest_client.get("/docs").status_code == 404 and guest_client.get("/openapi.json").status_code == 404

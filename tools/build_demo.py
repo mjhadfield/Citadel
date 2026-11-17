@@ -48,6 +48,8 @@ NOT_HERE = {
     "media": ("film", "Media runs on a Jellyfin server on my home network."),
     "ai": ("spark", "Odysseus is a self-hosted AI app on my home network."),
     "house": ("tool", "House is a private repair tracker for my home."),
+    "curate": ("tag", "Curate is Music Companion's private maintenance tool on my home network."),
+    "settings": ("gear", "Settings are private to my home dashboard."),
 }
 
 # Made-up diary entries, (days from the snapshot, start, end, title); None = all day.

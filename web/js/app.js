@@ -38,6 +38,16 @@ function renderCard(id) {
 // week's bin or the next race still shows — and leaves a few seconds of "Undo" in its place. The server sends them
 // most urgent first; past ALERTS_SHOWN the rest fold behind "+N more" so the fixed 1440p grid isn't pushed down.
 const ALERTS_SHOWN = 6;
+// Phones: the reminders fold into a drawer behind the Citadel logo in the header (which shows how many there are),
+// on every page. placeLcars moves the strip into the header for it; it opens on a tap and closes on a tap elsewhere,
+// or once the last one is dismissed. Reminders still only go when dismissed.
+const phone = matchMedia('(max-width: 760px)');
+function alertsDrawer(on) {
+  const strip = $('#alerts');
+  on = (on ?? !strip.classList.contains('is-open')) && phone.matches && strip.childElementCount > 0;
+  strip.classList.toggle('is-open', on);
+  $('[data-alerts-toggle]').setAttribute('aria-expanded', String(on));
+}
 const UNDO_MS = 6000;
 let alertsOpen = false;
 const undoable = new Map();                           // key -> { title, timer }
@@ -61,10 +71,14 @@ function renderAlerts() {
     : alertsOpen && list.length > ALERTS_SHOWN ? '<button class="btn alerts__more" type="button" data-alerts-more aria-expanded="true">Show fewer</button>' : '';
   // Only redraw when something changed: a rebuild restarts the reminders' animations (LCARS draws them in on boot, and
   // a routine refresh mid-boot made them draw in twice), and it would lose hover and focus anyway.
+  const count = $('#alerts-count');
+  count.textContent = list.length;
+  count.hidden = !list.length;
   const html = [...undo, ...shown.map(alertHtml), more].join('');
   if (html === alertsHtml) return;
   alertsHtml = html;
   $('#alerts').innerHTML = html;
+  if (!html) alertsDrawer(false);
 }
 let alertsHtml = null;
 
@@ -154,8 +168,23 @@ function tellFrames() {
   if (sqlSrcSet && sqlOrigin) sqlFrame.contentWindow?.postMessage(look, sqlOrigin);
   if (aiSrcSet && aiOrigin) aiFrame.contentWindow?.postMessage(look, aiOrigin);
   if (houseSrcSet && houseOrigin) houseFrame.contentWindow?.postMessage(look, houseOrigin);
+  if (curateSrcSet) curateFrame.contentWindow?.postMessage(look, maintenanceOrigin());
 }
 musicFrame.addEventListener('load', tellFrames);
+
+// The Curate page: Music Maintenance (Music Companion's maintenance tool, the `music-maintenance` project) in its own
+// frame, set once like the others. It's already made to sit inside Citadel: it takes the theme from ?theme= and then
+// tellFrames, and the CSP's frame-src lists it. Not LCARS-styled; it keeps its own look in Citadel's colours.
+const curateFrame = $('#curate-frame');
+let curateSrcSet = false;
+function setCurateSrc() {
+  if (curateSrcSet) return;
+  const origin = maintenanceOrigin();
+  if (!origin) return;
+  curateFrame.src = `${origin}/?theme=${currentTheme()}`;
+  curateSrcSet = true;
+}
+curateFrame.addEventListener('load', tellFrames);
 sqlFrame.addEventListener('load', tellFrames);
 function setSqlSrc() {
   if (sqlSrcSet) return;
@@ -200,7 +229,8 @@ houseFrame.addEventListener('load', tellFrames);
 
 // The bookmarks across the top (Settings → Widgets → Bookmarks; the widget is still called "shortcuts" inside):
 // a Bookmarks button, then the first four in Settings' order. The button drops a panel with the rest, laid over the
-// reminders so the card grid never moves. Invisible until something is configured, or when it's switched off there.
+// reminders so the card grid never moves. On desktop the panel hangs from the button as a column of the button's width
+// (placeBookmarks), and starts another column alongside when it would run off the bottom of the screen. Invisible until something is configured, or when it's switched off there.
 // Links open in a new tab.
 const BM_TOP = 4;
 let shortcutsKey = null;
@@ -229,9 +259,30 @@ function renderShortcuts() {
   // The panel lists the rest. The first four are in it too, as .bm--top, which only phones show: they have no room
   // for the four in the bar.
   const tile = (s, i, top = false) => `<a class="bm${top ? ' bm--top' : ''}" href="${esc(s.url)}" target="_blank" rel="noopener noreferrer" style="--d:${80 + i * 22}ms">${scIcon(s)}<span><b>${esc(s.label || hostOf(s.url))}</b><small>${esc(hostOf(s.url))}</small></span></a>`;
-  bar.innerHTML = `<div class="bmbar__head"><span class="bmbar__cap">Bookmarks</span><span class="bmbar__note">The first four sit in the bar above. Their order is set in Settings.</span><a class="bmbar__edit" href="/settings#widgets">Edit in Settings</a></div>`
-    + `<div class="bmbar__list">${top.map((s, i) => tile(s, i, true)).join('')}${rest.map((s, i) => tile(s, i)).join('')}</div>`
-    + (rest.length ? '' : '<p class="bmbar__empty">That’s all of them. Add more in Settings and everything after the first four lands here.</p>');
+  bar.innerHTML = `<div class="bmbar__list">${top.map((s, i) => tile(s, i, true)).join('')}${rest.map((s, i) => tile(s, i)).join('')}</div>`
+    + '<a class="bmbar__edit" href="/settings#widgets">Edit in Settings</a>';
+}
+/** Desktop: hang the open panel from the Bookmarks button. Its columns are the button's width, and each holds as many
+ *  bookmarks as fit between the button and the bottom of the screen. Measured in screen pixels and divided back down by
+ *  the shell's zoom (the 2560 layout's 1.2), the same way layoutRail does. Phones keep their own fixed panel (CSS). */
+function placeBookmarks() {
+  const bar = $('#bm-bar'), btn = $('[data-bm-toggle]'), list = bar?.querySelector('.bmbar__list');
+  if (!bar || bar.hidden || !btn) return;
+  const props = ['--bm-top', '--bm-left', '--bm-w', '--bm-col', '--bm-rows'];
+  if (matchMedia('(max-width: 760px)').matches) { props.forEach(p => bar.style.removeProperty(p)); return; }
+  const z = rail.getBoundingClientRect().width / parseFloat(getComputedStyle(rail).width) || 1;
+  const b = btn.getBoundingClientRect(), m = bar.offsetParent.getBoundingClientRect(), cs = getComputedStyle(bar);
+  bar.style.setProperty('--bm-top', `${(b.bottom - m.top) / z}px`);   // flush: the panel carries on from the button
+  bar.style.setProperty('--bm-left', `${(b.left - m.left) / z}px`);
+  bar.style.setProperty('--bm-w', `${b.width / z}px`);
+  const sides = ['paddingLeft', 'paddingRight', 'borderLeftWidth', 'borderRightWidth'].reduce((n, k) => n + parseFloat(cs[k]), 0);
+  bar.style.setProperty('--bm-col', `${b.width / z - sides}px`);
+  const tiles = [...list.children].filter(t => t.offsetParent);
+  if (!tiles.length) return;
+  bar.style.setProperty('--bm-rows', tiles.length);                  // one column first, to measure a tile and the rest
+  const gap = parseFloat(getComputedStyle(list).rowGap) * z, tile = tiles[0].getBoundingClientRect().height;
+  const room = innerHeight - 16 - bar.getBoundingClientRect().top - (bar.getBoundingClientRect().height - list.getBoundingClientRect().height);
+  bar.style.setProperty('--bm-rows', Math.max(1, Math.min(tiles.length, Math.floor((room + gap) / (tile + gap)))));
 }
 /** Open/close the bookmarks panel (no argument: toggle). `now` skips the fold-away animation. */
 function bookmarks(on, now = false) {
@@ -242,7 +293,7 @@ function bookmarks(on, now = false) {
   if (on === isOpen && !now) return;
   btn?.setAttribute('aria-expanded', String(on));
   bar.classList.remove('is-opening', 'is-closing');
-  if (on) { bar.hidden = false; void bar.offsetWidth; bar.classList.add('is-opening'); return; }
+  if (on) { bar.hidden = false; placeBookmarks(); void bar.offsetWidth; bar.classList.add('is-opening'); return; }
   if (now || matchMedia('(prefers-reduced-motion: reduce)').matches) { bar.hidden = true; return; }
   bar.classList.add('is-closing');
   bar.addEventListener('animationend', () => { if (bar.classList.contains('is-closing')) { bar.hidden = true; bar.classList.remove('is-closing'); } }, { once: true });
@@ -280,6 +331,7 @@ function renderAll() {
   setSqlSrc();
   setAiSrc();
   setHouseSrc();
+  setCurateSrc();
   music.onState(state);
   $('#host-label').textContent = `${state.host} · ${location.hostname}`;
   $('#device-label').textContent = `${state.device.role === 'owner' ? 'Owner' : state.device.role} device`;
@@ -298,15 +350,35 @@ async function pollMonitoring() {
 }
 
 // ---- view router (Home / News / Media / Companion / SQL DB / Music / Odysseus / House) --------------------------------------------------------------
-const VIEWS = ['home', 'news', 'media', 'music', 'sql', 'listen', 'ai', 'house'];
+const VIEWS = ['home', 'news', 'media', 'music', 'sql', 'listen', 'ai', 'house', 'curate', 'settings'];
 // While an embedded page is showing, the phone keyboard shrinks the screen (interactive-widget=resizes-content) rather
 // than sliding over it, so the pinned page (dashboard.css, .main:has(...)) ends just above the keyboard and a chat box
 // at the bottom of it stays visible. Only on those pages: Home, News and Music keep the browser's default.
-const FRAME_VIEWS = ['media', 'music', 'sql', 'ai', 'house'];
+const FRAME_VIEWS = ['media', 'music', 'sql', 'ai', 'house', 'curate', 'settings'];
 const viewportMeta = $('meta[name="viewport"]');
 const VIEWPORT = viewportMeta.content;
+// Settings opens inside the dashboard, framed like the embedded pages (it's Citadel's own page, same origin). It loads
+// afresh every time it's opened, so its forms never show config that changed since, on the section a link asked for
+// or else the one it was last on (Settings keeps its section in its own address). Every link to /settings on the
+// dashboard comes here instead of leaving the page (see the click handler).
+const settingsFrame = $('#settings-frame');
+let settingsNext = null, lastView = null;
+function openSettings() {
+  let at = null;
+  try { const l = settingsFrame.contentWindow.location; if (l.pathname === '/settings') at = l.pathname + l.search + l.hash; } catch { /* not loaded yet */ }
+  const to = settingsNext || at || '/settings';
+  settingsNext = null;
+  if (!settingsFrame.getAttribute('src')) { settingsFrame.src = to; return; }
+  // a new address that differs only after the # doesn't reload a page by itself, so reload explicitly
+  const w = settingsFrame.contentWindow;
+  w.location.replace(to);
+  w.location.reload();
+}
+
 function route() {
   const v = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'home';
+  if (v === 'settings' && lastView !== 'settings') openSettings();
+  lastView = v;
   viewportMeta.content = FRAME_VIEWS.includes(v) ? `${VIEWPORT}, interactive-widget=resizes-content` : VIEWPORT;
   document.documentElement.dataset.page = v;         // the header's middle slot follows it (shortcuts, or the Music page's player)
   $$('.view').forEach(el => el.classList.toggle('is-active', el.dataset.view === v));
@@ -355,6 +427,7 @@ document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   if ($('#theme-menu')) { closeThemeMenu(); themeBtn?.focus(); }
   if (!$('#bm-bar')?.hidden) { bookmarks(false); $('[data-bm-toggle]')?.focus(); }
+  if ($('#alerts').classList.contains('is-open')) { alertsDrawer(false); $('[data-alerts-toggle]').focus(); }
 });
 // LCARS lays the header out differently, so two pieces move into it: the reminders (a row inside the header's frame,
 // under the bookmarks and buttons) and the readout (centred on the header itself, not in the bookmarks' slot).
@@ -381,13 +454,11 @@ function placeLcars() {
   if (currentSkin() === 'lcars' && lastSkin === 'citadel') bootLcars();     // switched to LCARS just now
   lastSkin = currentSkin();
   const top = $('.top'), strip = $('#alerts'), readout = $('#readout');
-  if (currentSkin() === 'lcars') {
-    if (strip.parentElement !== top) top.append(strip);
-    if (readout.parentElement !== top) top.append(readout);
-  } else {
-    if (strip.parentElement.id !== 'view-home') $('#view-home').prepend(strip);
-    if (readout.parentElement === top) $('#mu-bar').before(readout);
-  }
+  // the reminders sit in the header in LCARS, and on phones in both themes (their drawer, see alertsDrawer)
+  if (currentSkin() === 'lcars' || phone.matches) { if (strip.parentElement !== top) top.append(strip); }
+  else if (strip.parentElement.id !== 'view-home') $('#view-home').prepend(strip);
+  if (currentSkin() === 'lcars') { if (readout.parentElement !== top) top.append(readout); }
+  else if (readout.parentElement === top) $('#mu-bar').before(readout);
   // LCARS has no separate logo at the top of the rail: Home wears it instead (rail and phone tab bar alike)
   // (the rail and tab bar links only: the Home page section is [data-view="home"] too, and holds every card's icons)
   $$('.rail [data-view="home"] use, .tabbar [data-view="home"] use').forEach(u => u.setAttribute('href', currentSkin() === 'lcars' ? '#i-logo' : '#i-home'));
@@ -404,15 +475,19 @@ function layoutRail() {
   if (currentSkin() !== 'lcars' || !rail.offsetParent || !view) { rail.style.removeProperty('--lc-home-top'); rail.style.removeProperty('--lc-body-top'); return; }
   const z = rail.getBoundingClientRect().width / parseFloat(getComputedStyle(rail).width) || 1;
   const s = $('.shell').getBoundingClientRect(), t = $('.top').getBoundingClientRect(), v = view.getBoundingClientRect();
-  const home = $('.rail [data-view="home"]').getBoundingClientRect();
-  rail.style.setProperty('--lc-home-top', `${Math.round((t.top - s.top + (t.height - home.height) / 2) / z)}px`);
+  // Home's layout height, not its on-screen box: switching to LCARS runs the boot animation, which grows the rail buttons
+  // from scaleY(0), so measured then its box is 0 tall and Home landed half its height too low
+  const homeH = parseFloat(getComputedStyle($('.rail [data-view="home"]')).height) * z;
+  rail.style.setProperty('--lc-home-top', `${Math.round((t.top - s.top + (t.height - homeH) / 2) / z)}px`);
   rail.style.setProperty('--lc-body-top', `${Math.round((v.top - s.top) / z)}px`);
 }
 new ResizeObserver(() => layoutRail()).observe($('.top'));
 addEventListener('resize', layoutRail);
+addEventListener('resize', placeBookmarks);
 addEventListener('hashchange', () => requestAnimationFrame(layoutRail));
 document.fonts?.ready.then(layoutRail);
 document.addEventListener('theme:change', () => { tellFrames(); syncLookButtons(); placeLcars(); });
+phone.addEventListener('change', () => { alertsDrawer(false); placeLcars(); });
 syncLookButtons();
 placeLcars();
 
@@ -497,8 +572,18 @@ document.addEventListener('click', async e => {
   const use = e.target.closest('[data-use-theme]');
   if (use) { setLook(use.dataset.useTheme, state?.appearance?.themes); closeThemeMenu(); return; }
   if ($('#theme-menu') && !e.target.closest('#theme-menu')) closeThemeMenu();
+  if (!e.target.closest('#alerts, [data-alerts-toggle]')) alertsDrawer(false);   // a tap outside the reminders drawer closes it
+  if (e.target.closest('[data-alerts-toggle]')) { alertsDrawer(); return; }
   if (e.target.closest('[data-bm-toggle]')) { bookmarks(); return; }
   if (!$('#bm-bar').hidden && (e.target.closest('.bm, .bmbar__edit') || !e.target.closest('#bm-bar'))) bookmarks(false);   // picked one, or clicked elsewhere
+  const toSettings = e.target.closest('a[href^="/settings"]');
+  if (toSettings && e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey) {     // opens in the Settings view (openSettings)
+    e.preventDefault();
+    closeThemeMenu();
+    settingsNext = toSettings.getAttribute('href');
+    if (location.hash === '#settings') openSettings(); else location.hash = '#settings';
+    return;
+  }
   const dismiss = e.target.closest('[data-alert-dismiss]');
   if (dismiss) { dismissAlert(dismiss.dataset.alertDismiss); return; }
   const restore = e.target.closest('[data-alert-restore]');

@@ -8,6 +8,7 @@ try {
     if (ls.getItem('mode') === null) ls.setItem('mode', old === 'light' ? 'day' : 'night');
     ls.removeItem('theme'); ls.removeItem('theme-spec');
   }
+  if (window.parent !== window) r.classList.add('in-frame');      // framed by the dashboard (Settings): no header of its own
   var m = ls.getItem('mode') === 'day' ? 'day' : 'night', l = ls.getItem('look') || 'citadel', s = null;
   if (m === 'day') r.dataset.theme = 'light';
   if (l.indexOf('c:') === 0) s = JSON.parse(ls.getItem('look-spec') || 'null');

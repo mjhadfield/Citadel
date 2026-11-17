@@ -35,7 +35,7 @@
 /* ---- Views (Home / News / Media / Companion / future sections) ----------------------- */
 .view { display: none; }
 .view.is-active { display: block; }
-#view-media, #view-music, #view-sql, #view-ai, #view-house { position: relative; }
+#view-media, #view-music, #view-sql, #view-ai, #view-house, #view-curate, #view-settings { position: relative; }
 /* Same chamfered, hairline-gradient-border shell as .card (components.css) — an iframe can't carry
    ::before/::after itself, so the shell is a real wrapper element around it instead. This only reaches
    the iframe's own border/frame; whatever renders *inside* it (Jellyfin's or Companion's own UI, incl.
@@ -81,7 +81,7 @@ html.has-bg .frame-shell iframe { background: transparent; }    /* a custom them
     position: fixed; inset: 0 0 calc(63px + env(safe-area-inset-bottom)) 0;
     display: flex; flex-direction: column; padding: 14px 16px 16px;
   }
-  #view-media.is-active, #view-music.is-active, #view-sql.is-active, #view-ai.is-active, #view-house.is-active { flex: 1; height: auto; min-height: 0; }
+  #view-media.is-active, #view-music.is-active, #view-sql.is-active, #view-ai.is-active, #view-house.is-active, #view-curate.is-active, #view-settings.is-active { flex: 1; height: auto; min-height: 0; }
 }
 
 /* z-index: the header's middle slot is a size container (its own stacking layer), so the bookmarks panel it drops can
@@ -117,8 +117,10 @@ html.has-bg .frame-shell iframe { background: transparent; }    /* a custom them
 }
 
 /* ---- Bookmarks: the menu button (first in the row) and the panel it drops ---------------------------------------
-   The panel is absolutely placed under the header's middle slot (a size container, so it's the containing block) and
-   lies over the reminders: the card grid never moves. It grows down, and its tiles draw in left to right. */
+   The panel is absolutely placed in the header's middle slot (a size container, so it's the containing block) and
+   lies over the reminders: the card grid never moves. On desktop it hangs straight down from the button, a column of
+   the button's width, and adds columns to the right when it reaches the bottom of the screen (app.js placeBookmarks
+   sets --bm-*). It grows down, and its tiles draw in left to right. */
 .sc--menu { cursor: pointer; font: inherit; }
 .sc--menu .sc__label { max-width: none; }
 .sc__count { display: grid; place-items: center; min-width: 20px; height: 18px; padding: 0 5px; font: 11px var(--font-mono); color: var(--silver-mute); background: var(--well); border-radius: 9px; }
@@ -130,14 +132,23 @@ html.has-bg .frame-shell iframe { background: transparent; }    /* a custom them
   clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%); }
 .bmbar.is-opening { animation: bm-in .34s var(--ease) both; }
 .bmbar.is-closing { animation: bm-out .2s var(--ease) both; }
-.bmbar__head { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
-.bmbar__cap { font: 11px var(--font-mono); letter-spacing: .16em; text-transform: uppercase; color: var(--accent-soft); }
-.bmbar__cap::before { content: "// "; color: var(--accent); }
-.bmbar__note { font-size: 13px; color: var(--silver-dim); }
-.bmbar__edit { margin-left: auto; font: 11px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--silver-mute); }
+.bmbar__edit { display: block; width: max-content; margin: 10px 0 0 auto; font: 11px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--silver-mute); }
 .bmbar__edit:hover, .bmbar__edit:focus-visible { color: var(--accent-soft); }
-.bmbar__empty { margin: 0; font-size: 13px; color: var(--silver-dim); }
 .bmbar__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+/* Desktop: button and panel are one piece. The open button drops its bottom border and lower cut; the panel wears the
+   same opaque fill and carries the button's side borders straight down. Its own top border is drawn (as a background
+   layer) only where it's wider than the button, and the cut moves to the panel's bottom-left corner. */
+@media (min-width: 761px) {
+  .sc--menu[aria-expanded="true"] { --bm-fill: linear-gradient(var(--accent-wash) 0 0) var(--bg-2); background: var(--bm-fill); border-bottom-color: transparent;
+    clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 0 100%); }
+  .bmbar { top: var(--bm-top, calc(100% + 8px)); left: var(--bm-left, 0); right: auto; width: max-content; min-width: var(--bm-w, 0); padding: 8px;
+    border-top-color: transparent; box-shadow: none;
+    background: linear-gradient(90deg, transparent calc(var(--bm-w, 0px) - 1px), var(--edge-strong) 0) top / 100% 1px no-repeat border-box,
+      linear-gradient(var(--accent-wash) 0 0) var(--bg-2);
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 12px 100%, 0 calc(100% - 12px)); }
+  .bmbar__list { grid-template-columns: none; grid-auto-flow: column; grid-template-rows: repeat(var(--bm-rows, 8), auto); grid-auto-columns: var(--bm-col, 200px); }
+  .bmbar__list:not(:has(.bm:not(.bm--top))) + .bmbar__edit { margin-top: 0; }   /* no more than four: just the link */
+}
 .bm { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 9px 12px; color: var(--silver); border: 1px solid var(--edge);
   background: color-mix(in srgb, var(--surface) 70%, transparent); clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 0 100%);
   transition: color .15s var(--ease), border-color .15s var(--ease), background .15s var(--ease); }
@@ -152,10 +163,8 @@ html.has-bg .frame-shell iframe { background: transparent; }    /* a custom them
 @keyframes bm-out { to { transform: scaleY(0); opacity: 0; } }
 @keyframes bm-tile { from { transform: scaleX(.6); opacity: 0; } }
 .bm--top, .bmbar__list:not(:has(.bm:not(.bm--top))) { display: none; }   /* the bar's four: in the panel on phones only */
-.bmbar__list:has(.bm:not(.bm--top)) + .bmbar__empty { display: none; }
 @media (max-width: 760px) {
   .bmbar { position: fixed; top: 64px; left: 8px; right: 8px; }
-  .bmbar__note, .bmbar__empty { display: none; }
   .bm--top, .bmbar__list { display: grid; }
   .bm--top { display: flex; }
   .bmbar__list { grid-template-columns: 1fr 1fr; }
@@ -517,6 +526,21 @@ body.has-max::before { content: ""; position: fixed; inset: 0; z-index: 80; back
    Live dashboard additions (empty states, toast, log selection, legend)
    ========================================================================== */
 .alerts:empty { display: none; }
+/* Phones: the Citadel logo replaces the wordmark and opens the reminders as a drawer under the header (app.js
+   alertsDrawer; the strip is moved into .top there). The badge is how many reminders are waiting. */
+.top__logo { display: none; }
+@media (max-width: 760px) {
+  .top__brand .wordmark { display: none; }
+  .top__logo { position: relative; display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 0; background: none; cursor: pointer;
+    color: var(--accent-hi); filter: drop-shadow(0 0 10px color-mix(in srgb, var(--accent-hi) 50%, transparent)); }
+  .top__logo .i { width: 30px; height: 30px; }
+  .top__badge { position: absolute; top: -2px; right: -6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+    background: var(--warn); color: var(--bg); font: 600 11px/18px var(--font-mono); text-align: center; }
+  .top > .alerts { position: absolute; z-index: 60; top: calc(100% + 6px); left: 0; right: 0; display: none; gap: 8px; margin: 0; padding: 10px;
+    max-height: 70dvh; overflow-y: auto; transform-origin: top center;
+    background: var(--bg-2); border: 1px solid var(--edge-strong); box-shadow: 0 18px 40px var(--vignette); }
+  .top > .alerts.is-open:not(:empty) { display: grid; animation: bm-in .3s var(--ease) both; }
+}
 .empty { display: grid; justify-items: center; align-content: center; gap: 8px; height: 100%; min-height: 120px; padding: 16px; text-align: center; }
 .empty .i { width: 28px; height: 28px; color: var(--silver-dim); }
 .empty__title { font-weight: 600; color: var(--silver); }
