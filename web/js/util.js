@@ -80,6 +80,11 @@ export function tickClock() {
   $$('[data-date]').forEach(el => { el.textContent = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }); });
   $$('[data-dow]').forEach(el => { el.textContent = d.toLocaleDateString('en-GB', { weekday: 'long' }); });
   $$('[data-dmy]').forEach(el => { el.textContent = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }); });
+  // Next gig's ticking hours:minutes:seconds (shown by the LCARS theme): what's left after the whole days the card counts.
+  $$('[data-gig-at]').forEach(el => {
+    const left = Math.max(0, (new Date(el.dataset.gigAt) - d) / 1000);
+    el.textContent = `· ${pad(Math.floor(left % 86400 / 3600))}:${pad(Math.floor(left % 3600 / 60))}:${pad(Math.floor(left % 60))}`;
+  });
 }
 
 let toastTimer;

@@ -252,10 +252,13 @@ function gigs(s, ctx) {
   }
   const hero = n.in_days === 0 ? { count: 'GIG', unit: 'tonight' } : { count: String(n.in_days).padStart(2, '0'), unit: n.in_days === 1 ? 'day' : 'days' };
   const where = [n.venue, n.city].filter(Boolean).join(', ');
-  const others = d.upcoming.slice(1, 4).map(g => `<div class="subrow">${ico('bolt')}${esc(g.artist)}<span class="mono">${esc(fmtDay(g.date))}</span></div>`).join('');
+  // The venue column and the ticking HH:MM:SS are shown by the LCARS theme only (lcars.css); Citadel hides them.
+  const others = d.upcoming.slice(1, 4).map(g => `<div class="subrow">${ico('bolt')}${esc(g.artist)}<span class="subrow__venue">${esc(g.venue || '')}</span><span class="mono">${esc(fmtDay(g.date))}</span></div>`).join('');
+  // Counts down to the doors (7pm when they aren't known). Never a plain data-date attribute: tickClock() overwrites those.
+  const tick = n.in_days > 0 ? `<span class="hero__tick" data-gig-at="${esc(`${n.date}T${/^\d{2}:\d{2}$/.test(n.doors || '') ? n.doors : '19:00'}`)}"></span>` : '';
   return {
     meta: `${d.count} booked`,
-    body: `<div class="hero"><span class="hero__count">${hero.count}</span><span class="hero__unit">${hero.unit}</span></div>
+    body: `<div class="hero"><span class="hero__count">${hero.count}</span><span class="hero__unit">${hero.unit}</span>${tick}</div>
       <div class="hero__name">${esc(n.artist)}</div>
       <div class="hero__sub">${esc(where)} · ${esc(fmtDay(n.date))}${n.doors ? ` · doors ${esc(n.doors)}` : ''} · <a class="feed__link" href="${esc(gcalUrl(n))}" target="_blank" rel="noopener" title="Add to Google Calendar">diary</a></div>
       ${others}${expandedList}`,

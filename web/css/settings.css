@@ -194,6 +194,16 @@ select.input option { background: var(--surface-3); }
 .tp__tick { width: 34%; height: 3px; background: var(--tp-accent); }
 .tp__line { height: 4px; width: 80%; background: color-mix(in srgb, var(--tp-accent) 35%, transparent); }
 .tp__line--short { width: 50%; }
+/* LCARS's little picture: a rounded-left card with a lit edge */
+.tp--lcars .tp__card { border-radius: 10px 0 10px 10px; border-left: 3px solid var(--tp-accent); }
+.tp--lcars .tp__tick { width: 22%; height: 6px; border-radius: 3px; }
+.modepick { padding: 4px 18px 0; }
+.modepick .btn[aria-pressed="true"] { background: var(--accent-wash); }
+/* a custom theme's Day and Night halves, side by side when there's room */
+.halves { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 16px; margin-top: 16px; }
+.half { min-width: 0; margin: 0; padding: 12px 14px 14px; border: 1px solid var(--edge); }
+.half legend { display: inline-flex; align-items: center; gap: 6px; padding: 0 6px; font: 11px var(--font-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--accent-soft); }
+.half legend .i { width: 14px; height: 14px; }
 .item__icon--theme { width: 64px; padding: 0; border: 0; background: none; }
 .item__icon--theme .tp { width: 64px; }
 /* the editor */

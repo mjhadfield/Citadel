@@ -146,7 +146,8 @@ async def get_config(request: Request):
         "devices": [{**d, "current": d["id"] == me} for d in auth.list_devices() if not d["revoked"]],
         "screens": state.tv_settings(), "tv_panels": list(schemas.TV_PANELS), "alerts": alerts.settings(),
         "icons": schemas.ICONS, "streams": {k: v["title"] for k, v in STREAMS.items()}, "colours": ["violet", "silver", "indigo"],
-        "appearance": {"themes": appearance.themes(), "base_panel": appearance.BASE_PANEL, "base_accent": appearance.BASE_ACCENT,
+        "appearance": {"themes": appearance.themes(), "skins": list(appearance.SKINS), "modes": list(appearance.MODES),
+                       "base_panel": appearance.BASE_PANEL, "base_accent": appearance.BASE_ACCENT,
                        "fits": list(appearance.FITS), "max_background_mb": appearance.MAX_BACKGROUND // 1_000_000},
     }
 

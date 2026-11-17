@@ -2,7 +2,7 @@
 // returning HTML; forms submit to the validated owner API and the page re-renders from fresh config.
 import * as api from './api.js';
 import { $, $$, esc, ico, hhmm, ago, toast, isoOf } from './util.js';
-import { BUILTIN, chosen, specOf, useTheme, applySpec } from './theme.js';
+import { THEMES, applySpec, look, mode, setLook, setMode, specOf, syncThemes } from './theme.js';
 
 const TABS = [['links', 'Links', 'globe'], ['projects', 'Projects', 'grid'], ['widgets', 'Widgets', 'cal'], ['appearance', 'Appearance', 'sun'], ['music', 'Music', 'disc'], ['listen', 'Music page', 'wave'], ['news', 'News', 'news'], ['screens', 'Screens & devices', 'server'], ['maintenance', 'Maintenance & logs', 'gear'], ['about', 'About', 'chip']];
 const panel = $('#panel');
@@ -134,7 +134,8 @@ function statusLine(w, id = '', label = '') {
   return `<div class="status-line"${attrs}><span class="dot"></span>${pre}${w.configured ? 'Waiting for the first sync…' : 'Not set up yet'}</div>`;
 }
 
-// ---- Shortcuts: the row of web links across the top of the dashboard --------------------------------------------
+// ---- Bookmarks (the "shortcuts" widget): a Bookmarks button and the first four across the top of the dashboard,
+// the rest in its drop-down. Order here is the order there. -----------------------------------------------------
 const SC_MODES = [['site', 'Site’s own icon'], ['builtin', 'Citadel icon'], ['image', 'Image address'], ['letter', 'First letter']];
 function scPreview(x) {
   const got = (live?.shortcuts?.data?.shortcuts || []).find(s => s.id === x.id);
@@ -157,13 +158,13 @@ const scRow = (x = {}) => {
 
 function shortcutsCard() {
   const s = cfg.widgets.shortcuts.settings, failed = live?.shortcuts?.data?.failed || [];
-  return card('Shortcuts — the top bar',
-    '',
+  return card('Bookmarks — the top bar',
+    'The first four sit in the bar; the Bookmarks button drops down the rest. Use the arrows to choose which four.',
     `${statusLine(live?.shortcuts, 'shortcuts')}${failed.length ? `<div class="status-line"><span class="dot"></span>No icon found for ${esc(failed.join(', '))} — showing its first letter.</div>` : ''}
     <form class="form" data-form="shortcuts" style="padding:0 18px 12px">
-      <div class="checks" style="margin-bottom:6px">${check('sc_show', 'Show the shortcut bar', s.show, '')}</div>
+      <div class="checks" style="margin-bottom:6px">${check('sc_show', 'Show the bookmarks bar', s.show, '')}</div>
       <div id="scs">${s.shortcuts.map(scRow).join('')}</div>
-      <div class="bar-actions" style="padding:10px 0 4px">${act('sc-add', `${ico('plus')}Add shortcut`, '', 'btn--go')}${cfg.links.length ? act('sc-import', `${ico('globe')}Copy in from Links`, 'title="Adds a shortcut for each Launchpad link not already here — the links themselves are left alone"') : ''}</div>
+      <div class="bar-actions" style="padding:10px 0 4px">${act('sc-add', `${ico('plus')}Add bookmark`, '', 'btn--go')}${cfg.links.length ? act('sc-import', `${ico('globe')}Copy in from Links`, 'title="Adds a bookmark for each Launchpad link not already here — the links themselves are left alone"') : ''}</div>
       <div class="form-actions">${act('refresh-widget', 'Refresh icons', 'data-id="shortcuts"')}<button class="btn btn--solid" type="submit">Save</button></div></form>`);
 }
 
@@ -618,74 +619,90 @@ async function paintMaint() {
   const tabBtn = $('[data-tab="maintenance"]'); if (tabBtn) tabBtn.classList.toggle('has-attn', needsAttention());
 }
 
-// ---- Appearance: themes and background pictures ---------------------------------------------------------------------
+// ---- Appearance: Day/Night, the theme, and custom themes -------------------------------------------------------------
+// A device picks its mode (Day/Night) and its theme (Citadel, LCARS or a custom one) — the same two choices as the
+// dashboard header. A custom theme is built on Citadel or LCARS and has a Day half and a Night half, each with its own
+// accent, panels and optional background picture.
 const FIT_LABELS = { cover: 'Fill the screen', contain: 'Show all of it', tile: 'Tile', center: 'Centre, actual size' };
-const BUILTIN_LOOK = { dark: { panel: '#0e0b14', accent: '#8b5cf6' }, light: { panel: '#f8f0e2', accent: '#b5541f' } };
+const MODE_LABEL = { day: 'Day', night: 'Night' };
+const SKIN_LABEL = { citadel: 'Citadel', lcars: 'LCARS' };
+const BUILTIN_LOOK = { citadel: { day: { panel: '#f8f0e2', accent: '#b5541f' }, night: { panel: '#0e0b14', accent: '#8b5cf6' } },
+  lcars: { day: { panel: '#f2e8d5', accent: '#b5541f' }, night: { panel: '#050407', accent: '#a78bfa' } } };
 
-function themePreview(t) {
-  const look = t.accent ? t : { ...t, ...BUILTIN_LOOK[t.id] };
-  const bg = t.background?.file ? `<img src="/backgrounds/${esc(t.background.file)}" alt="">` : '';
-  return `<span class="tp" style="--tp-panel:${esc(look.panel)};--tp-accent:${esc(look.accent)};--tp-base:${look.base === 'light' ? '#f2e8d5' : '#07060a'}">${bg}
+function themePreview(t, m = mode()) {
+  const skin = t.skin || t.id, h = t[m] || BUILTIN_LOOK[skin]?.[m] || BUILTIN_LOOK.citadel[m];
+  const bg = h.background?.file ? `<img src="/backgrounds/${esc(h.background.file)}" alt="">` : '';
+  return `<span class="tp${skin === 'lcars' ? ' tp--lcars' : ''}" style="--tp-panel:${esc(h.panel)};--tp-accent:${esc(h.accent)};--tp-base:${m === 'day' ? '#f2e8d5' : '#07060a'}">${bg}
     <span class="tp__card"><span class="tp__tick"></span><span class="tp__line"></span><span class="tp__line tp__line--short"></span></span></span>`;
 }
 
-function themeForm(t) {
-  const base = t.base || 'dark', bg = t.background || {};
-  const panel = t.panel || cfg.appearance.base_panel[base], accent = t.accent || cfg.appearance.base_accent[base];
-  const pct = (n, v, min, max, step) => `<span class="range"><input type="range" name="${n}" min="${min}" max="${max}" step="${step}" value="${v}"><output>${v}%</output></span>`;
-  const ownPanel = t.panel && t.panel !== cfg.appearance.base_panel[base];       // a chosen panel colour isn't reset by switching Dark/Light
-  return `<form class="form" data-form="theme" data-id="${esc(t.id || '')}"${ownPanel ? ' data-panel-touched="1"' : ''}>
+const pct = (n, v, min, max, step) => `<span class="range"><input type="range" name="${n}" min="${min}" max="${max}" step="${step}" value="${v}"><output>${v}%</output></span>`;
+function halfFields(m, h = {}) {
+  const bg = h.background || {};
+  const panel = h.panel || cfg.appearance.base_panel[m], accent = h.accent || cfg.appearance.base_accent[m];
+  return `<fieldset class="half" data-half="${m}"><legend>${ico(m === 'day' ? 'sun' : 'moon')}${MODE_LABEL[m]}</legend>
     <div class="form-grid">
-      ${field('Name', input('name', t.name || '', 'required maxlength="40" placeholder="e.g. Midnight blue"'))}
-      ${field('Start from', select('base', [['dark', 'Dark — light text on dark panels'], ['light', 'Light — dark text on light panels']], base), '')}
-      ${field('Accent colour', `<span class="colour"><input type="color" name="accent" value="${esc(accent)}"><code>${esc(accent)}</code></span>`, '')}
-      ${field('Panel colour', `<span class="colour"><input type="color" name="panel" value="${esc(panel)}"><code>${esc(panel)}</code>${act('panel-reset', 'Reset', 'title="Back to the starting theme’s panel colour"', 'btn--icon-text')}</span>`, '')}
-      ${field('Panel see-through', pct('panel_opacity', t.panel_opacity ?? 100, 30, 100, 5), '')}
+      ${field('Accent colour', `<span class="colour"><input type="color" name="${m}_accent" value="${esc(accent)}"><code>${esc(accent)}</code></span>`, '')}
+      ${field('Panel colour', `<span class="colour"><input type="color" name="${m}_panel" value="${esc(panel)}"><code>${esc(panel)}</code>${act('panel-reset', 'Reset', `data-half="${m}" title="Back to ${MODE_LABEL[m]}’s own panel colour"`, 'btn--icon-text')}</span>`, '')}
+      ${field('Panel see-through', pct(`${m}_panel_opacity`, h.panel_opacity ?? 100, 30, 100, 5), '')}
     </div>
-    <div class="field__l" style="margin-top:18px">Background picture</div>
+    <div class="field__l" style="margin-top:14px">Background picture</div>
     <div class="bgpick">
       <span class="bgpick__thumb">${bg.file ? `<img src="/backgrounds/${esc(bg.file)}" alt="">` : '<span>None</span>'}</span>
-      <label class="btn btn--go">${ico('plus')}Choose a picture…<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" data-bg-file hidden></label>
-      ${act('bg-remove', 'Remove', bg.file ? '' : 'hidden')}
-      <input type="hidden" name="bg_file" value="${esc(bg.file || '')}">
-      <span class="field__h">JPEG, PNG, WebP or GIF, up to ${cfg.appearance.max_background_mb} MB.</span>
+      <label class="btn btn--go">${ico('plus')}Choose a picture…<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" data-bg-file data-half="${m}" hidden></label>
+      ${act('bg-remove', 'Remove', `data-half="${m}"${bg.file ? '' : ' hidden'}`)}
+      <input type="hidden" name="${m}_bg_file" value="${esc(bg.file || '')}">
     </div>
     <div class="form-grid" style="margin-top:12px">
-      ${field('Fit', select('fit', cfg.appearance.fits.map(f => [f, FIT_LABELS[f]]), bg.fit || 'cover'))}
-      ${field('Dim the picture', pct('dim', bg.dim ?? 40, 0, 90, 5), '')}
+      ${field('Fit', select(`${m}_fit`, cfg.appearance.fits.map(f => [f, FIT_LABELS[f]]), bg.fit || 'cover'))}
+      ${field('Dim the picture', pct(`${m}_dim`, bg.dim ?? 40, 0, 90, 5), '')}
     </div>
-    <div class="checks">${check('glow', 'Accent glow in the corners', bg.glow !== false)}</div>
-    <p class="field__h" style="margin-top:6px">Previews live; nothing is kept until you save.</p>
+    <div class="checks">${check(`${m}_glow`, 'Accent glow in the corners', bg.glow !== false)}</div></fieldset>`;
+}
+
+function themeForm(t) {
+  return `<form class="form" data-form="theme" data-id="${esc(t.id || '')}">
+    <div class="form-grid">
+      ${field('Name', input('name', t.name || '', 'required maxlength="40" placeholder="e.g. Midnight blue"'))}
+      ${field('Built on', select('skin', cfg.appearance.skins.map(k => [k, SKIN_LABEL[k] || k]), t.skin || 'citadel'), 'Its layout, shapes and type; your colours go on top.')}
+      ${field('Preview', select('preview', [['night', 'Night'], ['day', 'Day']], mode()), 'Which half you see on this page while you edit.')}
+    </div>
+    <div class="halves">${halfFields('day', t.day)}${halfFields('night', t.night)}</div>
+    <p class="field__h" style="margin-top:6px">JPEG, PNG, WebP or GIF pictures, up to ${cfg.appearance.max_background_mb} MB. Previews live; nothing is kept until you save.</p>
     <div class="form-actions">${act('cancel', 'Cancel')}<button class="btn btn--solid" type="submit">${t.id ? 'Save theme' : 'Create theme'}</button></div></form>`;
 }
 
 /** The theme the editor form describes right now (for the live preview and for saving). */
+function readHalf(f, m) {
+  const el = n => f.elements[`${m}_${n}`];
+  return { accent: el('accent').value, panel: el('panel').value, panel_opacity: Number(el('panel_opacity').value),
+    background: { file: el('bg_file').value, fit: el('fit').value, dim: Number(el('dim').value), glow: el('glow').checked } };
+}
 function readTheme(f) {
-  return { name: val(f, 'name'), base: f.elements.base.value, accent: f.elements.accent.value, panel: f.elements.panel.value,
-    panel_opacity: Number(f.elements.panel_opacity.value),
-    background: { file: f.elements.bg_file.value, fit: f.elements.fit.value, dim: Number(f.elements.dim.value), glow: f.elements.glow.checked } };
+  return { name: val(f, 'name'), skin: f.elements.skin.value, day: readHalf(f, 'day'), night: readHalf(f, 'night') };
 }
 function previewTheme(f) {
-  applySpec(specOf(readTheme(f)));
+  applySpec(specOf(readTheme(f)), f.elements.preview.value);
   $$('.range output', f).forEach(o => { o.textContent = `${o.previousElementSibling.value}%`; });
   $$('.colour', f).forEach(c => { c.querySelector('code').textContent = c.querySelector('input').value; });
 }
 
 function appearanceTab() {
-  const themes = cfg.appearance.themes, cur = chosen();
-  const tiles = [...BUILTIN, ...themes].map(t => `<button type="button" class="themepick${t.id === cur ? ' is-current' : ''}" data-do="use-theme" data-id="${esc(t.id)}" aria-pressed="${t.id === cur}">
+  const themes = cfg.appearance.themes, cur = look(), m = mode();
+  const modes = ['day', 'night'].map(k => `<button type="button" class="btn${k === m ? ' btn--go' : ''}" data-do="use-mode" data-mode="${k}" aria-pressed="${k === m}">${ico(k === 'day' ? 'sun' : 'moon')}${MODE_LABEL[k]}</button>`).join('');
+  const tiles = [...THEMES, ...themes].map(t => `<button type="button" class="themepick${t.id === cur ? ' is-current' : ''}" data-do="use-theme" data-id="${esc(t.id)}" aria-pressed="${t.id === cur}">
       ${themePreview(t)}<span class="themepick__name">${esc(t.name)}${t.id === cur ? `<small>${ico('check')}On this device</small>` : ''}</span></button>`).join('');
   const rows = themes.map(t => editing?.kind === 'theme' && editing.id === t.id ? `<li class="item item--edit">${themeForm(t)}</li>`
     : `<li class="item"><span class="item__icon item__icon--theme">${themePreview(t)}</span>
-        <div class="item__main"><b>${esc(t.name)}</b>${t.id === cur ? '<span class="chip chip--new">This device</span>' : ''}<span class="chip">from ${t.base === 'light' ? 'Light' : 'Dark'}</span>${t.background.file ? '<span class="chip">Background</span>' : ''}
-          <div class="item__sub">accent ${esc(t.accent)} · panels ${esc(t.panel)}${t.panel_opacity < 100 ? ` at ${t.panel_opacity}%` : ''}</div></div>
+        <div class="item__main"><b>${esc(t.name)}</b>${t.id === cur ? '<span class="chip chip--new">This device</span>' : ''}<span class="chip">built on ${esc(SKIN_LABEL[t.skin] || t.skin)}</span>${t.day.background.file || t.night.background.file ? '<span class="chip">Background</span>' : ''}
+          <div class="item__sub">Day accent ${esc(t.day.accent)} · Night accent ${esc(t.night.accent)}</div></div>
         <div class="item__acts">${act('edit-theme', 'Edit', `data-id="${esc(t.id)}"`)}${act('copy-theme', 'Duplicate', `data-id="${esc(t.id)}"`)}${act('delete-theme', 'Delete', `data-id="${esc(t.id)}" data-name="${esc(t.name)}"`, 'btn--danger')}</div></li>`).join('');
   const adding = editing?.kind === 'theme' && editing.id === 'new' ? `<li class="item item--edit">${themeForm(editing.seed || {})}</li>` : '';
-  return card('Theme on this device',
-    '',
-    `<div class="themepicks">${tiles}</div>`)
+  return card('This device',
+    'Day or Night, and which theme. The same two buttons sit in the dashboard’s header.',
+    `<div class="bar-actions modepick">${modes}</div><div class="themepicks">${tiles}</div>`)
     + card('Custom themes',
-    '',
+    'A variant of Citadel or LCARS, with its own Day and Night colours and pictures.',
     `<div class="bar-actions">${act('new-theme', `${ico('plus')}New theme`, '', 'btn--go')}</div><ul class="items">${adding}${rows}</ul>
      ${themes.length || adding ? '' : '<p class="sx__intro" style="padding-top:0">No custom themes yet.</p>'}`);
 }
@@ -700,7 +717,7 @@ function aboutTab() {
 
 // ---- rendering ---------------------------------------------------------------------------------------------------
 function render() {
-  if (editing?.kind !== 'theme') useTheme(chosen(), cfg.appearance.themes);     // ends any live preview; picks up edits made elsewhere
+  if (editing?.kind !== 'theme') { syncThemes(cfg.appearance.themes); applySpec(); }   // ends any live preview; picks up edits made elsewhere
   $('#tabs').innerHTML = TABS.map(([id, label, icon]) => `<button role="tab" data-tab="${id}" aria-selected="${id === tab}"${id === 'maintenance' && needsAttention() ? ' class="has-attn"' : ''}>${ico(icon)}${esc(label)}</button>`).join('');
   panel.innerHTML = { links: linksTab, projects: projectsTab, widgets: () => shortcutsCard() + binsCard() + notificationsCard() + diaryCard(), appearance: appearanceTab, music: () => gigsCard() + artistsCard() + releasesCard() + vinylCard() + purchasesCard() + radarCard(), listen: musicPageTab, news: newsTab, screens: () => screensCard() + pairCard() + devicesCard() + enrolCard(), maintenance: maintenanceTab, about: aboutTab }[tab]();
 }
@@ -725,16 +742,16 @@ $('#tabs').addEventListener('click', e => {
 panel.addEventListener('change', e => {
   const file = e.target.closest('[data-bg-file]');
   if (file?.files?.[0]) {
-    const f = file.closest('form'), pic = file.files[0];
+    const f = file.closest('form'), half = file.closest('[data-half]'), m = file.dataset.half, pic = file.files[0];
     file.value = '';
     if (pic.size > cfg.appearance.max_background_mb * 1_000_000) { toast(`Pictures up to ${cfg.appearance.max_background_mb} MB, please`); return; }
     toast('Uploading…');
     fetch('/api/owner/appearance/backgrounds', { method: 'POST', headers: { 'X-Hub': '1', 'Content-Type': pic.type || 'application/octet-stream' }, body: pic })
       .then(async r => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.detail || `Upload failed (${r.status})`); return j; })
       .then(({ file: name }) => {
-        f.elements.bg_file.value = name;
-        $('.bgpick__thumb', f).innerHTML = `<img src="/backgrounds/${esc(name)}" alt="">`;
-        f.querySelector('[data-do="bg-remove"]').hidden = false;
+        f.elements[`${m}_bg_file`].value = name;
+        $('.bgpick__thumb', half).innerHTML = `<img src="/backgrounds/${esc(name)}" alt="">`;
+        half.querySelector('[data-do="bg-remove"]').hidden = false;
         previewTheme(f); toast('Picture added — save the theme to keep it');
       }).catch(err => toast(err.message));
     return;
@@ -770,8 +787,6 @@ let logTimer;
 panel.addEventListener('input', e => {
   const tf = e.target.closest('[data-form="theme"]');
   if (tf && !e.target.matches('[data-bg-file]')) {
-    if (e.target.name === 'base' && !tf.dataset.panelTouched) tf.elements.panel.value = cfg.appearance.base_panel[e.target.value];
-    if (e.target.name === 'panel') tf.dataset.panelTouched = '1';
     previewTheme(tf);
     return;
   }
@@ -791,13 +806,14 @@ panel.addEventListener('click', e => {
   const d = b.dataset;
   switch (b.dataset.do) {
     case 'cancel': editing = null; render(); break;
-    case 'use-theme': useTheme(d.id, cfg.appearance.themes); render(); toast('Theme set for this device'); break;
-    case 'new-theme': editing = { kind: 'theme', id: 'new', seed: { base: document.documentElement.dataset.theme === 'light' ? 'light' : 'dark' } }; render(); $('[data-form="theme"] [name=name]')?.focus(); previewTheme($('[data-form="theme"]')); break;
+    case 'use-theme': setLook(d.id, cfg.appearance.themes); render(); toast('Theme set for this device'); break;
+    case 'use-mode': setMode(d.mode); render(); break;
+    case 'new-theme': editing = { kind: 'theme', id: 'new', seed: { skin: look() === 'lcars' ? 'lcars' : 'citadel' } }; render(); $('[data-form="theme"] [name=name]')?.focus(); previewTheme($('[data-form="theme"]')); break;
     case 'edit-theme': editing = { kind: 'theme', id: d.id }; render(); previewTheme($('[data-form="theme"]')); break;
     case 'copy-theme': { const t = cfg.appearance.themes.find(x => x.id === d.id); editing = { kind: 'theme', id: 'new', seed: { ...t, id: '', name: `${t.name} copy`.slice(0, 40) } }; render(); previewTheme($('[data-form="theme"]')); break; }
-    case 'delete-theme': if (confirm(`Delete the “${d.name}” theme? Any device using it goes back to Dark.`)) run(() => api.del(`/api/owner/appearance/themes/${d.id}`), 'Theme deleted'); break;
-    case 'panel-reset': { const f = b.closest('form'); f.elements.panel.value = cfg.appearance.base_panel[f.elements.base.value]; previewTheme(f); break; }
-    case 'bg-remove': { const f = b.closest('form'); f.elements.bg_file.value = ''; $('.bgpick__thumb', f).innerHTML = '<span>None</span>'; b.hidden = true; previewTheme(f); break; }
+    case 'delete-theme': if (confirm(`Delete the “${d.name}” theme? Any device using it goes back to Citadel.`)) run(() => api.del(`/api/owner/appearance/themes/${d.id}`), 'Theme deleted'); break;
+    case 'panel-reset': { const f = b.closest('form'); f.elements[`${d.half}_panel`].value = cfg.appearance.base_panel[d.half]; previewTheme(f); break; }
+    case 'bg-remove': { const f = b.closest('form'); f.elements[`${d.half}_bg_file`].value = ''; $('.bgpick__thumb', b.closest('[data-half]')).innerHTML = '<span>None</span>'; b.hidden = true; previewTheme(f); break; }
     case 'new-link': editing = { kind: 'link', id: 'new' }; render(); $('[data-form="link"] input')?.focus(); break;
     case 'edit-link': editing = { kind: 'link', id: Number(d.id) }; render(); break;
     case 'new-project': editing = { kind: 'project', id: 'new' }; render(); $('[data-form="project"] input')?.focus(); break;
@@ -936,7 +952,7 @@ panel.addEventListener('submit', e => {
     run(async () => {
       const saved = await (id ? api.put(`/api/owner/appearance/themes/${id}`, t) : api.post('/api/owner/appearance/themes', t));
       editing = null;
-      if (!id) useTheme(saved.id, [saved]);                // a brand-new theme: use it here straight away
+      if (!id) setLook(saved.id, [saved]);                 // a brand-new theme: use it here straight away
     }, id ? 'Theme saved' : 'Theme created — now in use on this device');
   } else if (kind === 'shortcuts') {
     const shortcuts = $$('[data-sc]', f).map(r => ({

@@ -4,7 +4,7 @@ import { cards, ui, selectedSlug } from './cards.js';
 import { vinylUi } from './content-cards.js';
 import { Shell } from './shell.js';
 import { $, $$, esc, gcalUrl, hostUrl, ico, safeUrl, tickClock, tickUptimes, toast } from './util.js';
-import { BUILTIN, chosen, currentLook, currentTheme, specOf, syncThemes, useTheme } from './theme.js';
+import { THEMES, currentLook, currentSkin, currentTheme, look, mode, setLook, setMode, syncThemes } from './theme.js';
 import * as music from './music.js';
 import * as news from './news.js';
 
@@ -59,12 +59,24 @@ function renderAlerts() {
     <button class="btn" type="button" data-alert-restore="${esc(key)}">Undo</button></div>`);
   const more = folded ? `<button class="btn alerts__more" type="button" data-alerts-more aria-expanded="false">+${folded} more</button>`
     : alertsOpen && list.length > ALERTS_SHOWN ? '<button class="btn alerts__more" type="button" data-alerts-more aria-expanded="true">Show fewer</button>' : '';
-  $('#alerts').innerHTML = [...undo, ...shown.map(alertHtml), more].join('');
+  // Only redraw when something changed: a rebuild restarts the reminders' animations (LCARS draws them in on boot, and
+  // a routine refresh mid-boot made them draw in twice), and it would lose hover and focus anyway.
+  const html = [...undo, ...shown.map(alertHtml), more].join('');
+  if (html === alertsHtml) return;
+  alertsHtml = html;
+  $('#alerts').innerHTML = html;
 }
+let alertsHtml = null;
 
 async function dismissAlert(key) {
   const a = state.alerts.find(x => x.key === key);
   if (!a) return;
+  // LCARS: the reminder shrinks away first (lcars.css .is-going); the timeout covers reduced motion, where no animation runs
+  const el = $(`[data-alert-dismiss="${CSS.escape(key)}"]`)?.closest('.alert');
+  if (el && currentSkin() === 'lcars') {
+    el.classList.add('is-going');
+    await new Promise(done => { el.addEventListener('animationend', done, { once: true }); setTimeout(done, 400); });
+  }
   undoable.set(key, { title: a.title, timer: setTimeout(() => { undoable.delete(key); state.alerts = state.alerts.filter(x => x.key !== key); renderAlerts(); }, UNDO_MS) });
   renderAlerts();
   try { await api.post('/api/owner/alerts/dismiss', { key }); }
@@ -95,7 +107,7 @@ function setMediaSrc() {
 // Same "set once" idea as setMediaSrc(), a separate latch so the two iframes never interfere with each other.
 // Music Companion reads its initial theme off this query param (it has no other way to know Citadel's
 // current theme before its own first paint); live theme changes after this point go via postMessage
-// instead, in the [data-theme-toggle] click handler below, since the iframe's src is never reassigned.
+// instead (tellFrames, on every 'theme:change'), since the iframe's src is never reassigned.
 const musicFrame = $('#music-frame');
 let MUSIC_ORIGIN = 'http://192.168.0.66:8642';
 let musicSrcSet = false;
@@ -186,8 +198,11 @@ function setHouseSrc() {
 }
 houseFrame.addEventListener('load', tellFrames);
 
-// The shortcut row across the top (Settings → Widgets → Shortcuts): invisible until something is configured,
-// or when it's switched off there. Links open in a new tab.
+// The bookmarks across the top (Settings → Widgets → Bookmarks; the widget is still called "shortcuts" inside):
+// a Bookmarks button, then the first four in Settings' order. The button drops a panel with the rest, laid over the
+// reminders so the card grid never moves. Invisible until something is configured, or when it's switched off there.
+// Links open in a new tab.
+const BM_TOP = 4;
 let shortcutsKey = null;
 function scIcon(s) {
   const letter = `<span class="sc__letter" aria-hidden="true">${esc((s.label || new URL(s.url).hostname).trim().charAt(0).toUpperCase())}</span>`;
@@ -195,23 +210,69 @@ function scIcon(s) {
   if (s.img) return `<img class="sc__img" src="${esc(s.img)}" alt="" loading="lazy" decoding="async">`;
   return letter;
 }
+const hostOf = url => { try { return new URL(url).host; } catch { return url; } };
 function renderShortcuts() {
   const w = state.widgets?.shortcuts?.data;
   const list = w && w.show ? w.shortcuts : [];
-  const nav = $('#shortcuts');
+  const nav = $('#shortcuts'), bar = $('#bm-bar');
   const key = JSON.stringify(list);
   if (key === shortcutsKey) return;                  // nothing changed: don't rebuild (keeps hover/focus steady)
   shortcutsKey = key;
+  bookmarks(false, true);
   nav.hidden = !list.length;
-  nav.innerHTML = list.map(s => {
-    let host = s.url;
-    try { host = new URL(s.url).host; } catch { /* shown as given */ }
-    return `<a class="sc${s.label ? '' : ' sc--bare'}" href="${esc(s.url)}" target="_blank" rel="noopener noreferrer" title="${esc(s.label ? `${s.label} — ${host}` : host)}">${scIcon(s)}${s.label ? `<span class="sc__label">${esc(s.label)}</span>` : ''}</a>`;
-  }).join('');
+  const top = list.slice(0, BM_TOP), rest = list.slice(BM_TOP);
+  nav.innerHTML = `<button class="sc sc--menu" type="button" data-bm-toggle aria-expanded="false" aria-controls="bm-bar" title="All bookmarks">${ico('list')}<span class="sc__label">Bookmarks</span><span class="sc__count">${list.length}</span>${ico('down', 'sc__chev')}</button>`
+    + top.map(s => {
+      const host = hostOf(s.url);
+      return `<a class="sc${s.label ? '' : ' sc--bare'}" href="${esc(s.url)}" target="_blank" rel="noopener noreferrer" title="${esc(s.label ? `${s.label} — ${host}` : host)}">${scIcon(s)}${s.label ? `<span class="sc__label">${esc(s.label)}</span>` : ''}</a>`;
+    }).join('');
+  // The panel lists the rest. The first four are in it too, as .bm--top, which only phones show: they have no room
+  // for the four in the bar.
+  const tile = (s, i, top = false) => `<a class="bm${top ? ' bm--top' : ''}" href="${esc(s.url)}" target="_blank" rel="noopener noreferrer" style="--d:${80 + i * 22}ms">${scIcon(s)}<span><b>${esc(s.label || hostOf(s.url))}</b><small>${esc(hostOf(s.url))}</small></span></a>`;
+  bar.innerHTML = `<div class="bmbar__head"><span class="bmbar__cap">Bookmarks</span><span class="bmbar__note">The first four sit in the bar above. Their order is set in Settings.</span><a class="bmbar__edit" href="/settings#widgets">Edit in Settings</a></div>`
+    + `<div class="bmbar__list">${top.map((s, i) => tile(s, i, true)).join('')}${rest.map((s, i) => tile(s, i)).join('')}</div>`
+    + (rest.length ? '' : '<p class="bmbar__empty">That’s all of them. Add more in Settings and everything after the first four lands here.</p>');
+}
+/** Open/close the bookmarks panel (no argument: toggle). `now` skips the fold-away animation. */
+function bookmarks(on, now = false) {
+  const bar = $('#bm-bar'), btn = $('[data-bm-toggle]');
+  if (!bar) return;
+  const isOpen = !bar.hidden && !bar.classList.contains('is-closing');
+  on = on ?? !isOpen;
+  if (on === isOpen && !now) return;
+  btn?.setAttribute('aria-expanded', String(on));
+  bar.classList.remove('is-opening', 'is-closing');
+  if (on) { bar.hidden = false; void bar.offsetWidth; bar.classList.add('is-opening'); return; }
+  if (now || matchMedia('(prefers-reduced-motion: reduce)').matches) { bar.hidden = true; return; }
+  bar.classList.add('is-closing');
+  bar.addEventListener('animationend', () => { if (bar.classList.contains('is-closing')) { bar.hidden = true; bar.classList.remove('is-closing'); } }, { once: true });
+}
+
+// The LCARS theme's header readout (Home only; hidden by CSS elsewhere and in Citadel): a few live numbers, every one
+// real, and this machine's LAN address (the online demo's snapshot blanks it, so it shows a dash there).
+function renderReadout() {
+  const el = $('#readout');
+  if (!el || !state) return;
+  const m = monitoring, sys = state.widgets?.system?.data;
+  const checks = [...state.projects.filter(p => p.kind === 'web').map(p => p.state === 'running' || p.state === 'external'),
+    ...state.links.filter(l => l.up !== null).map(l => l.up)];
+  const up = sys?.uptime_s;
+  const cells = [
+    ['CPU', m?.cpu?.percent != null ? `${m.cpu.percent.toFixed(1)}%` : '—'],
+    ['GPU °C', m?.gpu?.temp != null ? m.gpu.temp.toFixed(1) : '—'],
+    ['RAM', m?.mem ? `${Math.round(m.mem.used / m.mem.total * 100)}%` : '—'],
+    ['Services', `${checks.filter(Boolean).length}/${checks.length}`],
+    ['Uptime', up != null ? `${Math.floor(up / 86400)}d ${Math.floor(up % 86400 / 3600)}h` : '—'],
+    ['IP', state.ip || '—'],
+  ];
+  // a number that changed since the last reading flashes once (lcars.css .is-tick)
+  const before = Object.fromEntries([...el.querySelectorAll('div')].map(d => [d.firstChild.textContent, d.lastChild.textContent]));
+  el.innerHTML = cells.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd${k in before && before[k] !== v ? ' class="is-tick"' : ''}>${esc(v)}</dd></div>`).join('');
 }
 
 function renderAll() {
   renderShortcuts();
+  renderReadout();
   cards.forEach(c => renderCard(c.id));
   renderAlerts();
   setMediaSrc();
@@ -233,6 +294,7 @@ async function pollMonitoring() {
   if (!state || document.hidden || VIEWS.includes(location.hash.slice(1)) && location.hash !== '#home') return;   // the tile is on Home only
   try { monitoring = await api.get('/api/owner/monitoring'); } catch { /* keep the last good reading, don't blank the tile over one dropped request */ }
   renderCard('monitoring');
+  renderReadout();
 }
 
 // ---- view router (Home / News / Media / Companion / SQL DB / Music / Odysseus / House) --------------------------------------------------------------
@@ -257,35 +319,122 @@ function route() {
 addEventListener('hashchange', route);
 route();
 
-// The header's theme button opens a small menu: Dark, Light and any custom themes (Settings → Appearance).
-const themeBtn = $('[data-theme-toggle]');
-themeBtn?.setAttribute('aria-haspopup', 'menu');
-themeBtn?.setAttribute('aria-expanded', 'false');
-themeBtn?.setAttribute('title', 'Theme');
-themeBtn?.setAttribute('aria-label', 'Theme');
+// The header's two look buttons. Day/Night flips this device's mode in one press; Theme opens a small menu: the
+// built-in Citadel and LCARS, then any custom themes (Settings → Appearance). Each is this device's own choice.
+const modeBtn = $('[data-mode-toggle]');
+const themeBtn = $('[data-theme-menu]');
+function syncLookButtons() {
+  const day = mode() === 'day', to = day ? 'Night' : 'Day';     // the button names the mode it switches to
+  if (modeBtn) {
+    $('use', modeBtn).setAttribute('href', day ? '#i-moon' : '#i-sun');
+    $('.look-btn__word', modeBtn).textContent = to;
+    modeBtn.setAttribute('aria-label', `Switch to ${to}`); modeBtn.title = `Switch to ${to}`;
+  }
+  if (themeBtn) {
+    const id = look(), t = [...THEMES, ...(state?.appearance?.themes || [])].find(x => x.id === id);
+    $('.look-btn__word', themeBtn).textContent = t ? t.name : 'Citadel';
+  }
+}
 function swatch(t) {
-  if (!t.accent) return `<span class="tm__sw tm__sw--${t.id}"></span>`;
-  const s = specOf(t);
-  return `<span class="tm__sw" style="--sw-bg:${esc(t.panel)};--sw-ac:${esc(t.accent)}">${s.bg ? `<img src="/backgrounds/${esc(t.background.file)}" alt="">` : ''}</span>`;
+  const h = t[mode()];
+  if (!h) return `<span class="tm__sw tm__sw--${esc(t.id)}"></span>`;                          // a built-in theme: CSS knows its colours
+  return `<span class="tm__sw tm__sw--${esc(t.skin)}" style="--sw-bg:${esc(h.panel)};--sw-ac:${esc(h.accent)}">${h.background?.file ? `<img src="/backgrounds/${esc(h.background.file)}" alt="">` : ''}</span>`;
 }
 function closeThemeMenu() { $('#theme-menu')?.remove(); themeBtn?.setAttribute('aria-expanded', 'false'); }
 function openThemeMenu() {
-  const themes = state?.appearance?.themes || [], cur = chosen();
+  const themes = state?.appearance?.themes || [], cur = look();
   const item = t => `<button type="button" role="menuitemradio" aria-checked="${t.id === cur}" data-use-theme="${esc(t.id)}">${swatch(t)}<span>${esc(t.name)}</span>${t.id === cur ? ico('check') : ''}</button>`;
   const menu = document.createElement('div');
   menu.id = 'theme-menu'; menu.className = 'tm'; menu.setAttribute('role', 'menu');
-  menu.innerHTML = [...BUILTIN, ...themes].map(item).join('') + '<a class="tm__more" href="/settings#appearance">Customise…</a>';
+  menu.innerHTML = [...THEMES, ...themes].map(item).join('') + '<a class="tm__more" href="/settings#appearance">Customise…</a>';
   themeBtn.after(menu);
   themeBtn.setAttribute('aria-expanded', 'true');
   menu.querySelector('[aria-checked="true"]')?.focus();
 }
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('#theme-menu')) { closeThemeMenu(); themeBtn?.focus(); } });
-document.addEventListener('theme:change', tellFrames);
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if ($('#theme-menu')) { closeThemeMenu(); themeBtn?.focus(); }
+  if (!$('#bm-bar')?.hidden) { bookmarks(false); $('[data-bm-toggle]')?.focus(); }
+});
+// LCARS lays the header out differently, so two pieces move into it: the reminders (a row inside the header's frame,
+// under the bookmarks and buttons) and the readout (centred on the header itself, not in the bookmarks' slot).
+// Citadel puts them back: the reminders at the top of Home, the readout (hidden there) in the header's middle slot.
+// They're the same elements either way, just moved. In LCARS the reminders show on every page (so the header, and the
+// rail lined up with it, keep one shape); the readout stays Home's (Monitoring is only polled there).
+// LCARS motion that CSS can't trigger by itself (lcars.css, Motion). Boot: html.lc-boot for a moment after the first
+// load in LCARS and whenever a device switches to LCARS. Page change: the rail button bumps and html.lc-sweep runs a
+// light along the body's bar.
+let lastSkin = null, booted = false;
+function restartClass(el, cls, ms) {
+  el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
+  clearTimeout(el[`_${cls}`]); el[`_${cls}`] = setTimeout(() => el.classList.remove(cls), ms);
+}
+function bootLcars() { if (currentSkin() === 'lcars') restartClass(document.documentElement, 'lc-boot', 2200); }
+document.addEventListener('click', e => {
+  const link = e.target.closest('.rail a[data-view]');
+  if (!link || currentSkin() !== 'lcars') return;
+  restartClass(link, 'is-bump', 300);
+  restartClass(document.documentElement, 'lc-sweep', 700);
+});
+
+function placeLcars() {
+  if (currentSkin() === 'lcars' && lastSkin === 'citadel') bootLcars();     // switched to LCARS just now
+  lastSkin = currentSkin();
+  const top = $('.top'), strip = $('#alerts'), readout = $('#readout');
+  if (currentSkin() === 'lcars') {
+    if (strip.parentElement !== top) top.append(strip);
+    if (readout.parentElement !== top) top.append(readout);
+  } else {
+    if (strip.parentElement.id !== 'view-home') $('#view-home').prepend(strip);
+    if (readout.parentElement === top) $('#mu-bar').before(readout);
+  }
+  // LCARS has no separate logo at the top of the rail: Home wears it instead (rail and phone tab bar alike)
+  // (the rail and tab bar links only: the Home page section is [data-view="home"] too, and holds every card's icons)
+  $$('.rail [data-view="home"] use, .tabbar [data-view="home"] use').forEach(u => u.setAttribute('href', currentSkin() === 'lcars' ? '#i-logo' : '#i-home'));
+  layoutRail();
+}
+
+// LCARS rail: Home sits level with the middle of the header, and the other pages start where the page body does.
+// The header's height moves (the reminders show on Home only, and wrap), so it's measured, and re-measured whenever the
+// header changes size. Positions are taken relative to the shell, which scrolls with the header. Under the 1440p zoom
+// the measured (zoomed) pixels are divided back down to the rail's own CSS pixels.
+const rail = $('.rail');
+function layoutRail() {
+  const view = $('.view.is-active');
+  if (currentSkin() !== 'lcars' || !rail.offsetParent || !view) { rail.style.removeProperty('--lc-home-top'); rail.style.removeProperty('--lc-body-top'); return; }
+  const z = rail.getBoundingClientRect().width / parseFloat(getComputedStyle(rail).width) || 1;
+  const s = $('.shell').getBoundingClientRect(), t = $('.top').getBoundingClientRect(), v = view.getBoundingClientRect();
+  const home = $('.rail [data-view="home"]').getBoundingClientRect();
+  rail.style.setProperty('--lc-home-top', `${Math.round((t.top - s.top + (t.height - home.height) / 2) / z)}px`);
+  rail.style.setProperty('--lc-body-top', `${Math.round((v.top - s.top) / z)}px`);
+}
+new ResizeObserver(() => layoutRail()).observe($('.top'));
+addEventListener('resize', layoutRail);
+addEventListener('hashchange', () => requestAnimationFrame(layoutRail));
+document.fonts?.ready.then(layoutRail);
+document.addEventListener('theme:change', () => { tellFrames(); syncLookButtons(); placeLcars(); });
+syncLookButtons();
+placeLcars();
+
+// Keys 1–9 and 0 open the matching Home card (the LCARS theme numbers them 01–10). Not while typing, not with a card,
+// dialog or menu already open, and only on Home.
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+  const n = '1234567890'.indexOf(e.key);
+  if (n < 0 || document.documentElement.dataset.page !== 'home' || shell.open) return;
+  if (e.target.closest('input, textarea, select, [contenteditable], dialog') || $('dialog[open]') || $('#theme-menu')) return;
+  const card = [...shell.cards.values()][n]?.el;
+  if (card) { e.preventDefault(); bookmarks(false, true); shell.toggle(card); }
+});
 
 let loading = null;
 async function load() {
   if (loading) return loading;                       // coalesce bursts of events into one fetch
-  loading = api.get('/api/owner/state').then(s => { state = s; syncThemes(s.appearance?.themes); renderAll(); }).catch(e => console.error(e)).finally(() => { loading = null; });
+  loading = api.get('/api/owner/state').then(s => {
+    state = s; syncThemes(s.appearance?.themes); syncLookButtons(); renderAll();
+    // the first fill: the boot began at first paint (theme-init.js); let it finish, then take the class off
+    if (!booted) { booted = true; setTimeout(() => document.documentElement.classList.remove('lc-boot'), 1800); }
+  }).catch(e => console.error(e)).finally(() => { loading = null; });
   return loading;
 }
 let debounce;
@@ -340,14 +489,16 @@ bookForm.addEventListener('submit', async e => {
 
 // ---- start / stop -----------------------------------------------------------------------------------------
 document.addEventListener('click', async e => {
-  const themeToggle = e.target.closest('[data-theme-toggle]');
-  if (themeToggle) {
+  if (e.target.closest('[data-mode-toggle]')) { setMode(mode() === 'day' ? 'night' : 'day'); return; }
+  if (e.target.closest('[data-theme-menu]')) {
     if ($('#theme-menu')) closeThemeMenu(); else openThemeMenu();
     return;
   }
   const use = e.target.closest('[data-use-theme]');
-  if (use) { useTheme(use.dataset.useTheme, state?.appearance?.themes); closeThemeMenu(); return; }
+  if (use) { setLook(use.dataset.useTheme, state?.appearance?.themes); closeThemeMenu(); return; }
   if ($('#theme-menu') && !e.target.closest('#theme-menu')) closeThemeMenu();
+  if (e.target.closest('[data-bm-toggle]')) { bookmarks(); return; }
+  if (!$('#bm-bar').hidden && (e.target.closest('.bm, .bmbar__edit') || !e.target.closest('#bm-bar'))) bookmarks(false);   // picked one, or clicked elsewhere
   const dismiss = e.target.closest('[data-alert-dismiss]');
   if (dismiss) { dismissAlert(dismiss.dataset.alertDismiss); return; }
   const restore = e.target.closest('[data-alert-restore]');

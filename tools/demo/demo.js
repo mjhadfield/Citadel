@@ -21,11 +21,11 @@
   }
   window.Date = DemoDate;
 
-  // ---- the theme the website opened us in (?theme=dark|light) -------------------------------------------------------
+  // ---- the mode the website opened us in (?theme=dark|light → Night/Day; the visitor's Citadel/LCARS pick is kept) ----
   try {
     var t = new URLSearchParams(location.search).get('theme');
-    if (t === 'dark' || t === 'light') { localStorage.setItem('theme', t); localStorage.removeItem('theme-spec'); }
-  } catch (e) { /* storage blocked: the page just starts dark */ }
+    if (t === 'dark' || t === 'light') { localStorage.setItem('mode', t === 'light' ? 'day' : 'night'); localStorage.removeItem('theme'); }
+  } catch (e) { /* storage blocked: the page just starts at Night */ }
 
   // ---- the API, from saved files ------------------------------------------------------------------------------------
   // The file name rule must match key_of() in tools/build_demo.py.

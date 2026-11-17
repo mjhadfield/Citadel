@@ -66,7 +66,8 @@ This hooks into my [Music Companion](https://mjhadfield.github.io/music-companio
 - **Settings** - everything is editable in the browser: links, projects, news feeds, record shops, schedules, devices
 - **Event log** - every sync, failure and error, with secrets stripped out before anything is saved
 - **Nightly backups** and a health check that tells me when something's been failing
-- **Light and dark mode**, plus custom themes with your own colours and background picture
+- **Two looks, each in Day and Night** - the original Citadel, or an LCARS take on it (Star Trek's interface: elbowed frame lines, condensed type, coloured key blocks, segmented gauges, cards that open as a console). Each device picks its own from two header buttons, one for Day/Night and one for the theme. Custom themes build on either look with their own Day and Night colours and background pictures
+- **Bookmarks** - the first four in the top bar, the rest a click away in a drop-down
 - Works on my phone too
 
 And yes, there's a dark mode:

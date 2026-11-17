@@ -78,7 +78,9 @@ html.has-bg .frame-shell iframe { background: transparent; }    /* a custom them
   #view-media.is-active, #view-music.is-active, #view-sql.is-active, #view-ai.is-active, #view-house.is-active { flex: 1; height: auto; min-height: 0; }
 }
 
-.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+/* z-index: the header's middle slot is a size container (its own stacking layer), so the bookmarks panel it drops can
+   only sit over the reminders and cards if the whole header does. Still under an expanded card's backdrop (80). */
+.top { position: relative; z-index: 70; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
 .top__brand { display: flex; align-items: baseline; gap: 14px; }
 .top__brand .wordmark { font-size: 22px; }
 .top__right { display: flex; align-items: center; gap: 14px; }
@@ -103,7 +105,64 @@ html.has-bg .frame-shell iframe { background: transparent; }    /* a custom them
 .sc__letter { display: grid; place-items: center; font: 600 12px var(--font-display); color: var(--accent-soft);
   background: var(--accent-wash); border: 1px solid var(--edge-strong); border-radius: 3px; }
 .sc__label { font: 500 13px var(--font-display); letter-spacing: .02em; white-space: nowrap; max-width: 16ch; overflow: hidden; text-overflow: ellipsis; }
-@media (max-width: 760px) { .shortcuts { display: none; } }        /* a desktop home-page row: not on phones */
+@media (max-width: 760px) {                                     /* phones: just the Bookmarks button, as an icon and a count */
+  .shortcuts .sc:not(.sc--menu), .sc--menu .sc__label { display: none; }
+  .shortcuts { mask-image: none; }
+}
+
+/* ---- Bookmarks: the menu button (first in the row) and the panel it drops ---------------------------------------
+   The panel is absolutely placed under the header's middle slot (a size container, so it's the containing block) and
+   lies over the reminders: the card grid never moves. It grows down, and its tiles draw in left to right. */
+.sc--menu { cursor: pointer; font: inherit; }
+.sc--menu .sc__label { max-width: none; }
+.sc__count { display: grid; place-items: center; min-width: 20px; height: 18px; padding: 0 5px; font: 11px var(--font-mono); color: var(--silver-mute); background: var(--well); border-radius: 9px; }
+.sc .sc__chev { width: 12px; height: 12px; color: var(--silver-mute); transition: transform .25s var(--ease); }
+.sc--menu[aria-expanded="true"] { color: var(--silver-hi); border-color: var(--edge-strong); background: var(--accent-wash); }
+.sc--menu[aria-expanded="true"] .sc__chev { transform: rotate(180deg); }
+.bmbar { position: absolute; z-index: 60; top: calc(100% + 8px); left: 0; right: 0; padding: 12px 14px 14px; transform-origin: top center;
+  background: var(--bg-2); border: 1px solid var(--edge-strong); box-shadow: 0 18px 40px var(--vignette);
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%); }
+.bmbar.is-opening { animation: bm-in .34s var(--ease) both; }
+.bmbar.is-closing { animation: bm-out .2s var(--ease) both; }
+.bmbar__head { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.bmbar__cap { font: 11px var(--font-mono); letter-spacing: .16em; text-transform: uppercase; color: var(--accent-soft); }
+.bmbar__cap::before { content: "// "; color: var(--accent); }
+.bmbar__note { font-size: 13px; color: var(--silver-dim); }
+.bmbar__edit { margin-left: auto; font: 11px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--silver-mute); }
+.bmbar__edit:hover, .bmbar__edit:focus-visible { color: var(--accent-soft); }
+.bmbar__empty { margin: 0; font-size: 13px; color: var(--silver-dim); }
+.bmbar__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.bm { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 9px 12px; color: var(--silver); border: 1px solid var(--edge);
+  background: color-mix(in srgb, var(--surface) 70%, transparent); clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 0 100%);
+  transition: color .15s var(--ease), border-color .15s var(--ease), background .15s var(--ease); }
+.bm:hover, .bm:focus-visible { color: var(--silver-hi); border-color: var(--edge-strong); background: var(--accent-wash); outline: none; }
+.bm > .i, .bm > .sc__img, .bm > .sc__letter { width: 20px; height: 20px; flex: none; }
+.bm > .i { color: var(--accent-soft); }
+.bm > span:last-child { display: grid; min-width: 0; }
+.bm b { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bm small { font: 11px var(--font-mono); color: var(--silver-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.is-opening .bm { animation: bm-tile .3s var(--ease) both; animation-delay: var(--d, 0s); }
+@keyframes bm-in { from { transform: scaleY(0); opacity: 0; } }
+@keyframes bm-out { to { transform: scaleY(0); opacity: 0; } }
+@keyframes bm-tile { from { transform: scaleX(.6); opacity: 0; } }
+.bm--top, .bmbar__list:not(:has(.bm:not(.bm--top))) { display: none; }   /* the bar's four: in the panel on phones only */
+.bmbar__list:has(.bm:not(.bm--top)) + .bmbar__empty { display: none; }
+@media (max-width: 760px) {
+  .bmbar { position: fixed; top: 64px; left: 8px; right: 8px; }
+  .bmbar__note, .bmbar__empty { display: none; }
+  .bm--top, .bmbar__list { display: grid; }
+  .bm--top { display: flex; }
+  .bmbar__list { grid-template-columns: 1fr 1fr; }
+}
+
+/* LCARS-only pieces (lcars.css shows them): the header's live readout, Next gig's venue column and ticking countdown */
+.readout, .subrow__venue, .hero__tick { display: none; }
+
+/* ---- Day/Night and Theme: the header's two look buttons -------------------------------------------------------- */
+.look-btn { gap: 7px; padding: 5px 10px 5px 8px; }
+.look-btn .look-btn__chev { width: 11px; height: 11px; color: var(--silver-mute); }
+.look-btn[aria-expanded="true"] { color: var(--silver-hi); border-color: var(--edge-strong); background: var(--accent-wash); }
+@media (max-width: 760px) { .look-btn { padding: 5px; } .look-btn__word, .look-btn .look-btn__chev { display: none; } }
 .badge-role { display: inline-flex; align-items: center; gap: 6px; }
 
 /* ---- Alert strip -------------------------------------------------------- */
@@ -606,8 +665,13 @@ body.has-max::before { content: ""; position: fixed; inset: 0; z-index: 80; back
 .tm__sw { position: relative; flex: none; width: 26px; height: 18px; overflow: hidden; border: 1px solid var(--edge); background: var(--sw-bg); }
 .tm__sw::after { content: ""; position: absolute; left: 3px; right: 3px; bottom: 3px; height: 3px; background: var(--sw-ac); }
 .tm__sw img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .75; }
-.tm__sw--dark { --sw-bg: #0e0b14; --sw-ac: #8b5cf6; }
-.tm__sw--light { --sw-bg: #f8f0e2; --sw-ac: #b5541f; }
+/* built-in theme swatches, in the mode this device is in (a custom theme's come from its own colours, inline) */
+.tm__sw--citadel { --sw-bg: #0e0b14; --sw-ac: #8b5cf6; }
+.tm__sw--lcars { --sw-bg: #050407; --sw-ac: #f2b45a; border-radius: 9px 0 0 9px; }
+.tm__sw--lcars::after { left: 0; right: auto; top: 0; bottom: 0; width: 5px; height: auto; background: #a78bfa; }
+[data-theme="light"] .tm__sw--citadel { --sw-bg: #f8f0e2; --sw-ac: #b5541f; }
+[data-theme="light"] .tm__sw--lcars { --sw-bg: #f2e8d5; }
+[data-theme="light"] .tm__sw--lcars::after { background: #b5541f; }
 
 /* ---- Gig radar → Booked: the quick form (field/input/check rules copied from settings.css, which isn't loaded here) ---- */
 .book { width: min(620px, calc(100vw - 32px)); padding: 22px 24px; color: var(--silver); background: var(--surface); border: 1px solid var(--edge-strong); }
