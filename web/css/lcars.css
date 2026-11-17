@@ -65,7 +65,7 @@ html[data-skin="lcars"] .rail .rail__settings { --lc-c: var(--lc-5); }
    ========================================================================== */
 @media (min-width: 761px) {
   html[data-skin="lcars"] .shell { grid-template-columns: var(--lc-rail) 1fr; }
-  html[data-skin="lcars"] .main { padding-left: var(--lc-gut); padding-top: var(--lc-pad-top); padding-right: 14px; }   /* tighter page edges than Citadel's */
+  html[data-skin="lcars"] .main { --main-pl: var(--lc-gut); --main-pr: 14px; padding-left: var(--main-pl); padding-top: var(--lc-pad-top); padding-right: var(--main-pr); }   /* tighter page edges than Citadel's */
   html[data-skin="lcars"] .rail { border-right: 0; background: none; }
   html[data-skin="lcars"] .top::before, html[data-skin="lcars"] .view.is-active::before {
     content: ""; position: absolute; left: calc(-1 * var(--lc-gut)); width: calc(var(--lc-r) + var(--lc-line)); pointer-events: none;
@@ -92,6 +92,22 @@ html[data-skin="lcars"] .rail .rail__settings { --lc-c: var(--lc-5); }
       color-mix(in srgb, var(--lc-3) 55%, transparent) 0 86%, transparent 0 calc(86% + 5px),
       color-mix(in srgb, var(--lc-5) 55%, transparent) 0); }
   html[data-skin="lcars"] .view.is-active::after { top: calc(-1 * var(--lc-body-gap)); background: var(--lc-segs-body); }
+
+  /* An embedded page (Media, Companion, Odysseus, House) fills the body's elbow: flush against the vertical line and
+     the bar, out to the screen's right and bottom edges, with its top-left corner rounded to the elbow's inner curve
+     (the elbow's radius less the line). The bar runs on to the screen edge with it. dashboard.css gives the page its
+     full height; the frame has no border of its own here, the elbow is its border. Corners are cut with a mask, never
+     clip-path (an iframe under a clip-path flickers while it scrolls). */
+  html[data-skin="lcars"] .frame-shell {
+    --lc-in: calc(var(--lc-r) - var(--lc-line));
+    inset: calc(var(--lc-line) - var(--lc-body-gap)) calc(-1 * var(--main-pr)) 0 calc(var(--lc-line) - var(--lc-gut));
+    padding: 0; background: none;
+    mask:
+      radial-gradient(circle at 100% 100%, #000 calc(var(--lc-in) - .5px), transparent var(--lc-in)) top left / var(--lc-in) var(--lc-in) no-repeat,
+      linear-gradient(#000 0 0) top right / calc(100% - var(--lc-in)) var(--lc-in) no-repeat,
+      linear-gradient(#000 0 0) bottom / 100% calc(100% - var(--lc-in)) no-repeat;
+  }
+  html[data-skin="lcars"] .view.is-active:has(> .frame-shell)::after { right: calc(-1 * var(--main-pr)); border-radius: 0; }
 }
 
 /* ==========================================================================

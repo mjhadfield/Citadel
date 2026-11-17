@@ -29,21 +29,13 @@
 .rail .spacer { flex: 1; }
 
 /* ---- Main --------------------------------------------------------------- */
-.main { padding: 20px 28px 56px; min-width: 0; }
+/* --main-pl / --main-pr are the side paddings, kept as variables so an embedded page's frame can reach past them */
+.main { --main-pl: 28px; --main-pr: 28px; padding: 20px var(--main-pr) 56px var(--main-pl); min-width: 0; }
 
 /* ---- Views (Home / News / Media / Companion / future sections) ----------------------- */
 .view { display: none; }
 .view.is-active { display: block; }
-#view-media { position: relative; }
-#view-media.is-active { height: min(70vh, 560px); }
-#view-music { position: relative; }
-#view-music.is-active { height: min(70vh, 560px); }
-#view-sql { position: relative; }
-#view-sql.is-active { height: min(70vh, 560px); }
-#view-ai { position: relative; }
-#view-ai.is-active { height: min(70vh, 560px); }
-#view-house { position: relative; }
-#view-house.is-active { height: min(70vh, 560px); }
+#view-media, #view-music, #view-sql, #view-ai, #view-house { position: relative; }
 /* Same chamfered, hairline-gradient-border shell as .card (components.css) — an iframe can't carry
    ::before/::after itself, so the shell is a real wrapper element around it instead. This only reaches
    the iframe's own border/frame; whatever renders *inside* it (Jellyfin's or Companion's own UI, incl.
@@ -59,6 +51,20 @@
   mask:
     linear-gradient(225deg, transparent calc(var(--chamfer) * .7071), #000 0) top / 100% 51% no-repeat,
     linear-gradient(45deg, transparent calc(var(--chamfer) * .7071), #000 0) bottom / 100% 51% no-repeat;
+}
+/* Desktop: an embedded page is part of the page body rather than a card sitting in it. The page takes the whole screen
+   below the header (.main becomes header + one filling row, with no bottom padding), and the frame reaches past .main's
+   side padding: its left edge meets the rail's border line, its right and bottom edges are the screen's. Only a top
+   hairline is left of its own border (the rail line is the left one), and only the top-right corner keeps Citadel's
+   cut. LCARS lines the frame up with its elbow instead (lcars.css). */
+@media (min-width: 761px) {
+  .main:has(> .view.is-active > .frame-shell) {
+    display: grid; grid-template-rows: auto minmax(0, 1fr); padding-bottom: 0; }   /* no height: .main already stretches to the shell (100vh, or the 1440p shell under its zoom) */
+  .frame-shell {
+    inset: 0 calc(-1 * var(--main-pr)) 0 calc(-1 * var(--main-pl));
+    padding: 1px 0 0;
+    mask: linear-gradient(225deg, transparent calc(var(--chamfer) * .7071), #000 0);
+  }
 }
 .frame-shell iframe { flex: 1; width: 100%; height: 100%; border: 0; background: var(--surface); }
 html.has-bg .frame-shell iframe { background: transparent; }    /* a custom theme's picture shows through the embedded page */
@@ -421,16 +427,11 @@ body.has-max::before { content: ""; position: fixed; inset: 0; z-index: 80; back
   body { overflow: hidden; }
   .shell { height: min(100vh, 1440px); max-width: 2560px; min-height: 0; margin-inline: auto; }
   .rail { position: relative; height: 100%; }
-  .main { height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); padding: 20px 32px 24px; }
+  .main { --main-pl: 32px; --main-pr: 32px; height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); padding: 20px var(--main-pr) 24px var(--main-pl); }
   .view { min-height: 0; }
   #view-home.is-active { display: flex; flex-direction: column; }
   #view-home.is-active #alerts { flex: none; }
   #view-home.is-active #grid { flex: 1; min-height: 0; }
-  #view-media.is-active { height: auto; }
-  #view-music.is-active { height: auto; }
-  #view-sql.is-active { height: auto; }
-  #view-ai.is-active { height: auto; }
-  #view-house.is-active { height: auto; }
   .grid {
     min-height: 0; grid-template-rows: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, .95fr);
     grid-template-areas:
