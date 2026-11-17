@@ -124,7 +124,7 @@ const STATE_TEXT = { running: 'running', starting: 'starting…', unhealthy: 'no
 function projects(s, ctx) {
   const up = p => p.state === 'running' || p.state === 'external';
   const now = new Date(s.now).getTime() / 1000;
-  // A project can opt out of the Projects card (Settings → "Show in Projects") once it's launched from the
+  // A project can opt out of the Services card (Settings → "Show in Services") once it's launched from the
   // Launchpad instead — a standalone app with nothing to stop doesn't need a row here at all.
   let list = s.projects.filter(p => p.show_projects);
   if (ctx.expanded && ctx.filter === 'running') list = list.filter(p => up(p) || p.state === 'starting');
@@ -163,7 +163,7 @@ function projects(s, ctx) {
 
 // A project can opt in (Settings → Projects → "Show in Launchpad") to also appear here — the primary place for
 // launching things. A web project's tile is a plain clickthrough link, same as any other (it still start/stops from
-// the Projects card); a desktop project has no page to link to, so its tile *is* the start button.
+// the Services card); a desktop project has no page to link to, so its tile *is* the start button.
 function projectTile(p) {
   const running = p.state === 'running' || p.state === 'external';
   if (p.kind === 'web') {
@@ -201,7 +201,34 @@ function launchpad(s, ctx) {
   return { meta: '', body: tiles ? `<div class="tiles">${tiles}</div>` : empty('globe', 'No links', 'Nothing matches.') };
 }
 
+// ---- Remote Access ----------------------------------------------------------------------------------------
+
+// Each device (Settings → Remote access) is one tile that opens a VNC viewer on this PC's own screen, whichever device
+// was used to click it. The dot is whether it answers a ping; ✕ closes a viewer that's open.
+function remote(s) {
+  const list = s.remote || [];
+  if (!list.length) return { meta: '', body: empty('desk', 'No devices', 'Add one in Settings → Remote access.') };
+  const tiles = list.map(r => {
+    const busy = ui.pending[`vnc:${r.id}`];
+    const dot = r.up === true ? '<span class="dot dot--ok"></span>' : r.up === false ? '<span class="dot dot--bad"></span>' : '';
+    // a device reached by name (pi-2.local) shows the LAN address that name last resolved to
+    const sub = busy === 'open' ? 'Opening…' : busy === 'close' ? 'Closing…' : r.open ? 'Viewer open' : r.lan_ip || r.address;
+    const close = r.open ? `<button class="pinbtn is-on" data-vnc-close="${r.id}" aria-label="Close the viewer" title="Close the viewer">${ico('x')}</button>` : '';
+    return `<div class="tilewrap"><button class="tile${r.open ? ' tile--primary' : ''}" type="button" data-vnc="${r.id}" ${busy ? 'disabled' : ''}>
+      ${ico('desk')}<div><b>${esc(r.name)}</b><small>${esc(sub)}</small></div>${dot}</button>${close}</div>`;
+  }).join('');
+  return { meta: `${list.filter(r => r.up).length} / ${list.length} on`, body: `<div class="tiles">${tiles}</div>` };
+}
+
 // ---- System -----------------------------------------------------------------------------------------------
+
+/** Every status check on the dashboard: web projects (their port) and links with a status address. */
+export function serviceChecks(s) {
+  return [
+    ...s.projects.filter(p => p.kind === 'web').map(p => ({ name: p.name, ok: p.state === 'running' || p.state === 'external', detail: `:${p.port} · ${p.latency_ms != null ? ms(p.latency_ms) : STATE_TEXT[p.state]}` })),
+    ...s.links.filter(l => l.up !== null).map(l => ({ name: l.name, ok: l.up, detail: l.subtitle })),
+  ];
+}
 
 function bar(label, sub, value, pct, hot = false) {
   const v = Math.max(0, Math.min(100, Number(pct) || 0));
@@ -213,10 +240,7 @@ function system(s) {
   const w = s.widgets.system;
   if (!w.data?.disks) return { meta: '', body: empty('chip', 'Reading host…', w.error || '') };
   const d = w.data;
-  const checks = [
-    ...s.projects.filter(p => p.kind === 'web').map(p => ({ name: p.name, ok: p.state === 'running' || p.state === 'external', detail: `:${p.port} · ${p.latency_ms != null ? ms(p.latency_ms) : STATE_TEXT[p.state]}` })),
-    ...s.links.filter(l => l.up !== null).map(l => ({ name: l.name, ok: l.up, detail: l.subtitle })),
-  ];
+  const checks = serviceChecks(s);
   const disks = d.disks.map(k => bar(k.name, k.mount, `${bytes(k.used)} / ${bytes(k.size)}`, k.percent, k.percent >= 85)).join('');
   const mem = d.mem, memPct = mem.used / mem.total * 100;
   return {
@@ -292,9 +316,17 @@ function monitoring(s, ctx) {
       </div>`
     : `<div class="mon-section"><span class="hud">GPU</span><p class="dim">No NVIDIA GPU detected.</p></div>`;
 
+  // The header readout (which opens this) keeps the temperatures, usage and uptime; the rest of the old readout is here.
+  const checks = serviceChecks(s), up = s.widgets?.system?.data?.uptime_s;
+  const pc = `<div class="mon-section"><span class="hud">This PC</span>
+      <dl class="kv"><dt>name</dt><dd>${esc(s.host)}</dd><dt>LAN address</dt><dd>${esc(s.ip || '—')}</dd>
+        ${up != null ? `<dt>uptime</dt><dd>${esc(duration(up))}</dd>` : ''}
+        <dt>services</dt><dd>${checks.filter(c => c.ok).length} / ${checks.length} up</dd></dl>
+      <ul class="svcs">${checks.map(c => `<li class="svc"><span class="dot ${c.ok ? 'dot--ok' : 'dot--bad'}"></span><span>${esc(c.name)}</span><span class="mono dim">${esc(c.detail)}</span></li>`).join('')}</ul>
+    </div>`;
   return {
     meta: '',
-    body: `<div class="mon-section"><span class="hud">CPU</span>
+    body: `<div class="mon-cols"><div><div class="mon-section"><span class="hud">CPU</span>
         ${bar('Overall', '', m.cpu.percent != null ? `${m.cpu.percent}%` : '—', cpuPct, cpuPct >= 85)}
         <div class="mon-cores">${cores}</div>
         <dl class="kv">
@@ -302,13 +334,14 @@ function monitoring(s, ctx) {
           ${chiplets}
           <dt>load (1/5/15m)</dt><dd>${m.load.map(x => x.toFixed(2)).join(' · ')}</dd>
         </dl>
-      </div>
-      ${gpuSection}
+      </div></div>
+      <div>${gpuSection}
       <div class="mon-section"><span class="hud">Memory</span>
         ${bar('Used', '', `${bytes(mem.used)} / ${bytes(mem.total)}`, memPct, memPct >= 85)}
         ${mem.swap_total ? bar('Swap', '', `${bytes(mem.swap_used)} / ${bytes(mem.swap_total)}`, swapPct) : ''}
         <dl class="kv"><dt>buffers + cached</dt><dd>${bytes(mem.buffers + mem.cached)}</dd></dl>
-      </div>`,
+      </div></div>
+      <div>${pc}</div></div>`,
   };
 }
 
@@ -321,13 +354,17 @@ export const cards = [
   content.gigs,
   { id: 'diary', area: 'diary', label: 'Diary', flush: true, render: diary,
     filters: [{ label: 'Next 7 days', value: '7' }, { label: 'Next 14 days', value: '14' }, { label: 'Next 30 days', value: '30' }, { label: 'Next 60 days', value: '60' }], defaultFilter: '14' },
-  { id: 'projects', area: 'proj', label: 'Projects', flush: true, render: projects,
-    filters: [{ label: 'All', value: 'all' }, { label: 'Running', value: 'running' }, { label: 'Stopped', value: 'stopped' }] },
+  { id: 'remote', area: 'remote', label: 'Remote Access', render: remote,
+    headerAction: { icon: 'plus', label: 'Add a device', href: '/settings?add=remote#remote' } },
   content.releases,
   content.vinyl,
   content.radar,
-  // Headlines moved to its own News page (rail/tabbar) — this slot is now live hardware monitoring.
-  { id: 'monitoring', area: 'news', label: 'Monitoring', render: monitoring },
+  // The projects Citadel starts and stops (id kept as "projects": its log view and Settings use it)
+  { id: 'projects', area: 'proj', label: 'Services', flush: true, render: projects,
+    filters: [{ label: 'All', value: 'all' }, { label: 'Running', value: 'running' }, { label: 'Stopped', value: 'stopped' }] },
   { id: 'launchpad', area: 'launch', label: 'Launchpad', render: launchpad, search: true },
   { id: 'system', area: 'sys', label: 'System', render: system },
+  // No tile of its own on wide screens: the header readout opens it (dashboard.css .card--popout). Last, so it doesn't
+  // take a number from the tiles.
+  { id: 'monitoring', area: 'mon', cls: 'card--popout', label: 'Monitoring', render: monitoring },
 ];

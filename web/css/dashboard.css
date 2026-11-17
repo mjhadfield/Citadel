@@ -123,7 +123,6 @@ html.has-bg .frame-shell iframe { background: transparent; }    /* a custom them
    sets --bm-*). It grows down, and its tiles draw in left to right. */
 .sc--menu { cursor: pointer; font: inherit; }
 .sc--menu .sc__label { max-width: none; }
-.sc__count { display: grid; place-items: center; min-width: 20px; height: 18px; padding: 0 5px; font: 11px var(--font-mono); color: var(--silver-mute); background: var(--well); border-radius: 9px; }
 .sc .sc__chev { width: 12px; height: 12px; color: var(--silver-mute); transition: transform .25s var(--ease); }
 .sc--menu[aria-expanded="true"] { color: var(--silver-hi); border-color: var(--edge-strong); background: var(--accent-wash); }
 .sc--menu[aria-expanded="true"] .sc__chev { transform: rotate(180deg); }
@@ -170,8 +169,27 @@ html.has-bg .frame-shell iframe { background: transparent; }    /* a custom them
   .bmbar__list { grid-template-columns: 1fr 1fr; }
 }
 
-/* LCARS-only pieces (lcars.css shows them): the header's live readout, Next gig's venue column and ticking countdown */
+/* LCARS-only pieces (lcars.css shows them): Next gig's venue column and ticking countdown */
 .readout, .subrow__venue, .hero__tick { display: none; }
+
+/* The header readout (Home, wide screens; LCARS styles its own in lcars.css). It stands in for the Monitoring tile and
+   opens Monitoring's full view, so where it shows, that card has no tile of its own (.card--popout). */
+.readout { cursor: pointer; }
+.readout:focus-visible { outline: 1px solid var(--accent-soft); outline-offset: 4px; }
+/* heat levels (app.js renderReadout sets data-heat 1–3 from each number's own thresholds); the change flash
+   (.is-tick) still lights a number up and drops it back to its heat colour. Specific enough to beat both themes' dd. */
+html:root body .readout dd[data-heat="1"] { color: var(--heat-1); }
+html:root body .readout dd[data-heat="2"] { color: var(--heat-2); }
+html:root body .readout dd[data-heat="3"] { color: var(--heat-3); text-shadow: 0 0 10px color-mix(in srgb, var(--heat-3) 45%, transparent); }
+html[data-theme="light"] body .readout dd[data-heat="3"] { text-shadow: none; }      /* a glow only reads on a dark ground */
+.readout:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+@media (min-width: 1800px) {
+  html:not([data-skin="lcars"])[data-page="home"] .readout { display: flex; gap: 22px; flex: none; margin: 0 4px 0 auto; padding: 0 12px; }
+  html:not([data-skin="lcars"]) .readout div { display: grid; gap: 3px; }
+  html:not([data-skin="lcars"]) .readout dt { font: 9.5px var(--font-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--silver-dim); }
+  html:not([data-skin="lcars"]) .readout dd { margin: 0; font: 15px/1 var(--font-mono); color: var(--silver-hi); font-variant-numeric: tabular-nums; }
+  .card--popout:not(.is-max) { display: none; }
+}
 
 /* ---- Day/Night and Theme: the header's two look buttons -------------------------------------------------------- */
 .look-btn { gap: 7px; padding: 5px 10px 5px 8px; }
@@ -444,14 +462,14 @@ body.has-max::before { content: ""; position: fixed; inset: 0; z-index: 80; back
   .grid {
     min-height: 0; grid-template-rows: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, .95fr);
     grid-template-areas:
-      "now   now   now   gig    gig    gig    diary  diary  diary  proj   proj   proj"
+      "now   now   now   gig    gig    gig    diary  diary  diary  remote remote remote"
       "rel   rel   rel   rel    vin    vin    vin    vin    radar  radar  radar  radar"
-      "news  news  news  news   launch launch launch launch sys    sys    sys    sys";
+      "proj  proj  proj  proj   launch launch launch launch sys    sys    sys    sys";
   }
   .grid > * { grid-column: auto; min-height: 0; }
-  .a-now { grid-area: now; } .a-gig { grid-area: gig; } .a-diary { grid-area: diary; } .a-proj { grid-area: proj; }
+  .a-now { grid-area: now; } .a-gig { grid-area: gig; } .a-diary { grid-area: diary; } .a-remote { grid-area: remote; }
   .a-rel { grid-area: rel; } .a-vin { grid-area: vin; } .a-radar { grid-area: radar; }
-  .a-news { grid-area: news; } .a-launch { grid-area: launch; } .a-sys { grid-area: sys; }
+  .a-proj { grid-area: proj; } .a-launch { grid-area: launch; } .a-sys { grid-area: sys; }
   .card__in { min-height: 0; }
   .card__body { overflow: auto; min-height: 0; }
   .card.is-max { grid-area: auto; }
@@ -497,7 +515,7 @@ body.has-max::before { content: ""; position: fixed; inset: 0; z-index: 80; back
 @media (min-width: 1800px) and (min-height: 860px) {
   /* Launchpad: fixed 3-column grid (3x3 = 9 tiles compact); natural tile height, body scrolls like other cards */
   .a-launch .tiles { grid-template-columns: repeat(3, 1fr); }
-  .a-launch .tile { padding: 14px 16px; }
+  .a-launch .tile, .a-remote .tile { padding: 14px 16px; }
 }
 
 /* 1440p: scale the whole UI x1.2 (same logical canvas as 1080p at 100%). Beyond 2560x1440 the
@@ -695,7 +713,7 @@ body.has-max::before { content: ""; position: fixed; inset: 0; z-index: 80; back
 .tm__sw--lcars { --sw-bg: #050407; --sw-ac: #f2b45a; border-radius: 9px 0 0 9px; }
 .tm__sw--lcars::after { left: 0; right: auto; top: 0; bottom: 0; width: 5px; height: auto; background: #a78bfa; }
 [data-theme="light"] .tm__sw--citadel { --sw-bg: #f8f0e2; --sw-ac: #b5541f; }
-[data-theme="light"] .tm__sw--lcars { --sw-bg: #f2e8d5; }
+[data-theme="light"] .tm__sw--lcars { --sw-bg: #f2e8d5; --sw-ac: #c25a17; }
 [data-theme="light"] .tm__sw--lcars::after { background: #b5541f; }
 
 /* ---- Gig radar → Booked: the quick form (field/input/check rules copied from settings.css, which isn't loaded here) ---- */
@@ -717,3 +735,13 @@ body.has-max::before { content: ""; position: fixed; inset: 0; z-index: 80; back
 .book__check input:focus-visible { outline: 1px solid var(--accent-hi); outline-offset: 2px; }
 .book__error { margin: 14px 0 0; font-size: 13px; color: var(--bad); }
 .book__actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+
+/* Remote Access: a handful of devices, so two wide columns with room for the whole name and address */
+.a-remote .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.card.is-max.a-remote .tiles { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+@media (max-width: 760px) { .a-remote .tiles { grid-template-columns: minmax(0, 1fr); } }
+
+/* Monitoring's full view: CPU | GPU + memory | this PC and its services, side by side when there's room */
+.mon-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); gap: 18px 44px; align-items: start; }
+.mon-cols > div > .mon-section:first-child { margin-top: 0; }
+@media (max-width: 760px) { .mon-cols { grid-template-columns: minmax(0, 1fr); } }

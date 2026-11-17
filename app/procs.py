@@ -40,8 +40,9 @@ async def _run(*args: str, timeout: float = 20) -> tuple[int, str, str]:
 
 
 async def active_units() -> set[str]:
-    """Names of hub-proj units that are currently running (transient units vanish once stopped)."""
-    rc, out, _ = await _run("systemctl", "--user", "list-units", "hub-proj-*.service", "--all", "--no-legend", "--plain", "--no-pager")
+    """Names of hub-proj (projects) and hub-vnc (remote desktop viewers) units that are currently running (transient
+    units vanish once stopped). One systemctl call for both, since every dashboard refresh asks."""
+    rc, out, _ = await _run("systemctl", "--user", "list-units", "hub-proj-*.service", "hub-vnc-*.service", "--all", "--no-legend", "--plain", "--no-pager")
     active: set[str] = set()
     for line in out.splitlines():
         parts = line.split(None, 4)  # UNIT LOAD ACTIVE SUB DESCRIPTION
@@ -95,6 +96,52 @@ async def start(project: dict[str, Any]) -> None:
             return  # already running under our unit name — treat start as idempotent
         raise ProcError(err.strip().splitlines()[-1] if err.strip() else f"systemd-run exited {rc}")
     started_at[slug] = time.time()
+
+
+def vnc_unit(host_id: int) -> str:
+    return f"hub-vnc-{int(host_id)}.service"
+
+
+def vnc_port(address: str) -> tuple[str, int]:
+    """(host, TCP port) for a vncviewer server string: `host` (5900), `host:N` (display N = 5900+N; N of 100 or more is
+    taken as a port, as vncviewer does), `host::port`, and `[IPv6]` with either suffix."""
+    host, rest = address, ""
+    if address.startswith("["):
+        host, _, rest = address[1:].partition("]")
+    elif "::" in address:
+        host, rest = address.split("::", 1)
+        rest = "::" + rest
+    elif address.count(":") == 1:
+        host, rest = address.split(":")
+        rest = ":" + rest
+    try:
+        if rest.startswith("::"):
+            return host, int(rest[2:])
+        if rest.startswith(":"):
+            n = int(rest[1:])
+            return host, n if n >= 100 else 5900 + n
+    except ValueError:
+        pass
+    return host, 5900
+
+
+async def open_viewer(host: dict[str, Any]) -> bool:
+    """Open a VNC viewer window on this PC's desktop, as a transient unit like a desktop project (the user manager
+    carries the session's DISPLAY/WAYLAND_DISPLAY). False if that host's viewer is already open."""
+    args = ["systemd-run", "--user", f"--unit={vnc_unit(host['id'])}", "--collect", "--quiet",
+            f"--description=Citadel: remote desktop on {host['name']}", "--property=TimeoutStopSec=5"]
+    rc, _, err = await _run(*args, "--", "vncviewer", host["address"])
+    if rc != 0:
+        if "already" in err.lower():
+            return False
+        raise ProcError(err.strip().splitlines()[-1] if err.strip() else f"systemd-run exited {rc}")
+    return True
+
+
+async def close_viewer(host_id: int) -> None:
+    rc, _, err = await _run("systemctl", "--user", "stop", vnc_unit(host_id))
+    if rc != 0 and "not loaded" not in err.lower():
+        raise ProcError(err.strip() or f"systemctl stop exited {rc}")
 
 
 async def stop(slug: str) -> None:

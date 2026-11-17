@@ -137,11 +137,12 @@ async def get_config(request: Request):
     with db.db() as con:
         links = [_link_cfg(r) for r in con.execute("SELECT * FROM links ORDER BY pin_order IS NULL, pin_order, sort, name")]
         projects = [_project_cfg(r) for r in con.execute("SELECT * FROM projects ORDER BY pin_order IS NULL, pin_order, sort, name")]
+        remote = [{"id": r["id"], "name": r["name"], "address": r["address"]} for r in con.execute("SELECT * FROM remote_hosts ORDER BY sort, id")]
     me = auth.current_device(request)["id"]
     return {
         "version": __version__, "host": socket.gethostname(), "ip": config.lan_ip(), "public_url": config.public_url(),
         "paths": {"database": str(config.DB_PATH), "data": str(config.DATA_DIR), "projects": str(config.PROJECTS_DIR)},
-        "links": links, "projects": projects,
+        "links": links, "projects": projects, "remote": remote,
         "widgets": {wid: {"title": w.title, "settings": w.public_settings(db.get_settings(w.id, w.defaults))} for wid, w in discover().items()},
         "devices": [{**d, "current": d["id"] == me} for d in auth.list_devices() if not d["revoked"]],
         "screens": state.tv_settings(), "tv_panels": list(schemas.TV_PANELS), "alerts": alerts.settings(),
@@ -392,6 +393,78 @@ async def delete_project(slug: str, request: Request):
     notify.config()
     notify.projects()
     asyncio.create_task(request.app.state.health.sweep_now())
+    return {"ok": True}
+
+
+# ---- Remote Access (VNC viewers opened on this PC) ------------------------------------------------
+
+def _remote(host_id: int) -> dict[str, Any]:
+    with db.db() as con:
+        row = con.execute("SELECT * FROM remote_hosts WHERE id = ?", (host_id,)).fetchone()
+    if not row:
+        raise HTTPException(404, "no such device")
+    return dict(row)
+
+
+@router.post("/remote", status_code=201)
+async def create_remote(body: schemas.RemoteHostIn, request: Request):
+    with db.db() as con:
+        sort = con.execute("SELECT COALESCE(MAX(sort), 0) + 10 FROM remote_hosts").fetchone()[0]
+        cur = con.execute("INSERT INTO remote_hosts (name, address, sort) VALUES (?, ?, ?)", (body.name, body.address, sort))
+    notify.config()
+    asyncio.create_task(request.app.state.health.sweep_now())
+    return {"id": cur.lastrowid}
+
+
+@router.post("/remote/reorder")
+async def reorder_remote(body: schemas.IdList):
+    with db.db() as con:
+        for i, ident in enumerate(body.ids):
+            con.execute("UPDATE remote_hosts SET sort = ? WHERE id = ?", (i * 10, ident))
+    notify.config()
+    return {"ok": True}
+
+
+@router.put("/remote/{host_id}")
+async def update_remote(host_id: int, body: schemas.RemoteHostIn, request: Request):
+    _remote(host_id)
+    with db.db() as con:
+        con.execute("UPDATE remote_hosts SET name = ?, address = ? WHERE id = ?", (body.name, body.address, host_id))
+    notify.config()
+    asyncio.create_task(request.app.state.health.sweep_now())
+    return {"ok": True}
+
+
+@router.delete("/remote/{host_id}")
+async def delete_remote(host_id: int, request: Request):
+    _remote(host_id)
+    with db.db() as con:
+        con.execute("DELETE FROM remote_hosts WHERE id = ?", (host_id,))
+    notify.config()
+    asyncio.create_task(request.app.state.health.sweep_now())
+    return {"ok": True}
+
+
+@router.post("/remote/{host_id}/open")
+async def open_remote(host_id: int):
+    """Opens the viewer on this PC's own screen, whichever device asked (like a desktop project)."""
+    host = _remote(host_id)
+    try:
+        opened = await procs.open_viewer(host)
+    except procs.ProcError as exc:
+        raise HTTPException(502, f"Couldn't open the viewer: {exc}")
+    notify.projects()
+    return {"ok": True, "already_open": not opened}
+
+
+@router.post("/remote/{host_id}/close")
+async def close_remote(host_id: int):
+    _remote(host_id)
+    try:
+        await procs.close_viewer(host_id)
+    except procs.ProcError as exc:
+        raise HTTPException(502, f"Couldn't close the viewer: {exc}")
+    notify.projects()
     return {"ok": True}
 
 

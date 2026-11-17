@@ -251,14 +251,14 @@ function renderShortcuts() {
   bookmarks(false, true);
   nav.hidden = !list.length;
   const top = list.slice(0, BM_TOP), rest = list.slice(BM_TOP);
-  nav.innerHTML = `<button class="sc sc--menu" type="button" data-bm-toggle aria-expanded="false" aria-controls="bm-bar" title="All bookmarks">${ico('list')}<span class="sc__label">Bookmarks</span><span class="sc__count">${list.length}</span>${ico('down', 'sc__chev')}</button>`
+  nav.innerHTML = `<button class="sc sc--menu" type="button" data-bm-toggle aria-expanded="false" aria-controls="bm-bar" title="All bookmarks">${ico('list')}<span class="sc__label">Bookmarks</span>${ico('down', 'sc__chev')}</button>`
     + top.map(s => {
       const host = hostOf(s.url);
       return `<a class="sc${s.label ? '' : ' sc--bare'}" href="${esc(s.url)}" target="_blank" rel="noopener noreferrer" title="${esc(s.label ? `${s.label} — ${host}` : host)}">${scIcon(s)}${s.label ? `<span class="sc__label">${esc(s.label)}</span>` : ''}</a>`;
     }).join('');
   // The panel lists the rest. The first four are in it too, as .bm--top, which only phones show: they have no room
   // for the four in the bar.
-  const tile = (s, i, top = false) => `<a class="bm${top ? ' bm--top' : ''}" href="${esc(s.url)}" target="_blank" rel="noopener noreferrer" style="--d:${80 + i * 22}ms">${scIcon(s)}<span><b>${esc(s.label || hostOf(s.url))}</b><small>${esc(hostOf(s.url))}</small></span></a>`;
+  const tile = (s, i, top = false) => `<a class="bm${top ? ' bm--top' : ''}" href="${esc(s.url)}" target="_blank" rel="noopener noreferrer" title="${esc(s.label ? `${s.label}\n${s.url}` : s.url)}" style="--d:${80 + i * 22}ms">${scIcon(s)}<span><b>${esc(s.label || hostOf(s.url))}</b><small>${esc(hostOf(s.url))}</small></span></a>`;
   bar.innerHTML = `<div class="bmbar__list">${top.map((s, i) => tile(s, i, true)).join('')}${rest.map((s, i) => tile(s, i)).join('')}</div>`
     + '<a class="bmbar__edit" href="/settings#widgets">Edit in Settings</a>';
 }
@@ -299,27 +299,45 @@ function bookmarks(on, now = false) {
   bar.addEventListener('animationend', () => { if (bar.classList.contains('is-closing')) { bar.hidden = true; bar.classList.remove('is-closing'); } }, { once: true });
 }
 
-// The LCARS theme's header readout (Home only; hidden by CSS elsewhere and in Citadel): a few live numbers, every one
-// real, and this machine's LAN address (the online demo's snapshot blanks it, so it shows a dash there).
+// The header readout (Home only, on wide screens, both themes): live temperatures, usage and uptime, every one real.
+// It stands in for the Monitoring tile: clicking it opens Monitoring's full view, which also has what used to be here
+// (services, this PC's address).
+const pct = n => (n == null || Number.isNaN(n) ? '—' : `${Math.round(n)}%`);
+// Heat: the reading at which a number turns pale gold, amber, then red (data-heat 1–3, colours in tokens.css).
+// The CPU idles in the 60s °C (a Ryzen's normal), so its first step starts higher than the GPU's.
+const HEAT = { 'CPU °C': [70, 75, 80], 'GPU °C': [60, 70, 80], CPU: [50, 70, 90], GPU: [50, 70, 90], VRAM: [50, 70, 90], RAM: [50, 70, 90] };
+const heatOf = (k, n) => (n == null || !HEAT[k] ? 0 : HEAT[k].filter(t => n >= t).length);
 function renderReadout() {
   const el = $('#readout');
   if (!el || !state) return;
-  const m = monitoring, sys = state.widgets?.system?.data;
-  const checks = [...state.projects.filter(p => p.kind === 'web').map(p => p.state === 'running' || p.state === 'external'),
-    ...state.links.filter(l => l.up !== null).map(l => l.up)];
-  const up = sys?.uptime_s;
-  const cells = [
-    ['CPU', m?.cpu?.percent != null ? `${m.cpu.percent.toFixed(1)}%` : '—'],
-    ['GPU °C', m?.gpu?.temp != null ? m.gpu.temp.toFixed(1) : '—'],
-    ['RAM', m?.mem ? `${Math.round(m.mem.used / m.mem.total * 100)}%` : '—'],
-    ['Services', `${checks.filter(Boolean).length}/${checks.length}`],
-    ['Uptime', up != null ? `${Math.floor(up / 86400)}d ${Math.floor(up % 86400 / 3600)}h` : '—'],
-    ['IP', state.ip || '—'],
+  const m = monitoring, up = state.widgets?.system?.data?.uptime_s;
+  const cpuT = m?.cpu?.temp?.package, gpuT = m?.gpu?.temp, cpu = m?.cpu?.percent, gpu = m?.gpu?.percent;
+  const vram = m?.gpu?.mem_total_mb ? m.gpu.mem_used_mb / m.gpu.mem_total_mb * 100 : null, ram = m?.mem ? m.mem.used / m.mem.total * 100 : null;
+  const cells = [                                                   // [label, text, the number its heat comes from]
+    ['CPU °C', cpuT != null ? cpuT.toFixed(1) : '—', cpuT],
+    ['GPU °C', gpuT != null ? gpuT.toFixed(1) : '—', gpuT],
+    ['CPU', cpu != null ? `${cpu.toFixed(1)}%` : '—', cpu],
+    ['GPU', m?.gpu ? pct(gpu) : '—', gpu],
+    ['VRAM', pct(vram), vram],
+    ['RAM', pct(ram), ram],
+    ['Uptime', up != null ? `${Math.floor(up / 86400)}d ${Math.floor(up % 86400 / 3600)}h` : '—', null],
   ];
   // a number that changed since the last reading flashes once (lcars.css .is-tick)
   const before = Object.fromEntries([...el.querySelectorAll('div')].map(d => [d.firstChild.textContent, d.lastChild.textContent]));
-  el.innerHTML = cells.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd${k in before && before[k] !== v ? ' class="is-tick"' : ''}>${esc(v)}</dd></div>`).join('');
+  el.innerHTML = cells.map(([k, v, n]) => {
+    const heat = heatOf(k, n);
+    return `<div><dt>${esc(k)}</dt><dd${k in before && before[k] !== v ? ' class="is-tick"' : ''}${heat ? ` data-heat="${heat}"` : ''}>${esc(v)}</dd></div>`;
+  }).join('');
 }
+// On the element itself, so it runs before Shell's document-level "click outside closes the open card": opening stops
+// the click there (or Shell would close it again at once without View Transitions); with a card open, Shell closes it.
+function openMonitoring(e) {
+  if (shell.open) return;
+  e.stopPropagation();
+  shell.toggle($('#monitoring'));
+}
+$('#readout').addEventListener('click', openMonitoring);
+$('#readout').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openMonitoring(e); } });
 
 function renderAll() {
   renderShortcuts();
@@ -431,7 +449,7 @@ document.addEventListener('keydown', e => {
 });
 // LCARS lays the header out differently, so two pieces move into it: the reminders (a row inside the header's frame,
 // under the bookmarks and buttons) and the readout (centred on the header itself, not in the bookmarks' slot).
-// Citadel puts them back: the reminders at the top of Home, the readout (hidden there) in the header's middle slot.
+// Citadel puts them back: the reminders at the top of Home, the readout in the header's middle slot.
 // They're the same elements either way, just moved. In LCARS the reminders show on every page (so the header, and the
 // rail lined up with it, keep one shape); the readout stays Home's (Monitoring is only polled there).
 // LCARS motion that CSS can't trigger by itself (lcars.css, Motion). Boot: html.lc-boot for a moment after the first
@@ -641,6 +659,23 @@ document.addEventListener('click', async e => {
     vinylUi.mode = vinylMode.dataset.vinylMode;
     $$('[data-vinyl-mode]', vinylMode.closest('.card__head')).forEach(b => b.setAttribute('aria-pressed', b === vinylMode));
     renderCard('vinyl');
+    return;
+  }
+  const vnc = e.target.closest('[data-vnc], [data-vnc-close]');
+  if (vnc) {                                                                // Remote Access: open / close a viewer on this PC
+    const close = 'vncClose' in vnc.dataset, id = close ? vnc.dataset.vncClose : vnc.dataset.vnc;
+    const name = state.remote.find(r => String(r.id) === id)?.name || 'that device';
+    ui.pending[`vnc:${id}`] = close ? 'close' : 'open';
+    renderCard('remote');
+    try {
+      const r = await api.post(`/api/owner/remote/${encodeURIComponent(id)}/${close ? 'close' : 'open'}`);
+      if (r.already_open) toast(`${name} is already open on ${state.host}`);
+    } catch (err) {
+      toast(err.message);
+    } finally {
+      delete ui.pending[`vnc:${id}`];
+      await load();
+    }
     return;
   }
   const btn = e.target.closest('[data-act]');

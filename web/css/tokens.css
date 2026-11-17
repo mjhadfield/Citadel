@@ -40,6 +40,10 @@
   --ok:   #34d399;
   --warn: #f5b454;
   --bad:  #f43f5e;
+  /* heat: the header readout's numbers as load/temperature climbs (level 0 keeps the readout's own colour) */
+  --heat-1: #f3d899;   /* pale gold */
+  --heat-2: #f5a742;   /* amber */
+  --heat-3: #ff4b2b;   /* burnt orange running into red */
 
   /* neutral wells (true-black overlays with no accent hue) */
   --well:      rgba(0, 0, 0, 0.38);
@@ -58,11 +62,9 @@
   --ease: cubic-bezier(.2, .7, .2, 1);
 }
 
-/* Light theme — ported from MusicDatabase's own light/dark pair (site/css/style.css), itself
-   keyed to Gojira's "From Mars To Sirius": sun-bleached parchment, the rust-orange of its
-   creature, a deep-sea teal, dried-blood maroon. No blue anywhere. Citadel's token set is richer
-   than that source (5 surface levels vs. 2, 4 ink levels vs. 3, no --warn equivalent there), so
-   values not directly portable are interpolated/invented in the same spirit rather than copied. */
+/* Light theme (Day) — parchment and three colours only: burnt orange (the accent), oxblood (Next gig's red, also
+   "bad") and one cool counterpoint, slate blue (also "ok"/live). Inks are sepia browns. No green, and nothing pastel:
+   the colours stay deep enough to read as ink on paper. Surfaces were ported from MusicDatabase's light theme. */
 :root[data-theme="light"] {
   /* surfaces — sun-bleached parchment, climbing toward clean paper as elevation rises */
   --bg:         #f2e8d5;
@@ -71,10 +73,10 @@
   --surface-2:  #faf4e6;
   --surface-3:  #fdf9f0;
 
-  /* rust (was amethyst) */
+  /* burnt orange (was amethyst) */
   --accent:      #b5541f;
-  --accent-hi:   #d9691f;
-  --accent-soft: #82401b;   /* text-safe rust on light bg: DARKENED, not lightened */
+  --accent-hi:   #c4601f;
+  --accent-soft: #82401b;   /* text-safe burnt orange on light bg: DARKENED, not lightened */
   --accent-deep: #6e2a12;
   --accent-wash: rgba(181, 84, 31, 0.10);
 
@@ -86,12 +88,15 @@
 
   /* lines */
   --edge:        #ddcda8;
-  --edge-strong: rgba(217, 105, 31, 0.45);
+  --edge-strong: rgba(196, 96, 31, 0.45);
 
   /* status */
-  --ok:   #0d8a6a;   /* deep-sea teal */
-  --warn: #b8791f;   /* invented amber, no direct source equivalent */
-  --bad:  #8a2e2e;   /* dried-blood maroon */
+  --ok:   #3d5a73;   /* slate blue: the one cool accent */
+  --warn: #b0601c;   /* burnt orange, a shade more amber than the accent */
+  --bad:  #8a2e2e;   /* oxblood (Next gig's red) */
+  --heat-1: #8c6a45;   /* warm sepia: still readable on cream */
+  --heat-2: #b5541f;   /* burnt orange */
+  --heat-3: #a3302a;   /* red */
 
   /* neutral wells */
   --well:      rgba(42, 32, 21, 0.07);

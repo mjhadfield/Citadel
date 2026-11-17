@@ -165,6 +165,7 @@ def censor_state(s: dict[str, Any]) -> dict[str, Any]:
                    "primary": False, "tier": "main", "pinned": False, "pin_order": None,
                    "for_media": False, "for_music": True, "for_sql": False, "for_ai": False, "for_house": False, "up": True}]
     s["projects"] = [{**p, "url": None} for p in s["projects"]]     # no addresses; ports and "this PC only" are harmless
+    s["remote"] = [{**r, "address": "", "lan_ip": None, "open": False} for r in s.get("remote", [])]   # device names only, no addresses
     s["health"] = {k: v for k, v in s["health"].items() if k.startswith("project:")}
     s["alerts"] = [a for a in s["alerts"] if a.get("kind") in KEEP_ALERTS]
 

@@ -4,7 +4,7 @@ import * as api from './api.js';
 import { $, $$, esc, ico, hhmm, ago, toast, isoOf } from './util.js';
 import { THEMES, applySpec, look, mode, setLook, setMode, specOf, syncThemes } from './theme.js';
 
-const TABS = [['links', 'Links', 'globe'], ['projects', 'Projects', 'grid'], ['widgets', 'Widgets', 'cal'], ['appearance', 'Appearance', 'sun'], ['music', 'Music', 'disc'], ['listen', 'Music page', 'wave'], ['news', 'News', 'news'], ['screens', 'Screens & devices', 'server'], ['maintenance', 'Maintenance & logs', 'gear'], ['about', 'About', 'chip']];
+const TABS = [['links', 'Links', 'globe'], ['projects', 'Projects', 'grid'], ['remote', 'Remote access', 'desk'], ['widgets', 'Widgets', 'cal'], ['appearance', 'Appearance', 'sun'], ['music', 'Music', 'disc'], ['listen', 'Music page', 'wave'], ['news', 'News', 'news'], ['screens', 'Screens & devices', 'server'], ['maintenance', 'Maintenance & logs', 'gear'], ['about', 'About', 'chip']];
 const panel = $('#panel');
 let cfg = null, live = null, extras = { artists: { artists: [], music_db: false }, gigs: [] };   // config, live widget status, artists + gigs
 let maint = { jobs: [], log_counts: {}, backups: [], now: 0 }, logs = { items: [], sources: [], counts: {} };   // schedule table + event log
@@ -20,6 +20,7 @@ const svcTests = {};                    // service id -> {ok, message} from its 
 // instead of only landing on the tab and leaving the person to find the button themselves.
 const addParam = new URLSearchParams(location.search).get('add');
 if (addParam === 'gig') { tab = 'music'; editing = { kind: 'gig', id: 'new' }; }
+if (addParam === 'remote') { tab = 'remote'; editing = { kind: 'remote', id: 'new' }; }
 if (addParam) history.replaceState(null, '', location.pathname + location.hash);   // don't reopen it again on every refresh
 
 // ---- small builders (all dynamic text goes through esc()) -----------------------------------------------
@@ -97,7 +98,7 @@ function projectForm(p = null) {
     </div>
     <div class="checks">
       ${check('pinned', 'Pin to the top', p.pinned, '')}
-      ${check('show_projects', 'Show in Projects', p.show_projects, '')}
+      ${check('show_projects', 'Show in Services', p.show_projects, '')}
       ${check('show_launchpad', 'Show in Launchpad', p.show_launchpad, '')}
       ${check('local_only', 'Only reachable from this PC', !p.lan_visible, '')}
       ${check('enabled', 'Show on the dashboard', p.enabled, 'Also stops it.')}
@@ -111,7 +112,7 @@ function projectsTab() {
   const rows = cfg.projects.map((p, i) => editing?.kind === 'project' && editing.id === p.slug
     ? `<li class="item item--edit">${projectForm(p)}</li>`
     : `<li class="item"><span class="item__icon">${ico(p.kind === 'web' ? 'server' : 'cards')}</span>
-        <div class="item__main"><b>${esc(p.name)}</b>${p.pinned ? '<span class="chip chip--new">Pinned</span>' : ''}<span class="chip">${p.kind === 'web' ? `:${esc(p.port ?? '?')}` : 'Desktop'}</span>${p.show_projects ? '' : '<span class="chip chip--warn">Not in Projects</span>'}${p.for_music ? '<span class="chip chip--vinyl">Companion view</span>' : ''}${p.for_sql ? '<span class="chip chip--vinyl">SQL DB view</span>' : ''}${p.lan_visible ? '' : '<span class="chip chip--warn">This PC only</span>'}${p.enabled ? '' : '<span class="chip">Hidden</span>'}${p.cwd_exists ? '' : '<span class="chip chip--warn">Folder missing</span>'}
+        <div class="item__main"><b>${esc(p.name)}</b>${p.pinned ? '<span class="chip chip--new">Pinned</span>' : ''}<span class="chip">${p.kind === 'web' ? `:${esc(p.port ?? '?')}` : 'Desktop'}</span>${p.show_projects ? '' : '<span class="chip chip--warn">Not in Services</span>'}${p.for_music ? '<span class="chip chip--vinyl">Companion view</span>' : ''}${p.for_sql ? '<span class="chip chip--vinyl">SQL DB view</span>' : ''}${p.lan_visible ? '' : '<span class="chip chip--warn">This PC only</span>'}${p.enabled ? '' : '<span class="chip">Hidden</span>'}${p.cwd_exists ? '' : '<span class="chip chip--warn">Folder missing</span>'}
           <div class="item__sub">${esc(p.command)}</div></div>
         <div class="item__acts">
           ${act('launchpad-project', `${ico('grid')}Launchpad`, `data-id="${esc(p.slug)}" data-to="${!p.show_launchpad}" aria-pressed="${!!p.show_launchpad}" title="${p.show_launchpad ? 'On the Launchpad — click to take it off' : 'Not on the Launchpad — click to add it'}"`, `btn--toggle${p.show_launchpad ? ' is-on' : ''}`)}
@@ -122,6 +123,31 @@ function projectsTab() {
   const adding = editing?.kind === 'project' && editing.id === 'new' ? `<li class="item item--edit">${projectForm()}</li>` : '';
   return card('Projects', '',
     `<div class="bar-actions">${act('new-project', `${ico('play')}Add project`, '', 'btn--go')}</div><ul class="items">${adding}${rows}</ul>`);
+}
+
+// ---- Remote access (the Home page's Remote Access tile) ------------------------------------------------------------
+function remoteForm(r = {}) {
+  return `<form class="form" data-form="remote" data-id="${esc(r.id || '')}">
+    <div class="form-grid">
+      ${field('Name', input('name', r.name, 'required maxlength="40" placeholder="e.g. Pi 1 desktop"'))}
+      ${field('VNC address', input('address', r.address, 'required maxlength="253" spellcheck="false" placeholder="e.g. pi-1.local"'), 'Host name or IP address. Only for a server not on the usual port 5900: <code>host:1</code> is port 5901, <code>host::5905</code> is port 5905.')}
+    </div>
+    <div class="form-actions">${act('cancel', 'Cancel')}<button class="btn btn--solid" type="submit">Save device</button></div></form>`;
+}
+
+function remoteTab() {
+  const list = cfg.remote;
+  const rows = list.map((r, i) => editing?.kind === 'remote' && editing.id === r.id
+    ? `<li class="item item--edit">${remoteForm(r)}</li>`
+    : `<li class="item"><span class="item__icon">${ico('desk')}</span>
+        <div class="item__main"><b>${esc(r.name)}</b><div class="item__sub">${esc(r.address)}</div></div>
+        <div class="item__acts">
+          ${act('move-remote', ico('up'), `data-i="${i}" data-d="-1" aria-label="Move up" ${i > 0 ? '' : 'disabled'}`, 'btn--icon')}
+          ${act('move-remote', ico('down'), `data-i="${i}" data-d="1" aria-label="Move down" ${i < list.length - 1 ? '' : 'disabled'}`, 'btn--icon')}
+          ${act('edit-remote', 'Edit', `data-id="${r.id}"`)}${act('delete-remote', 'Delete', `data-id="${r.id}" data-name="${esc(r.name)}"`, 'btn--danger')}</div></li>`).join('');
+  const adding = editing?.kind === 'remote' && editing.id === 'new' ? `<li class="item item--edit">${remoteForm()}</li>` : '';
+  return card('Remote access', 'Each device is a tile on Home that opens a VNC viewer (TigerVNC) on this PC.',
+    `<div class="bar-actions">${act('new-remote', `${ico('play')}Add device`, '', 'btn--go')}</div><ul class="items">${adding}${rows}</ul>`);
 }
 
 // ---- Widgets ----------------------------------------------------------------------------------------------------
@@ -718,7 +744,7 @@ function aboutTab() {
 function render() {
   if (editing?.kind !== 'theme') { syncThemes(cfg.appearance.themes); applySpec(); }   // ends any live preview; picks up edits made elsewhere
   $('#tabs').innerHTML = TABS.map(([id, label, icon]) => `<button role="tab" data-tab="${id}" aria-selected="${id === tab}"${id === 'maintenance' && needsAttention() ? ' class="has-attn"' : ''}>${ico(icon)}${esc(label)}</button>`).join('');
-  panel.innerHTML = { links: linksTab, projects: projectsTab, widgets: () => shortcutsCard() + binsCard() + notificationsCard() + diaryCard(), appearance: appearanceTab, music: () => gigsCard() + artistsCard() + releasesCard() + vinylCard() + purchasesCard() + radarCard(), listen: musicPageTab, news: newsTab, screens: () => screensCard() + pairCard() + devicesCard() + enrolCard(), maintenance: maintenanceTab, about: aboutTab }[tab]();
+  panel.innerHTML = { links: linksTab, projects: projectsTab, remote: remoteTab, widgets: () => shortcutsCard() + binsCard() + notificationsCard() + diaryCard(), appearance: appearanceTab, music: () => gigsCard() + artistsCard() + releasesCard() + vinylCard() + purchasesCard() + radarCard(), listen: musicPageTab, news: newsTab, screens: () => screensCard() + pairCard() + devicesCard() + enrolCard(), maintenance: maintenanceTab, about: aboutTab }[tab]();
 }
 
 async function load() {
@@ -816,6 +842,16 @@ panel.addEventListener('click', e => {
     case 'new-link': editing = { kind: 'link', id: 'new' }; render(); $('[data-form="link"] input')?.focus(); break;
     case 'edit-link': editing = { kind: 'link', id: Number(d.id) }; render(); break;
     case 'new-project': editing = { kind: 'project', id: 'new' }; render(); $('[data-form="project"] input')?.focus(); break;
+    case 'new-remote': editing = { kind: 'remote', id: 'new' }; render(); $('[data-form="remote"] input')?.focus(); break;
+    case 'edit-remote': editing = { kind: 'remote', id: Number(d.id) }; render(); break;
+    case 'delete-remote': if (confirm(`Delete “${d.name}” from Remote access?`)) run(() => api.del(`/api/owner/remote/${d.id}`), 'Device deleted'); break;
+    case 'move-remote': {
+      const list = cfg.remote, i = Number(d.i), j = i + Number(d.d);
+      if (j < 0 || j >= list.length) break;
+      [list[i], list[j]] = [list[j], list[i]];
+      run(() => api.post('/api/owner/remote/reorder', { ids: list.map(x => x.id) }));
+      break;
+    }
     case 'edit-project': editing = { kind: 'project', id: d.id }; render(); break;
     case 'pin-link': run(() => api.post(`/api/owner/links/${d.id}/pin`, { pinned: d.to === 'true' }), d.to === 'true' ? 'Pinned' : 'Unpinned'); break;
     case 'launchpad-project': run(() => api.post(`/api/owner/projects/${d.id}/launchpad`, { show: d.to === 'true' }), d.to === 'true' ? 'Added to the Launchpad' : 'Taken off the Launchpad'); break;
@@ -946,6 +982,9 @@ panel.addEventListener('submit', e => {
       editing = null;
       if (res.warnings?.length) setTimeout(() => toast(res.warnings.join(' ')), 300);
     }, 'Project saved');
+  } else if (kind === 'remote') {
+    const body = { name: val(f, 'name'), address: val(f, 'address') }, id = f.dataset.id;
+    run(async () => { await (id ? api.put(`/api/owner/remote/${id}`, body) : api.post('/api/owner/remote', body)); editing = null; }, 'Device saved');
   } else if (kind === 'theme') {
     const t = readTheme(f), id = f.dataset.id;
     run(async () => {

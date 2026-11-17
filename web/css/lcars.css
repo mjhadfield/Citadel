@@ -23,6 +23,10 @@ html[data-skin="lcars"] {
   --lc-6: #8f96a3;   /* steel */
   --lc-7: #f2b45a;   /* amber: attention and "you are here" only */
   --lc-red: #f43f5e;
+  --lc-frame: var(--lc-3);   /* the elbows and segmented bars, and any card or button with no colour of its own */
+  --lc-gig: #b03c64;         /* claret: Next gig's own darker red-purple (orchid read as pink) */
+  --lc-gig-on: #f6e9ee;      /* text on it: dark text is too faint on a colour this deep */
+  --lc-diary: #9a5bb5;       /* plum: Diary's own, between the claret and Now's violet (lilac read as pink) */
   --lc-on: #07060a;  /* text on a coloured block */
   --lc-font: "Antonio", "Arial Narrow", "Roboto Condensed", sans-serif;
   --lc-ease: cubic-bezier(.2, .8, .2, 1);
@@ -34,20 +38,31 @@ html[data-skin="lcars"] {
   --lc-pad-top: 10px; /* page edge to the header (Citadel uses 20px) */
   --lc-body-gap: 14px; /* the body's frame bar to the cards below it */
 }
+/* Day: parchment with three colours, burnt orange (the frame), oxblood and one slate-blue accent, plus sepia neutrals.
+   Colours stay solid here: mixed thin over parchment they turn pastel. */
 html[data-skin="lcars"][data-theme="light"] {
-  --lc-1: #b5541f; --lc-2: #c47a3e; --lc-3: #0d8a6a; --lc-4: #7d6b52; --lc-5: #8a2e2e; --lc-6: #9a8b70; --lc-7: #d9691f;
+  --lc-1: #b5541f;   /* burnt orange: the frame */
+  --lc-2: #a8652f;   /* toasted orange */
+  --lc-3: #3d5a73;   /* slate blue: the accent */
+  --lc-4: #7d6b52;   /* sepia */
+  --lc-5: #8a2e2e;   /* oxblood: Next gig, music */
+  --lc-6: #5c4a3a;   /* umber */
+  --lc-7: #c25a17;   /* bright burnt orange: attention and "you are here" only */
   --lc-red: #a3302a; --lc-on: #fdf8ee;
+  --lc-frame: var(--lc-1);
+  --lc-gig: var(--lc-5); --lc-gig-on: var(--lc-on); --lc-diary: var(--lc-2);
 }
 
 /* each card and each nav destination keeps its own colour */
 html[data-skin="lcars"] .a-now { --lc-c: var(--lc-1); }
-html[data-skin="lcars"] .a-gig { --lc-c: var(--lc-5); }
-html[data-skin="lcars"] .a-diary { --lc-c: var(--lc-2); }
+html[data-skin="lcars"] .a-gig { --lc-c: var(--lc-gig); --lc-on: var(--lc-gig-on); }
+html[data-skin="lcars"] .a-diary { --lc-c: var(--lc-diary); }
+html[data-skin="lcars"] .a-remote { --lc-c: var(--lc-4); }
 html[data-skin="lcars"] .a-proj { --lc-c: var(--lc-4); }
 html[data-skin="lcars"] .a-rel { --lc-c: var(--lc-5); }
 html[data-skin="lcars"] .a-vin { --lc-c: var(--lc-2); }
 html[data-skin="lcars"] .a-radar { --lc-c: var(--lc-3); }
-html[data-skin="lcars"] .a-news { --lc-c: var(--lc-4); }          /* the Monitoring card sits in the old "news" area */
+html[data-skin="lcars"] .a-mon { --lc-c: var(--lc-2); }           /* Monitoring: opened from the header readout */
 html[data-skin="lcars"] .a-launch { --lc-c: var(--lc-3); }
 html[data-skin="lcars"] .a-sys { --lc-c: var(--lc-6); }
 html[data-skin="lcars"] .rail [data-view="home"] { --lc-c: var(--lc-2); }
@@ -70,11 +85,11 @@ html[data-skin="lcars"] .rail .rail__settings { --lc-c: var(--lc-5); }
   html[data-skin="lcars"] .rail { border-right: 0; background: none; }
   html[data-skin="lcars"] .top::before, html[data-skin="lcars"] .view.is-active::before {
     content: ""; position: absolute; left: calc(-1 * var(--lc-gut)); width: calc(var(--lc-r) + var(--lc-line)); pointer-events: none;
-    border: 0 solid var(--lc-3); border-left-width: var(--lc-line); }
+    border: 0 solid var(--lc-frame); border-left-width: var(--lc-line); }
   html[data-skin="lcars"] .top::before { top: calc(-1 * var(--lc-pad-top)); bottom: -5px; border-bottom-width: var(--lc-line); border-bottom-left-radius: var(--lc-r); }
   html[data-skin="lcars"] .view.is-active { position: relative; }
   html[data-skin="lcars"] .view.is-active::before { top: calc(-1 * var(--lc-body-gap)); bottom: 0; border-top-width: var(--lc-line); border-top-left-radius: var(--lc-r);
-    border-left-color: color-mix(in srgb, var(--lc-3) 45%, transparent); border-top-color: var(--lc-3); }
+    border-left-color: color-mix(in srgb, var(--lc-frame) 45%, transparent); border-top-color: var(--lc-frame); }
   /* the segmented bars: coloured runs with page-coloured gaps */
   html[data-skin="lcars"] .top::after, html[data-skin="lcars"] .view.is-active::after {
     content: ""; position: absolute; left: calc(var(--lc-r) - var(--lc-gut) + var(--lc-line)); right: 0; height: var(--lc-line); pointer-events: none; border-radius: 0 3px 3px 0;
@@ -93,6 +108,20 @@ html[data-skin="lcars"] .rail .rail__settings { --lc-c: var(--lc-5); }
       color-mix(in srgb, var(--lc-3) 55%, transparent) 0 86%, transparent 0 calc(86% + 5px),
       color-mix(in srgb, var(--lc-5) 55%, transparent) 0); }
   html[data-skin="lcars"] .view.is-active::after { top: calc(-1 * var(--lc-body-gap)); background: var(--lc-segs-body); }
+  /* Day: the bars are mostly the frame's burnt orange, with short oxblood and slate runs, at full strength */
+  html[data-skin="lcars"][data-theme="light"] .top::after { background: linear-gradient(90deg,
+      var(--lc-frame) 0 22%, transparent 0 calc(22% + 5px),
+      var(--lc-5) 0 27%, transparent 0 calc(27% + 5px),
+      color-mix(in srgb, var(--lc-frame) 70%, transparent) 0 78%, transparent 0 calc(78% + 5px),
+      var(--lc-3) 0 82%, transparent 0 calc(82% + 5px),
+      var(--lc-frame) 0); }
+  html[data-skin="lcars"][data-theme="light"] { --lc-segs-body: linear-gradient(90deg,
+      var(--lc-frame) 0 10%, transparent 0 calc(10% + 5px),
+      color-mix(in srgb, var(--lc-frame) 70%, transparent) 0 58%, transparent 0 calc(58% + 5px),
+      var(--lc-5) 0 62%, transparent 0 calc(62% + 5px),
+      color-mix(in srgb, var(--lc-frame) 70%, transparent) 0 86%, transparent 0 calc(86% + 5px),
+      var(--lc-3) 0); }
+  html[data-skin="lcars"][data-theme="light"] .view.is-active::before { border-left-color: color-mix(in srgb, var(--lc-frame) 70%, transparent); }
 
   /* An embedded page (Media, Companion, Odysseus, House) fills the body's elbow: flush against the vertical line and
      the bar, out to the screen's right and bottom edges, with its top-left corner rounded to the elbow's inner curve
@@ -177,7 +206,6 @@ html[data-skin="lcars"] .shortcuts .sc:nth-child(2) { --lc-c: var(--lc-5); }
 html[data-skin="lcars"] .shortcuts .sc:nth-child(3) { --lc-c: var(--lc-4); }
 html[data-skin="lcars"] .shortcuts .sc:nth-child(4) { --lc-c: var(--lc-3); }
 html[data-skin="lcars"] .shortcuts .sc:nth-child(5) { --lc-c: var(--lc-6); }
-html[data-skin="lcars"] .sc__count { font: 500 12px var(--lc-font); background: color-mix(in srgb, var(--lc-on) 30%, transparent); }
 html[data-skin="lcars"] .sc--menu[aria-expanded="true"], html[data-skin="lcars"] .look-btn[aria-expanded="true"] { background: var(--lc-2); color: var(--lc-on); box-shadow: none; }
 html[data-skin="lcars"] .sc--menu[aria-expanded="true"] .i, html[data-skin="lcars"] .look-btn[aria-expanded="true"] .i { color: var(--lc-on); }
 html[data-skin="lcars"] .look-btn { --lc-c: var(--lc-6); gap: 8px; padding: 0 12px; }
@@ -198,14 +226,14 @@ html[data-skin="lcars"] .bmbar__edit:hover, html[data-skin="lcars"] .bmbar__edit
   html[data-skin="lcars"] .bmbar__list:not(:has(.bm:not(.bm--top))) + .bmbar__edit { margin-top: -8px; }   /* nothing above it: the base sits under the cap */
 }
 html[data-skin="lcars"] .bm { clip-path: none; border: 0; height: 48px; padding: 0 12px 0 0; border-radius: 24px 4px 4px 24px;
-  background: color-mix(in srgb, var(--lc-c, var(--lc-3)) 10%, transparent); }
+  background: color-mix(in srgb, var(--lc-c, var(--lc-frame)) 10%, transparent); }
 html[data-skin="lcars"] .bm:nth-child(4n+2) { --lc-c: var(--lc-5); }
 html[data-skin="lcars"] .bm:nth-child(4n+3) { --lc-c: var(--lc-1); }
 html[data-skin="lcars"] .bm:nth-child(4n+4) { --lc-c: var(--lc-4); }
-html[data-skin="lcars"] .bm:hover { background: color-mix(in srgb, var(--lc-c, var(--lc-3)) 24%, transparent); }
+html[data-skin="lcars"] .bm:hover { background: color-mix(in srgb, var(--lc-c, var(--lc-frame)) 24%, transparent); }
 html[data-skin="lcars"] .bm > .i, html[data-skin="lcars"] .bm > .sc__img, html[data-skin="lcars"] .bm > .sc__letter {
   align-self: stretch; width: 44px; height: 100%; padding: 0 10px 0 14px; object-fit: contain; border-radius: 24px 0 0 24px;
-  background: color-mix(in srgb, var(--lc-c, var(--lc-3)) 30%, transparent); color: var(--silver-hi); }
+  background: color-mix(in srgb, var(--lc-c, var(--lc-frame)) 30%, transparent); color: var(--silver-hi); }
 html[data-skin="lcars"] .bm > .sc__letter { display: grid; place-items: center; border: 0; }
 
 /* the readout: live numbers in the LCARS data-cascade manner, every one of them real */
@@ -213,6 +241,8 @@ html[data-skin="lcars"][data-page="home"] .readout { display: flex; gap: 22px; o
 html[data-skin="lcars"] .readout div { display: grid; gap: 1px; }
 html[data-skin="lcars"] .readout dt { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--silver-dim); }
 html[data-skin="lcars"] .readout dd { margin: 0; font-size: 20px; line-height: 1; color: var(--lc-2); font-variant-numeric: tabular-nums; }
+/* Day: a calm number is plain ink, so the copper of this palette isn't mistaken for the amber heat level */
+html[data-skin="lcars"][data-theme="light"] .readout dd { color: var(--silver-hi); }
 /* On the desk layout (the one-screen grid, where the header is wide) the readout sits on the header's own centre line,
    level with the bookmarks row. Elsewhere it flows between the bookmarks and the buttons, dropping cells as room runs out. */
 @media (min-width: 1800px) and (min-height: 860px) {
@@ -220,6 +250,9 @@ html[data-skin="lcars"] .readout dd { margin: 0; font-size: 20px; line-height: 1
   html[data-skin="lcars"][data-page="home"] .top > .readout { position: absolute; top: 0; left: 50%; height: var(--lc-row); align-items: center; margin: 0; transform: translateX(-50%); }
 }
 @media (max-width: 1500px) { html[data-skin="lcars"] .readout div:nth-child(n+4) { display: none; } }
+/* with the whole readout showing, Monitoring is opened from it and has no tile of its own */
+@media (min-width: 1501px) { html[data-skin="lcars"] .card--popout:not(.is-max) { display: none; } }
+html[data-skin="lcars"] .readout { border-radius: 999px; padding-inline: 14px; }
 @media (max-width: 1100px) { html[data-skin="lcars"] .readout { display: none !important; } }
 
 /* ==========================================================================
@@ -248,8 +281,8 @@ html[data-skin="lcars"] .alert--undo .btn, html[data-skin="lcars"] .alerts__more
    background is the hairline border, and the lit edge (card-coloured, solid across the corner radius) wraps both left
    corners and fades out along the top and bottom borders.
    ========================================================================== */
-/* a card with no colour of its own (News, Music) takes indigo; :where() keeps this below the per-card colours above */
-:where(html[data-skin="lcars"]) .card { --lc-c: var(--lc-3); }
+/* a card with no colour of its own (News, Music) takes the frame colour; :where() keeps this below the per-card colours above */
+:where(html[data-skin="lcars"]) .card { --lc-c: var(--lc-frame); }
 html[data-skin="lcars"] .card { --c: 14px; --r: 20px; --lw: 4px;
   --hair: linear-gradient(135deg, color-mix(in srgb, var(--silver) 30%, transparent), color-mix(in srgb, var(--lc-c) 30%, transparent) 45%, color-mix(in srgb, var(--silver) 9%, transparent));
   --lit: color-mix(in srgb, var(--lc-c) 62%, transparent);
@@ -257,6 +290,7 @@ html[data-skin="lcars"] .card { --c: 14px; --r: 20px; --lw: 4px;
   background: linear-gradient(90deg, var(--lit) 0, var(--lit) var(--r), transparent calc(var(--r) + 140px)), var(--hair);
   clip-path: polygon(0 0, calc(100% - var(--c)) 0, 100% var(--c), 100% 100%, 0 100%); }
 html[data-skin="lcars"] .card:hover { --lit: var(--lc-c); }
+html[data-skin="lcars"][data-theme="light"] .card:not(:hover) { --lit: color-mix(in srgb, var(--lc-c) 85%, transparent); }   /* 62% goes pastel on parchment */
 html[data-skin="lcars"] .card__in { border-radius: calc(var(--r) - var(--lw)) 0 calc(var(--r) - 1px) calc(var(--r) - var(--lw)) / calc(var(--r) - 1px) 0 calc(var(--r) - 1px) calc(var(--r) - 1px);
   clip-path: polygon(0 0, calc(100% - var(--c) + .4px) 0, 100% calc(var(--c) - .4px), 100% 100%, 0 100%); }
 html[data-skin="lcars"] .card__in::before { display: none; }
@@ -267,6 +301,8 @@ html[data-skin="lcars"] .card .card__head .meta, html[data-skin="lcars"] .card .
 /* Home card header: number badge (CSS counter, 01–10, the same order keys 1–0 open), label, a rule, the meta, round buttons */
 html[data-skin="lcars"] #grid { counter-reset: lc-card; }
 html[data-skin="lcars"] #grid > .card:not(.ph) { counter-increment: lc-card; }
+html[data-skin="lcars"] #grid > .card--popout { counter-increment: none; }      /* Monitoring: not one of the numbered tiles */
+html[data-skin="lcars"] #grid > .card--popout .card__head::before { display: none; }
 html[data-skin="lcars"] #grid .card__head { justify-content: flex-start; gap: 10px; padding: 12px 14px 0; }
 html[data-skin="lcars"] #grid .card__head::before { content: counter(lc-card, decimal-leading-zero); flex: none; padding: 4px 9px; border-radius: 999px;
   background: var(--lc-c); color: var(--lc-on); font: 500 12px/1 var(--lc-font); letter-spacing: .06em; }
@@ -380,7 +416,7 @@ html[data-skin="lcars"] .bar__top { font: 400 14px var(--lc-font); letter-spacin
 html[data-skin="lcars"] .bar__top b { font-size: 15px; letter-spacing: .02em; text-transform: none; }
 html[data-skin="lcars"] .bar__track { height: 10px; border-radius: 5px;
   background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--silver-dim) 24%, transparent) 0 11px, transparent 11px 14px); }
-html[data-skin="lcars"] .bar__fill { border-radius: 5px 0 0 5px; background: var(--lc-c, var(--lc-3));
+html[data-skin="lcars"] .bar__fill { border-radius: 5px 0 0 5px; background: var(--lc-c, var(--lc-frame));
   -webkit-mask: repeating-linear-gradient(90deg, #000 0 11px, transparent 11px 14px); mask: repeating-linear-gradient(90deg, #000 0 11px, transparent 11px 14px); }
 html[data-skin="lcars"] .bar__fill--hot { background: var(--lc-7); }
 html[data-skin="lcars"] .mon-col__label { font: 500 14px var(--lc-font); letter-spacing: .16em; }
@@ -397,15 +433,20 @@ html[data-skin="lcars"] .tilewrap:nth-child(5n+3) { --lc-t: var(--lc-4); }
 html[data-skin="lcars"] .tilewrap:nth-child(5n+4) { --lc-t: var(--lc-1); }
 html[data-skin="lcars"] .tilewrap:nth-child(5n+5) { --lc-t: var(--lc-6); }
 html[data-skin="lcars"] .tile { clip-path: none; border: 0; padding: 0 12px 0 0; height: 52px; border-radius: 26px 4px 4px 26px;
-  background: color-mix(in srgb, var(--lc-t, var(--lc-3)) 10%, transparent); }
-html[data-skin="lcars"] .tile:hover { transform: none; background: color-mix(in srgb, var(--lc-t, var(--lc-3)) 24%, transparent); }
+  background: color-mix(in srgb, var(--lc-t, var(--lc-frame)) 10%, transparent); }
+html[data-skin="lcars"] .tile:hover { transform: none; background: color-mix(in srgb, var(--lc-t, var(--lc-frame)) 24%, transparent); }
 /* an SVG's "auto" height is 150px, so the icon block takes the tile's height explicitly */
 html[data-skin="lcars"] .tile > .i { align-self: stretch; width: 46px; height: 100%; padding: 0 12px 0 15px; border-radius: 26px 0 0 26px;
-  background: color-mix(in srgb, var(--lc-t, var(--lc-3)) 30%, transparent); color: var(--silver-hi); }
+  background: color-mix(in srgb, var(--lc-t, var(--lc-frame)) 30%, transparent); color: var(--silver-hi); }
 html[data-skin="lcars"] .tile small { font: 400 13px var(--lc-font); letter-spacing: .04em; }
-html[data-skin="lcars"] .tile--primary { background: color-mix(in srgb, var(--lc-t, var(--lc-3)) 20%, transparent); }
-html[data-skin="lcars"] .tile--pinned { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lc-t, var(--lc-3)) 45%, transparent); }
+html[data-skin="lcars"] .tile--primary { background: color-mix(in srgb, var(--lc-t, var(--lc-frame)) 20%, transparent); }
+html[data-skin="lcars"] .tile--pinned { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lc-t, var(--lc-frame)) 45%, transparent); }
 html[data-skin="lcars"] .a-launch .tile { padding: 0 14px 0 0; }
+/* Day: tinted washes go peach/pink on parchment, so the tiles are neutral sepia and only the icon carries the colour */
+html[data-skin="lcars"][data-theme="light"] .tile { background: color-mix(in srgb, var(--silver-dim) 11%, transparent); }
+html[data-skin="lcars"][data-theme="light"] .tile:hover { background: color-mix(in srgb, var(--silver-dim) 20%, transparent); }
+html[data-skin="lcars"][data-theme="light"] .tile > .i { background: color-mix(in srgb, var(--silver-dim) 22%, transparent); color: var(--lc-t, var(--lc-frame)); }
+html[data-skin="lcars"][data-theme="light"] .tile--primary { background: color-mix(in srgb, var(--silver-dim) 17%, transparent); }
 
 /* ==========================================================================
    Phones: no frame lines (the rail is the bottom tab bar there)
@@ -522,12 +563,12 @@ html[data-skin="lcars"] .mtabs button:active { transform: scale(.95); }
 
 html[data-skin="lcars"] .seg { gap: 3px; border: 0; }
 html[data-skin="lcars"] .seg button { height: 32px; padding: 0 14px; border: 0; font: 500 14px/1 var(--lc-font); letter-spacing: .08em; color: var(--silver);
-  background: color-mix(in srgb, var(--lc-3) 14%, transparent); box-shadow: none; transition: color .2s, background-color .2s; }
+  background: color-mix(in srgb, var(--lc-frame) 14%, transparent); box-shadow: none; transition: color .2s, background-color .2s; }
 html[data-skin="lcars"] .seg button + button { border-left: 0; }
 html[data-skin="lcars"] .seg button:first-child { border-radius: 16px 0 0 16px; padding-left: 16px; }
 html[data-skin="lcars"] .seg button:last-child { border-radius: 0 16px 16px 0; padding-right: 16px; }
-html[data-skin="lcars"] .seg button:hover { color: var(--silver-hi); background: color-mix(in srgb, var(--lc-3) 26%, transparent); }
-html[data-skin="lcars"] .seg button[aria-pressed="true"] { color: var(--lc-on); background: var(--lc-3); box-shadow: none; }
+html[data-skin="lcars"] .seg button:hover { color: var(--silver-hi); background: color-mix(in srgb, var(--lc-frame) 26%, transparent); }
+html[data-skin="lcars"] .seg button[aria-pressed="true"] { color: var(--lc-on); background: var(--lc-frame); box-shadow: none; }
 @media (max-width: 760px) { html[data-skin="lcars"] .mtabs button { height: 32px; padding: 0 12px 0 10px; font-size: 13px; } }
 
 /* ==========================================================================
@@ -550,6 +591,6 @@ html[data-skin="lcars"] .pl-tile .collage { width: 52px; height: 52px; clip-path
 html[data-skin="lcars"] .pl-tile .mode { font: 500 12.5px var(--lc-font); letter-spacing: .1em; }
 html[data-skin="lcars"] .pl-tile .mode--rot { color: var(--lc-c); }
 html[data-skin="lcars"] .pl-tile__sub { font: 400 13px var(--lc-font); letter-spacing: .04em; }
-html[data-skin="lcars"] .pl-tile.pl-tile--new { --lc-c: var(--lc-3); flex: 0 0 auto; min-width: 0; white-space: nowrap; gap: 8px; padding: 0 20px; border-radius: 34px; border: 1px dashed color-mix(in srgb, var(--lc-c) 60%, transparent);
+html[data-skin="lcars"] .pl-tile.pl-tile--new { --lc-c: var(--lc-frame); flex: 0 0 auto; min-width: 0; white-space: nowrap; gap: 8px; padding: 0 20px; border-radius: 34px; border: 1px dashed color-mix(in srgb, var(--lc-c) 60%, transparent);
   background: none; color: var(--lc-c); font: 500 15px var(--lc-font); letter-spacing: .1em; }
 html[data-skin="lcars"] .pl-tile.pl-tile--new:hover { background: color-mix(in srgb, var(--lc-c) 16%, transparent); border: 1px dashed var(--lc-c); }

@@ -47,13 +47,18 @@ def widgets_state() -> dict[str, dict[str, Any]]:
 DEFAULT_PROJECT_ICON = {"web": "server", "desktop": "play"}   # used for a Launchpad tile until the owner picks one
 
 
-async def projects_state(health: Health) -> list[dict[str, Any]]:
+async def _active_units() -> set[str]:
+    try:
+        return await procs.active_units()
+    except procs.ProcError:
+        return set()
+
+
+async def projects_state(health: Health, active: set[str] | None = None) -> list[dict[str, Any]]:
     with db.db() as con:
         rows = con.execute("SELECT * FROM projects WHERE enabled = 1 ORDER BY pin_order IS NULL, pin_order, sort, name").fetchall()
-    try:
-        active = await procs.active_units()
-    except procs.ProcError:
-        active = set()
+    if active is None:
+        active = await _active_units()
     try:
         since = await procs.active_since()
     except procs.ProcError:
@@ -84,6 +89,18 @@ async def projects_state(health: Health) -> list[dict[str, Any]]:
             "icon": r["icon"] or DEFAULT_PROJECT_ICON.get(r["kind"], "server"),
             "for_music": bool(r["for_music"]), "for_sql": bool(r["for_sql"]),
         })
+    return out
+
+
+def remote_state(health: Health, active: set[str]) -> list[dict[str, Any]]:
+    """The Remote Access tile: each device, whether its VNC port answers, and whether this PC has a viewer open on it."""
+    with db.db() as con:
+        rows = con.execute("SELECT * FROM remote_hosts ORDER BY sort, id").fetchall()
+    out = []
+    for r in rows:
+        h = health.state.get(f"remote:{r['id']}")
+        out.append({"id": r["id"], "name": r["name"], "address": r["address"], "lan_ip": health.resolved.get(f"remote:{r['id']}"),
+                    "up": (h["ok"] if h else None), "open": procs.vnc_unit(r["id"]) in active})
     return out
 
 
@@ -313,7 +330,8 @@ async def owner_state(health: Health, device: dict[str, Any], attention: list[di
                       monitor: Monitor | None = None) -> dict[str, Any]:
     at = now()
     widgets = widgets_state()
-    projects, links = await projects_state(health), links_state(health)
+    active = await _active_units()
+    projects, links = await projects_state(health, active), links_state(health)
     return {
         "now": at.isoformat(),
         "host": socket.gethostname(),
@@ -323,6 +341,7 @@ async def owner_state(health: Health, device: dict[str, Any], attention: list[di
         "widgets": widgets,
         "projects": projects,
         "links": links,
+        "remote": remote_state(health, active),
         "health": health.state,
         # owner only: a sync that keeps failing, or a service that's down, is a thing to know about
         "alerts": alert_settings.visible([*compute_alerts(widgets, at), *service_alerts(projects, links, health, monitor, at), *(attention or [])]),

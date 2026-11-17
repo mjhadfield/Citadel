@@ -16,18 +16,18 @@ There's a write-up with more screenshots on [my website](https://www.mikehadfiel
 
 ### Home
 
-Every tile can be expanded into a full screen view with more detail, pinning and filters.
+Every tile can be expanded into a full screen view with more detail, pinning and filters. The header's live readout (CPU and GPU temperatures and usage, VRAM, RAM, uptime) opens the full Monitoring view: per-core load, GPU clocks and power, memory, and every service's status.
 
 Along the top runs a **reminder strip**: bin night, a gig tonight, a pre-order arriving, an album out tomorrow or today, an F1 session starting soon, tickets going on sale, fresh announcements from my top artists, and anything that's stopped answering (or the PC running short of memory or disk). Each one has a ✕ that dismisses it everywhere, the TV included, with a few seconds to undo. Only that one occurrence goes, so next week's bin still shows. Which kinds appear is set in Settings → Widgets → Notifications.
 
 - **Bins** - which bin goes out tonight, pulled from the Council's website
 - **Next gig** - a countdown to my next booked show
 - **Diary** - my Google Calendar
-- **Projects** - start and stop project services, with live uptime and logs
+- **Remote Access** - one click opens a VNC viewer on another machine in the house (laptop, Raspberry Pis), with a dot for whether each one is on
 - **Releases** - upcoming albums from my top 200 artists, from MusicBrainz, up to a year ahead
 - **Vinyl radar** - pre-orders from labels and record shops, with prices compared across stores. Anything I buy moves to a confirmed pre-orders list with a countdown to release day, so I never buy the same record twice again
 - **Gig radar** - upcoming shows near me from Ticketmaster, for bands I actually listen to.
-- **Monitoring** - CPU and GPU temperatures and usage
+- **Services** - start and stop project services, with live uptime and logs
 - **Launchpad** - quick links to everything on my network
 - **System** - disk space for my PC and NAS, with a warning before anything fills up
 

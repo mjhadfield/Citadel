@@ -140,6 +140,29 @@ class ProjectCreate(ProjectIn):
         return v
 
 
+# What vncviewer takes as a server: host, host:display, host::port, or [IPv6] with either. It's passed as one argv
+# entry (never through a shell); the leading-character rule stops it being read as one of vncviewer's own -options.
+VNC_ADDRESS_RE = re.compile(r"^[A-Za-z0-9\[][A-Za-z0-9.\-:\[\]]{0,252}$")
+
+
+class RemoteHostIn(BaseModel):
+    name: str = Field(min_length=1, max_length=40)
+    address: str = Field(min_length=1, max_length=253)
+
+    @field_validator("name")
+    @classmethod
+    def _name(cls, v: str) -> str:
+        return v.strip()
+
+    @field_validator("address")
+    @classmethod
+    def _address(cls, v: str) -> str:
+        v = v.strip()
+        if not VNC_ADDRESS_RE.match(v):
+            raise ValueError("address should be a host name or IP address, optionally with :display or ::port")
+        return v
+
+
 class PinIn(BaseModel):
     pinned: bool
 
