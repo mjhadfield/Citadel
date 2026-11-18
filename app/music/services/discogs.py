@@ -18,7 +18,7 @@ import httpx
 from .base import Field, Service, ServiceError
 
 API = "https://api.discogs.com"
-UA = "CitadelHomeDashboard/1.0 +http://192.168.0.66:8080"
+UA = "Citadel/1.0 +http://192.168.0.66:8080"
 MIN_GAP = 1.1          # ~54 a minute, under the 60 a token allows
 DEFAULT_MAX_PRICE = 35.0
 DEFAULT_WATCH = 30

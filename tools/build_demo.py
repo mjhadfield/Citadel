@@ -516,7 +516,7 @@ def main() -> None:
     (tmp_out / "demo.js").write_text(shim)
     shutil.copy2(TEMPLATES / "demo.css", tmp_out / "demo.css")
     (tmp_out / MARKER).write_text(json.dumps({"snapshot": state["now"], "built": datetime.now().astimezone().isoformat(timespec="seconds"),
-                                              "by": "HomeDashboard/tools/build_demo.py"}, indent=2) + "\n")
+                                              "by": "Citadel/tools/build_demo.py"}, indent=2) + "\n")
 
     leak_check(tmp_out, secrets)
 
