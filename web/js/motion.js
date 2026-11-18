@@ -50,16 +50,17 @@ function apply() {
 // Instead each element gets a negative delay = where it should be in its loop right now, offset by a hash of a stable key:
 // a re-render carries on mid-breath, and neighbours stay out of step.
 const hash = s => [...String(s)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7);
-function phase(el, periodMs, key) {
+function phase(el, periodMs, key, prop = '--ph') {
   const off = (Math.imul(hash(key), 2654435761) >>> 0) % periodMs;      // mixed, so short keys ("1", "2") land far apart
-  el.style.setProperty('--ph', `${-((Date.now() + off) % periodMs)}ms`);
+  el.style.setProperty(prop, `${-((Date.now() + off) % periodMs)}ms`);
 }
 /** Give every status dot / gauge / readout number under `scope` its place in its loop. */
 export function phaseAll(scope = document) {
   if (root.dataset.motion === 'off') return;
   const breathe = parseFloat(getComputedStyle(root).getPropertyValue('--mx-breathe')) * 1000 || 5200;
   scope.querySelectorAll('.dot').forEach(d => phase(d, d.classList.contains('dot--warn') ? 3000 : breathe, keyOf(d)));
-  scope.querySelectorAll('.bar__fill').forEach(b => phase(b, 3600, keyOf(b)));
+  const sheen = parseFloat(getComputedStyle(root).getPropertyValue('--mx-sheen-t')) * 1000 || 7200;
+  scope.querySelectorAll('.bar__track').forEach(t => { const k = gaugeKey(t); phase(t, 3600, k); phase(t, sheen, `${k}~`, '--phs'); });
   scope.querySelectorAll('.readout dd').forEach(d => phase(d, 4000, d.previousElementSibling?.textContent));
 }
 // Which row a dot or gauge belongs to, by something that doesn't change with its state (a dot's row text often does:
@@ -92,7 +93,6 @@ export function before(body) {
   return {
     sig: sig(body),
     dots: new Map([...body.querySelectorAll('.dot')].map(d => [keyOf(d), d.className])),
-    bars: new Map([...body.querySelectorAll('.bar__fill')].map(b => [keyOf(b), b.style.getPropertyValue('--v')])),
   };
 }
 /** `snap`: before()'s reading, null on a card's first render. `ack`: this render came from new data (not opening,
@@ -100,17 +100,9 @@ export function before(body) {
 export function after(card, body, snap, { ack: fresh = false } = {}) {
   if (root.dataset.motion === 'off') return;
   phaseAll(body);
+  if (isOn('gauge')) trackGauges(body);
   if (!snap) return;
   body.querySelectorAll('.dot').forEach(d => { const was = snap.dots.get(keyOf(d)); if (was && was !== d.className) ping(d); });
-  if (isOn('gauge')) {
-    // the fill is new, so ease it from where the old one stood
-    body.querySelectorAll('.bar__fill').forEach(b => {
-      const was = snap.bars.get(keyOf(b));
-      if (!was || was === b.style.getPropertyValue('--v')) return;
-      b.style.transition = 'none'; b.style.width = was; void b.offsetWidth;
-      b.style.transition = ''; b.style.width = '';
-    });
-  }
   if (fresh && sig(body) !== snap.sig) ack(card);
 }
 
@@ -121,6 +113,55 @@ function ack(card) {
   if (!o) { o = document.createElement('span'); o.className = 'mx-ack'; card.prepend(o); }
   card.classList.remove('is-ack'); void card.offsetWidth; card.classList.add('is-ack');
   setTimeout(() => card.classList.remove('is-ack'), 1000);
+}
+
+// ---- gauges ------------------------------------------------------------------------------------------------------------
+// Each gauge drifts towards its reading over a few seconds instead of snapping: a 2 s poll of per-core load is jumpy,
+// and easing each new reading in under a second then sitting still read as bars dropping and bouncing back. The state
+// lives here by gauge (not on the element, which every render replaces), so the drift carries on through re-renders.
+// Two first-order lags in a row: no kink when a reading arrives, about half way there in 1.5 s, nearly there by 4 s.
+// It paints --gw (the smoothed width) and --gp (the recent high, held a moment then let go: the afterglow) on the
+// track; lcars.css draws them. A gauge not seen for a while starts at its reading rather than from somewhere stale.
+const GAUGE = { tau: .9, hold: 1.2, fade: 1.1, stale: 10000 };
+const gauges = new Map();
+let gaugeRaf = 0, gaugeT = 0;
+// unique per gauge: the card, then the machine panel / column / section it's in, then its label (every machine has a
+// "CPU" and a "RAM", so the label alone sent one machine's gauge to another's reading on every render)
+function gaugeKey(track) {
+  const group = track.closest('.mach, .mon-col, .mon-section');
+  return [track.closest('.card')?.id, group?.querySelector('.mon-col__label, .hud')?.textContent,
+    track.closest('.bar')?.querySelector('.bar__top > span')?.textContent].map(s => (s || '').trim()).join('|');
+}
+function paintGauge(g) {
+  g.el.style.setProperty('--gw', `${g.b.toFixed(2)}%`);
+  g.el.style.setProperty('--gp', `${g.pk.toFixed(2)}%`);
+  g.el.style.setProperty('--gl', Math.min(1, g.b / 4).toFixed(2));        // the lead's glow: none on an empty gauge
+}
+function trackGauges(scope) {
+  const now = performance.now();
+  scope.querySelectorAll('.bar__track').forEach(el => {
+    const t = parseFloat(el.querySelector('.bar__fill')?.style.getPropertyValue('--v')) || 0, k = gaugeKey(el);
+    let g = gauges.get(k);
+    if (!g || now - g.seen > GAUGE.stale) gauges.set(k, g = { a: t, b: t, pk: t, hold: 0 });
+    Object.assign(g, { t, el, seen: now });
+    paintGauge(g);
+  });
+  if (!gaugeRaf) { gaugeT = 0; gaugeRaf = requestAnimationFrame(stepGauges); }
+}
+function stepGauges(ts) {
+  const dt = gaugeT ? Math.min(.1, (ts - gaugeT) / 1000) : 0, k = 1 - Math.exp(-dt / GAUGE.tau);
+  gaugeT = ts;
+  let busy = false;
+  for (const [key, g] of gauges) {
+    if (!g.el.isConnected) { if (ts - g.seen > GAUGE.stale) gauges.delete(key); continue; }
+    g.a += (g.t - g.a) * k; g.b += (g.a - g.b) * k;
+    if (g.b >= g.pk) { g.pk = g.b; g.hold = GAUGE.hold; }
+    else if (g.hold > 0) g.hold -= dt;
+    else g.pk += (g.b - g.pk) * (1 - Math.exp(-dt / GAUGE.fade));
+    if (Math.abs(g.t - g.b) < .02 && g.pk - g.b < .05) { g.a = g.b = g.pk = g.t; } else busy = true;
+    paintGauge(g);
+  }
+  gaugeRaf = busy ? requestAnimationFrame(stepGauges) : 0;
 }
 
 // ---- readout -----------------------------------------------------------------------------------------------------------
