@@ -9,6 +9,7 @@ from typing import Any
 
 from . import __version__, alerts as alert_settings, appearance, config, content, db, navigation, procs
 from .health import Health
+from .machines import Machines
 from .monitor import Monitor, low_disks
 from .schemas import TV_DEFAULTS, TV_PANELS
 from .widgets import discover
@@ -100,7 +101,7 @@ def remote_state(health: Health, active: set[str]) -> list[dict[str, Any]]:
     for r in rows:
         h = health.state.get(f"remote:{r['id']}")
         out.append({"id": r["id"], "name": r["name"], "address": r["address"], "lan_ip": health.resolved.get(f"remote:{r['id']}"),
-                    "up": (h["ok"] if h else None), "open": procs.vnc_unit(r["id"]) in active})
+                    "up": (h["ok"] if h else None), "open": procs.vnc_unit(r["id"]) in active, "wake": bool(r["mac"])})
     return out
 
 
@@ -299,6 +300,20 @@ def _fresh_alerts(widgets: dict[str, dict[str, Any]], at: datetime, top: int) ->
     return out
 
 
+def sync_alerts(widgets: dict[str, dict[str, Any]], at: datetime) -> list[dict[str, Any]]:
+    """Owner only: stores the last Vinyl Radar sync couldn't read (the card no longer lists them), with a Recheck that
+    re-runs the sync. One key per day and set of stores, so a dismissal holds until something else breaks."""
+    if not alert_settings.settings()["down"]:
+        return []
+    errors = (widgets.get("vinyl", {}).get("data") or {}).get("errors") or []
+    if not errors:
+        return []
+    names = sorted({e.split(":")[0].strip() for e in errors})
+    return [{"kind": "sync", "key": f"sync:vinyl:{'|'.join(names)}:{at.date()}", "icon": "disc",
+             "title": f"Vinyl Radar couldn't read {len(names)} store{'s' if len(names) != 1 else ''}", "detail": ", ".join(names),
+             "chip": "Stores", "level": "soon", "action": {"label": "Recheck", "widget": "vinyl"}}]
+
+
 def service_alerts(projects: list[dict[str, Any]], links: list[dict[str, Any]], health: Health, monitor: Monitor | None, at: datetime) -> list[dict[str, Any]]:
     """Owner only: something that should be answering has been unreachable for a while, or this PC is short of room.
     A project only counts while its service is running (a stopped project is meant to be down)."""
@@ -327,7 +342,7 @@ def service_alerts(projects: list[dict[str, Any]], links: list[dict[str, Any]], 
 # ---- the full owner snapshot -------------------------------------------------------------------
 
 async def owner_state(health: Health, device: dict[str, Any], attention: list[dict[str, Any]] | None = None,
-                      monitor: Monitor | None = None) -> dict[str, Any]:
+                      monitor: Monitor | None = None, machines: Machines | None = None) -> dict[str, Any]:
     at = now()
     widgets = widgets_state()
     active = await _active_units()
@@ -344,7 +359,7 @@ async def owner_state(health: Health, device: dict[str, Any], attention: list[di
         "remote": remote_state(health, active),
         "health": health.state,
         # owner only: a sync that keeps failing, or a service that's down, is a thing to know about
-        "alerts": alert_settings.visible([*compute_alerts(widgets, at), *service_alerts(projects, links, health, monitor, at), *(attention or [])]),
+        "alerts": alert_settings.visible([*compute_alerts(widgets, at), *service_alerts(projects, links, health, monitor, at), *sync_alerts(widgets, at), *(machines.alerts(at) if machines else []), *(attention or [])]),
         "appearance": {"themes": appearance.themes()},
         "navigation": navigation.settings(device["id"]),
     }

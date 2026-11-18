@@ -136,6 +136,17 @@ class Health:
             if await self.check_all(client):
                 self.bus.publish("health", {})
 
+    async def recheck_remote(self, host_id: int, host: str, timeout: float = 180.0) -> None:
+        """After a Wake-on-LAN: ping every 3 s until the device answers (from sleep that's seconds, from off a minute or two)."""
+        key, deadline = f"remote:{host_id}", time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            ok, ms = await self._remote(key, host)
+            if self._record(key, ok, ms):
+                self.bus.publish("health", {})
+            if ok:
+                return
+            await asyncio.sleep(3)
+
     async def recheck_project(self, slug: str, port: int, expect_up: bool, timeout: float = 45.0) -> None:
         """After a start/stop, poll quickly until the port reflects the change so the UI updates promptly."""
         deadline = time.monotonic() + timeout

@@ -1,0 +1,203 @@
+#!/usr/bin/python3 -I
+"""Citadel's stats script for a Linux machine on the estate: prints one JSON object and exits.
+
+Installed as ~/.local/bin/citadel-stats by tools/machines_setup.py and run only through Citadel's restricted key
+(`command="…",restrict` in authorized_keys), so it takes no input and must never need root. Python 3 standard library
+only: every Linux machine here has python3, nothing else is assumed (nvidia-smi and vcgencmd are used when present).
+
+`--root DIR` reads /proc and /sys from a fake tree instead (tests); the external tools are skipped then.
+"""
+from __future__ import annotations
+
+import glob
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+
+VERSION = 1
+ROOT = ""
+SAMPLE = 0.5          # seconds between the two /proc/stat reads that give CPU %
+
+# Filesystems that aren't this machine's own disks. Network ones matter most: statting NZXT's /mnt/Films would
+# wake an automount (and hang if Nasferatu is off).
+SKIP_FS = {"tmpfs", "devtmpfs", "overlay", "squashfs", "autofs", "cifs", "smb3", "nfs", "nfs4", "iso9660", "ramfs", "efivarfs"}
+
+
+def path(p: str) -> str:
+    return ROOT + p
+
+
+def read(p: str) -> str:
+    with open(path(p)) as f:
+        return f.read()
+
+
+def maybe(p: str) -> str | None:
+    try:
+        return read(p).strip()
+    except OSError:
+        return None
+
+
+def run(argv: list[str]) -> str | None:
+    if ROOT or not shutil.which(argv[0]):
+        return None
+    try:
+        out = subprocess.run(argv, capture_output=True, text=True, timeout=4)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return out.stdout if out.returncode == 0 else None
+
+
+def cpu_ticks() -> tuple[int, int, int]:
+    """(idle, total, cores) from /proc/stat."""
+    lines = read("/proc/stat").splitlines()
+    nums = [int(x) for x in lines[0].split()[1:]]
+    cores = sum(1 for l in lines[1:] if l.startswith("cpu"))
+    return nums[3] + nums[4], sum(nums), cores
+
+
+def cpu_percent(a: tuple[int, int, int], b: tuple[int, int, int]) -> float | None:
+    if b[1] == a[1]:
+        return None
+    return round(100 * (1 - (b[0] - a[0]) / (b[1] - a[1])), 1)
+
+
+def hwmons() -> dict[str, str]:
+    """hwmon name -> its directory (first one of each name)."""
+    out: dict[str, str] = {}
+    for d in sorted(glob.glob(path("/sys/class/hwmon/hwmon*"))):
+        name = maybe(d[len(ROOT):] + "/name")
+        if name and name not in out:
+            out[name] = d[len(ROOT):]
+    return out
+
+
+def hwmon_temp(d: str, labels: tuple[str, ...] = ()) -> float | None:
+    """The temperature labelled with the first of `labels` found, else temp1."""
+    for want in labels:
+        for f in sorted(glob.glob(path(d + "/temp*_label"))):
+            if (maybe(f[len(ROOT):]) or "") == want:
+                v = maybe(f[len(ROOT):].replace("_label", "_input"))
+                return round(int(v) / 1000, 1) if v else None
+    v = maybe(d + "/temp1_input")
+    return round(int(v) / 1000, 1) if v else None
+
+
+def cpu_temp(mons: dict[str, str]) -> float | None:
+    if "k10temp" in mons:                     # AMD: Tctl on Ryzen; the Phenom in Phoenix has only an unlabelled temp1
+        return hwmon_temp(mons["k10temp"], ("Tctl", "Tdie"))
+    if "zenpower" in mons:
+        return hwmon_temp(mons["zenpower"], ("Tdie", "Tctl"))
+    if "coretemp" in mons:                    # Intel: the package sensor
+        return hwmon_temp(mons["coretemp"], ("Package id 0",))
+    if "cpu_thermal" in mons:                 # Raspberry Pi
+        return hwmon_temp(mons["cpu_thermal"])
+    return None
+
+
+def mem() -> dict[str, int]:
+    raw = {k: int(v.split()[0]) * 1024 for k, v in (l.split(":", 1) for l in read("/proc/meminfo").splitlines() if ":" in l)}
+    return {"total": raw["MemTotal"], "used": raw["MemTotal"] - raw["MemAvailable"], "available": raw["MemAvailable"],
+            "swap_total": raw.get("SwapTotal", 0), "swap_used": raw.get("SwapTotal", 0) - raw.get("SwapFree", 0),
+            "buffers": raw.get("Buffers", 0), "cached": raw.get("Cached", 0)}
+
+
+def disks() -> list[dict]:
+    """Each local disk once (btrfs subvolumes share a device: keep the shortest mount point, normally /)."""
+    by_dev: dict[str, str] = {}
+    for line in read("/proc/mounts").splitlines():
+        dev, mnt, fs = line.split()[:3]
+        mnt = mnt.replace("\\040", " ")
+        if fs in SKIP_FS or fs.startswith("fuse") or not dev.startswith("/dev/") or dev.startswith("/dev/loop") or mnt.startswith("/boot"):
+            continue
+        if dev not in by_dev or len(mnt) < len(by_dev[dev]):
+            by_dev[dev] = mnt
+    out = []
+    for mnt in sorted(set(by_dev.values())):
+        try:
+            st = os.statvfs(path(mnt) if ROOT else mnt)
+        except OSError:
+            continue
+        out.append({"mount": mnt, "total": st.f_blocks * st.f_frsize, "free": st.f_bavail * st.f_frsize})
+    return out
+
+
+def gpu(mons: dict[str, str]) -> dict | None:
+    out = run(["nvidia-smi", "--query-gpu=name,utilization.gpu,temperature.gpu,memory.used,memory.total", "--format=csv,noheader,nounits"])
+    if out and out.strip():
+        parts = [p.strip() for p in out.strip().splitlines()[0].split(",")]
+        if len(parts) == 5:
+            def num(v: str) -> float | None:
+                try:
+                    return float(v)
+                except ValueError:
+                    return None
+            return {"name": parts[0], "percent": num(parts[1]), "temp": num(parts[2]), "mem_used_mb": num(parts[3]), "mem_total_mb": num(parts[4])}
+    for name in ("amdgpu", "radeon", "nouveau"):          # no usage figures from these, just the temperature
+        if name in mons:
+            return {"name": {"amdgpu": "AMD Radeon", "radeon": "AMD Radeon", "nouveau": "NVIDIA"}[name], "percent": None,
+                    "temp": hwmon_temp(mons[name], ("edge",)), "mem_used_mb": None, "mem_total_mb": None}
+    return None
+
+
+def battery() -> dict | None:
+    for d in sorted(glob.glob(path("/sys/class/power_supply/BAT*"))):
+        cap = maybe(d[len(ROOT):] + "/capacity")
+        if cap is not None:
+            return {"percent": int(cap), "status": maybe(d[len(ROOT):] + "/status") or "Unknown"}
+    return None
+
+
+def pi_power(text: str | None) -> dict | None:
+    """`vcgencmd get_throttled` → throttled=0x50005. Bit 0: under-voltage now, bit 16: under-voltage since boot."""
+    if not text or "=" not in text:
+        return None
+    try:
+        bits = int(text.strip().split("=", 1)[1], 16)
+    except ValueError:
+        return None
+    return {"throttled": hex(bits), "under_voltage_now": bool(bits & 0x1), "under_voltage_seen": bool(bits & 0x10000)}
+
+
+def os_name() -> str | None:
+    for line in (maybe("/etc/os-release") or "").splitlines():
+        if line.startswith("PRETTY_NAME="):
+            return line.split("=", 1)[1].strip().strip('"')
+    return None
+
+
+def collect() -> dict:
+    a = cpu_ticks()
+    if SAMPLE:
+        time.sleep(SAMPLE)
+    b = cpu_ticks()
+    mons = hwmons()
+    return {
+        "v": VERSION,
+        "host": maybe("/proc/sys/kernel/hostname"),
+        "os": os_name(),
+        "uptime_s": int(float(read("/proc/uptime").split()[0])),
+        "load": [float(x) for x in read("/proc/loadavg").split()[:3]],
+        "cpu": {"percent": cpu_percent(a, b), "cores": b[2], "temp": cpu_temp(mons)},
+        "mem": mem(),
+        "disks": disks(),
+        "gpu": gpu(mons),
+        "battery": battery(),
+        "pi": pi_power(run(["vcgencmd", "get_throttled"])),
+    }
+
+
+def main(argv: list[str]) -> int:
+    global ROOT, SAMPLE
+    if len(argv) == 3 and argv[1] == "--root":
+        ROOT, SAMPLE = argv[2].rstrip("/"), 0
+    print(json.dumps(collect(), separators=(",", ":")))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

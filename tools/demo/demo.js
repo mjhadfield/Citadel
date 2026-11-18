@@ -133,7 +133,7 @@
   }
   document.addEventListener('click', function (e) {
     if (!e.target.closest) return;
-    var vnc = e.target.closest('[data-vnc], [data-vnc-close]');
+    var vnc = e.target.closest('[data-vnc], [data-vnc-close], [data-wake]');
     if (vnc) { e.preventDefault(); e.stopPropagation(); popup('Remote access', 'Remote access to networked devices is not available in the Demo'); return; }
     var a = e.target.closest('a[href]');
     if (!a) return;

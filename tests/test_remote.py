@@ -158,3 +158,53 @@ def test_device_by_name_shows_its_lan_address(monkeypatch):
 
     asyncio.run(run())
     assert pinged == ["192.168.0.80", "100.64.0.9"]
+
+
+def test_monitoring_fields_default_off_and_round_trip(owner_client):
+    a = mk(owner_client, "NZXT", "192.168.0.70")
+    assert (cfg(owner_client)[0]["ssh_user"], cfg(owner_client)[0]["always_on"]) == ("", False)
+    body = {"name": "NZXT", "address": "192.168.0.70", "ssh_user": " mike ", "always_on": True}
+    assert owner_client.put(f"{BASE}/remote/{a}", json=body).status_code == 200
+    assert (cfg(owner_client)[0]["ssh_user"], cfg(owner_client)[0]["always_on"]) == ("mike", True)
+    # the user goes into ssh's argv as user@host, so nothing that could read as an option or a second argument
+    for bad in ("-oProxyCommand=x", "mi ke", "a@b"):
+        assert owner_client.put(f"{BASE}/remote/{a}", json={**body, "ssh_user": bad}).status_code == 422
+
+
+def test_mac_is_tidied_and_checked(owner_client):
+    a = mk(owner_client, "Phoenix", "192.168.0.82")
+    body = {"name": "Phoenix", "address": "192.168.0.82"}
+    for given in ("BC-AE-C5-6F-CC-AA", "bcaec56fccaa", " bc:ae:c5:6f:cc:aa "):
+        assert owner_client.put(f"{BASE}/remote/{a}", json={**body, "mac": given}).status_code == 200
+        assert cfg(owner_client)[0]["mac"] == "bc:ae:c5:6f:cc:aa"
+    assert owner_client.put(f"{BASE}/remote/{a}", json={**body, "mac": "bc:ae:c5:6f:cc"}).status_code == 422
+    assert owner_client.put(f"{BASE}/remote/{a}", json={**body, "mac": ""}).status_code == 200
+    assert cfg(owner_client)[0]["mac"] == ""
+
+
+def test_wake_sends_the_magic_packet_and_rechecks(owner_client, monkeypatch):
+    from app import wol
+    sent, rechecked = [], []
+    monkeypatch.setattr(wol, "wake", lambda mac: sent.append(mac))
+    health = owner_client.app.state.health
+
+    async def fake_recheck(host_id, host):
+        rechecked.append((host_id, host))
+    monkeypatch.setattr(health, "recheck_remote", fake_recheck)
+    a = mk(owner_client, "Phoenix", "192.168.0.82::5901")
+    assert owner_client.post(f"{BASE}/remote/{a}/wake").status_code == 422          # no MAC yet: plain-words error
+    owner_client.put(f"{BASE}/remote/{a}", json={"name": "Phoenix", "address": "192.168.0.82::5901", "mac": "bc:ae:c5:6f:cc:aa"})
+    assert owner_client.post(f"{BASE}/remote/{a}/wake").status_code == 200
+    assert sent == ["bc:ae:c5:6f:cc:aa"] and rechecked == [(a, "192.168.0.82")]
+    assert owner_client.post(f"{BASE}/remote/999/wake").status_code == 404
+
+
+def test_magic_packet_shape():
+    from app import wol
+    p = wol.packet("bc:ae:c5:6f:cc:aa")
+    assert len(p) == 102 and p[:6] == b"\xff" * 6 and p[6:12] == bytes.fromhex("bcaec56fccaa") and p[-6:] == p[6:12]
+    assert wol.targets()[-1] == "255.255.255.255"
+
+
+def test_guest_cannot_wake(guest_client):
+    assert guest_client.post(f"{BASE}/remote/1/wake").status_code == 403

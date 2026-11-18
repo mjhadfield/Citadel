@@ -34,6 +34,11 @@ MUSIC_DB = Path(_env("HUB_MUSIC_DB", str(PROJECTS_DIR / "MusicDatabase" / "data"
 # Test/dev switch: widgets are registered but never fetch (no network, no external services).
 NO_FETCH = _env("HUB_NO_FETCH") == "1"
 DISK_SERVER_URL = _env("HUB_DISK_SERVER_URL", "http://127.0.0.1:8765/disks.json")
+# Monitoring of the other machines (app/machines.py): Citadel's own restricted SSH key, made by tools/machines_setup.py.
+# Kept in this checkout's data/ whatever HUB_DATA_DIR says, so a scratch copy watches the same machines with the same key.
+MACHINES_KEY = Path(_env("HUB_MACHINES_KEY", str(ROOT / "data" / "machines_ed25519")))
+# Test/demo switch: no SSH to the machines at all.
+NO_MACHINES = _env("HUB_NO_MACHINES") == "1"
 
 
 def ensure_dirs() -> None:

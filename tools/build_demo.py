@@ -88,7 +88,7 @@ def make_scratch() -> Path:
 
 def snapshot(scratch: Path) -> tuple[dict[str, Any], list[dict[str, Any]], list[str]]:
     """Every response the demo needs, plus the monitoring readings and the secret values to check the output against."""
-    os.environ.update(HUB_DATA_DIR=str(scratch), HUB_NO_FETCH="1", HUB_PORT="18097")
+    os.environ.update(HUB_DATA_DIR=str(scratch), HUB_NO_FETCH="1", HUB_NO_MACHINES="1", HUB_PORT="18097")   # no machines: none of their names/stats in public
     sys.path.insert(0, str(ROOT))
     from fastapi.testclient import TestClient
 
@@ -272,7 +272,7 @@ def censor_settings(path: str, data: Any) -> Any:
         for pr in d.get("projects", []):
             pr.update(url=REDACTED if pr.get("url") else "", cwd=REDACTED, command=REDACTED,
                       env={k: REDACTED for k in (pr.get("env") or {})})
-        d["remote"] = [{**x, "address": REDACTED} for x in d.get("remote", [])]
+        d["remote"] = [{**x, "address": REDACTED, "mac": REDACTED if x.get("mac") else "", "ssh_user": REDACTED if x.get("ssh_user") else ""} for x in d.get("remote", [])]
         d["devices"] = [{**dv, "id": f"demo-{i + 1}", "name": REDACTED, "user_agent": REDACTED, "current": i == 0}
                         for i, dv in enumerate(d.get("devices", []))]
         w = d.get("widgets", {})

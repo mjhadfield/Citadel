@@ -14,7 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from . import __version__, alerts, appearance, auth, config, db, navigation, notify, procs, schemas, state
+from . import __version__, alerts, appearance, auth, config, db, navigation, notify, procs, schemas, state, wol
 from .bus import bus
 from .health import Health
 from .widgets import discover
@@ -31,12 +31,18 @@ SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
 @router.get("/state")
 async def owner_state(request: Request):
     return await state.owner_state(request.app.state.health, auth.current_device(request), maintenance.attention(request.app.state.scheduler),
-                                   request.app.state.monitor)
+                                   request.app.state.monitor, request.app.state.machines)
 
 
 @router.get("/events")
 async def owner_events():
     return StreamingResponse(bus.stream(), media_type="text/event-stream", headers=SSE_HEADERS)
+
+
+@router.get("/machines")
+async def machines(request: Request):
+    """The other machines' latest stats (app/machines.py). Cached by its own 30 s loop: no SSH in the request path."""
+    return {"machines": request.app.state.machines.view()}
 
 
 @router.get("/monitoring")
@@ -160,7 +166,8 @@ async def get_config(request: Request):
     with db.db() as con:
         links = [_link_cfg(r) for r in con.execute("SELECT * FROM links ORDER BY pin_order IS NULL, pin_order, sort, name")]
         projects = [_project_cfg(r) for r in con.execute("SELECT * FROM projects ORDER BY pin_order IS NULL, pin_order, sort, name")]
-        remote = [{"id": r["id"], "name": r["name"], "address": r["address"], "viewer": r["viewer"]} for r in con.execute("SELECT * FROM remote_hosts ORDER BY sort, id")]
+        remote = [{"id": r["id"], "name": r["name"], "address": r["address"], "viewer": r["viewer"], "ssh_user": r["ssh_user"],
+                   "always_on": bool(r["always_on"]), "mac": r["mac"]} for r in con.execute("SELECT * FROM remote_hosts ORDER BY sort, id")]
     me = auth.current_device(request)["id"]
     return {
         "version": __version__, "host": socket.gethostname(), "ip": config.lan_ip(), "public_url": config.public_url(),
@@ -445,7 +452,8 @@ def _remote(host_id: int) -> dict[str, Any]:
 async def create_remote(body: schemas.RemoteHostIn, request: Request):
     with db.db() as con:
         sort = con.execute("SELECT COALESCE(MAX(sort), 0) + 10 FROM remote_hosts").fetchone()[0]
-        cur = con.execute("INSERT INTO remote_hosts (name, address, viewer, sort) VALUES (?, ?, ?, ?)", (body.name, body.address, body.viewer, sort))
+        cur = con.execute("INSERT INTO remote_hosts (name, address, viewer, ssh_user, always_on, mac, sort) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                          (body.name, body.address, body.viewer, body.ssh_user, int(body.always_on), body.mac, sort))
     notify.config()
     asyncio.create_task(request.app.state.health.sweep_now())
     return {"id": cur.lastrowid}
@@ -464,7 +472,8 @@ async def reorder_remote(body: schemas.IdList):
 async def update_remote(host_id: int, body: schemas.RemoteHostIn, request: Request):
     _remote(host_id)
     with db.db() as con:
-        con.execute("UPDATE remote_hosts SET name = ?, address = ?, viewer = ? WHERE id = ?", (body.name, body.address, body.viewer, host_id))
+        con.execute("UPDATE remote_hosts SET name = ?, address = ?, viewer = ?, ssh_user = ?, always_on = ?, mac = ? WHERE id = ?",
+                    (body.name, body.address, body.viewer, body.ssh_user, int(body.always_on), body.mac, host_id))
     notify.config()
     asyncio.create_task(request.app.state.health.sweep_now())
     return {"ok": True}
@@ -490,6 +499,17 @@ async def open_remote(host_id: int):
         raise HTTPException(502, f"Couldn't open the viewer: {exc}")
     notify.projects()
     return {"ok": True, "already_open": not opened}
+
+
+@router.post("/remote/{host_id}/wake")
+async def wake_remote(host_id: int, request: Request):
+    """Send the device a Wake-on-LAN packet, then ping it quickly until it answers so its tile turns green promptly."""
+    host = _remote(host_id)
+    if not host["mac"]:
+        raise HTTPException(422, f"{host['name']} has no MAC address for Wake-on-LAN (Settings → Remote access)")
+    await asyncio.to_thread(wol.wake, host["mac"])
+    asyncio.create_task(request.app.state.health.recheck_remote(host_id, procs.vnc_port(host["address"])[0]))
+    return {"ok": True}
 
 
 @router.post("/remote/{host_id}/close")

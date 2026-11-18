@@ -143,6 +143,7 @@ class ProjectCreate(ProjectIn):
 
 # What vncviewer takes as a server (KRDC gets the same, turned into a vnc:// URL by procs.viewer_argv): host, host:display, host::port, or [IPv6] with either. It's passed as one argv
 # entry (never through a shell); the leading-character rule stops it being read as one of vncviewer's own -options.
+SSH_USER_RE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.\-]{0,31}$")
 VNC_ADDRESS_RE = re.compile(r"^[A-Za-z0-9\[][A-Za-z0-9.\-:\[\]]{0,252}$")
 
 
@@ -150,6 +151,27 @@ class RemoteHostIn(BaseModel):
     name: str = Field(min_length=1, max_length=40)
     address: str = Field(min_length=1, max_length=253)
     viewer: Literal["krdc", "tigervnc"] = "krdc"   # KRDC scales to its window; TigerVNC for servers KRDC can't log in to
+    ssh_user: str = Field("", max_length=32)       # blank = not watched by Monitoring (app/machines.py)
+    always_on: bool = False                        # off for a while = a reminder
+    mac: str = Field("", max_length=32)            # Wake-on-LAN: blank = the tile can't wake it (app/wol.py)
+
+    @field_validator("mac")
+    @classmethod
+    def _mac(cls, v: str) -> str:
+        digits = re.sub(r"[\s:.-]", "", v).lower()
+        if not digits:
+            return ""
+        if not re.fullmatch(r"[0-9a-f]{12}", digits):
+            raise ValueError("MAC address should look like bc:ae:c5:6f:cc:aa")
+        return ":".join(digits[i:i + 2] for i in range(0, 12, 2))
+
+    @field_validator("ssh_user")
+    @classmethod
+    def _ssh_user(cls, v: str) -> str:
+        v = v.strip()
+        if v and not SSH_USER_RE.match(v):   # goes into ssh's argv as user@host: no spaces, no leading dash
+            raise ValueError("SSH user should be a plain account name, like mike or admin")
+        return v
 
     @field_validator("name")
     @classmethod
@@ -192,6 +214,7 @@ class AlertSettingsIn(BaseModel):
     onsale: bool = True
     fresh: bool = True
     down: bool = True
+    machines: bool = True
     top_artists: int = Field(50, ge=1, le=500)
 
 

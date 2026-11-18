@@ -233,3 +233,13 @@ def test_memory_is_tight_only_when_ram_is_low_and_swap_is_filling():
     monitor = SimpleNamespace(mem_tight_since=AT.timestamp() - 200, latest={"mem": mem(2, 12)})
     sysalerts = [a for a in state.service_alerts([], [], SimpleNamespace(state={}), monitor, AT) if a["key"].startswith("sys:mem")]
     assert sysalerts[0]["detail"] == "2.0 GB RAM free · swap 75% full"
+
+
+def test_stores_vinyl_radar_couldnt_read_become_one_alert_with_a_recheck():
+    widgets = {"vinyl": {"data": {"errors": ["Juno: HTTPStatusError", "Earache: HTTPStatusError"]}}}
+    [a] = state.sync_alerts(widgets, AT)
+    assert a["title"] == "Vinyl Radar couldn't read 2 stores" and a["detail"] == "Earache, Juno"
+    assert a["action"] == {"label": "Recheck", "widget": "vinyl"}
+    assert state.sync_alerts({"vinyl": {"data": {"errors": []}}}, AT) == []
+    db.put_settings("alerts", {**alerts.DEFAULTS, "down": False})
+    assert state.sync_alerts(widgets, AT) == []

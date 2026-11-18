@@ -61,12 +61,12 @@ def expand(content: bytes, cal: dict[str, Any], start: datetime, end: datetime) 
 
 class DiaryWidget(Widget):
     id = "diary"
-    title = "Diary"
+    title = "Calendar"
     interval = 30 * 60           # one small request per calendar; changes are worth seeing within the half hour
     min_interval = 5 * 60
     log_success = False
     secret_keys = ("calendars",)
-    defaults = {"calendars": [], "horizon_days": 60}
+    defaults = {"calendars": [], "horizon_days": 93}      # to the end of the full screen view's third month
 
     def secrets(self, settings: dict[str, Any]) -> list[str]:
         return [c["url"] for c in settings.get("calendars", []) if c.get("url")]

@@ -19,10 +19,16 @@ const defs = new Map(cards.map(c => [c.id, c]));
 // each time, even though the tile's own 1s-fresh data was perfectly fine. Keeping it in its own variable and
 // merging it in at render time means it survives every one of those reloads untouched.
 let monitoring = null;
+// The other machines (app/machines.py) change every 30 s server-side: fetched on every 15th 2 s tick and when Monitoring opens.
+let machines = null, monTicks = 0;
+async function pollMachines() {
+  try { machines = (await api.get('/api/owner/machines')).machines; } catch { /* keep the last list */ }
+  renderCard('monitoring');
+}
 
 function renderCard(id) {
   if (!state) return;
-  if (id === 'monitoring') { shell.update(id, defs.get(id).render({ ...state, monitoring }, shell.ctx(id))); return; }
+  if (id === 'monitoring') { shell.update(id, defs.get(id).render({ ...state, monitoring, machines }, shell.ctx(id))); return; }
   shell.update(id, defs.get(id).render(state, shell.ctx(id)), { fresh: freshData });
   if (id === 'vinyl') {
     // Shell's own expand/collapse (#apply) already hides .maxbar (filters + search) on the small tile and
@@ -52,6 +58,8 @@ function alertsDrawer(on) {
 const UNDO_MS = 6000;
 let alertsOpen = false;
 const undoable = new Map();                           // key -> { title, timer }
+const rechecking = new Map();                         // alert key -> the widget's sync stamp when Recheck was pressed
+const syncStamp = id => { const w = state.widgets?.[id]; return w ? `${w.fetched_at}|${w.error_at}` : ''; };
 
 function alertHtml(a) {
   const title = a.href ? `<a href="${esc(safeUrl(a.href))}" target="_blank" rel="noopener">${esc(a.title)}</a>` : esc(a.title);
@@ -59,10 +67,15 @@ function alertHtml(a) {
   return `<div class="alert alert--${esc(a.level)} cut">${ico(a.icon)}
     <span class="alert__text"><b>${title}</b> — ${esc(a.detail)}</span>
     <span class="chip ${a.level === 'now' ? 'chip--today' : a.level === 'info' ? 'chip--fresh' : 'chip--new'} alert__when">${esc(a.chip)}</span>
+    ${a.action ? `<button class="btn alert__act" type="button" data-alert-action="${esc(a.key)}"${rechecking.has(a.key) ? ' disabled>Checking…' : `>${esc(a.action.label)}`}</button>` : ''}
     ${a.key ? `<button class="btn btn--icon alert__x" type="button" data-alert-dismiss="${esc(a.key)}" aria-label="${esc(done)}: ${esc(a.title)}" title="${esc(done)}">${ico(a.done ? 'check' : 'x')}</button>` : ''}</div>`;
 }
 
 function renderAlerts() {
+  for (const [key, stamp] of rechecking) {                // the sync finished (or the alert went): the button comes back
+    const a = state.alerts.find(x => x.key === key);
+    if (!a || syncStamp(a.action.widget) !== stamp) rechecking.delete(key);
+  }
   const list = state.alerts.filter(a => !undoable.has(a.key));
   const folded = !alertsOpen && list.length > ALERTS_SHOWN ? list.length - (ALERTS_SHOWN - 1) : 0;
   const shown = folded ? list.slice(0, ALERTS_SHOWN - 1) : list;
@@ -96,6 +109,15 @@ async function dismissAlert(key) {
   renderAlerts();
   try { await api.post('/api/owner/alerts/dismiss', { key }); }
   catch (err) { clearTimeout(undoable.get(key)?.timer); undoable.delete(key); renderAlerts(); toast(`Couldn't dismiss: ${err.message}`); }
+}
+
+async function alertAction(key) {
+  const a = state.alerts.find(x => x.key === key);
+  if (!a?.action || rechecking.has(key)) return;
+  rechecking.set(key, syncStamp(a.action.widget));
+  renderAlerts();
+  try { await api.post(`/api/owner/widgets/${encodeURIComponent(a.action.widget)}/refresh`); }
+  catch (err) { rechecking.delete(key); renderAlerts(); toast(`Couldn't recheck: ${err.message}`); }
 }
 
 async function restoreAlert(key) {
@@ -350,6 +372,7 @@ function openMonitoring(e) {
   if (shell.open) return;
   e.stopPropagation();
   shell.toggle($('#monitoring'));
+  pollMachines();
 }
 $('#readout').addEventListener('click', openMonitoring);
 $('#readout').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openMonitoring(e); } });
@@ -384,6 +407,7 @@ function renderAll() {
 async function pollMonitoring() {
   if (!state || document.hidden || VIEWS.includes(location.hash.slice(1)) && location.hash !== '#home') return;   // the tile is on Home only
   try { monitoring = await api.get('/api/owner/monitoring'); } catch { /* keep the last good reading, don't blank the tile over one dropped request */ }
+  if (monTicks++ % 15 === 0) pollMachines();
   renderCard('monitoring');
   renderReadout();
 }
@@ -723,6 +747,8 @@ document.addEventListener('click', async e => {
   }
   const dismiss = e.target.closest('[data-alert-dismiss]');
   if (dismiss) { dismissAlert(dismiss.dataset.alertDismiss); return; }
+  const act = e.target.closest('[data-alert-action]');
+  if (act) { alertAction(act.dataset.alertAction); return; }
   const restore = e.target.closest('[data-alert-restore]');
   if (restore) { restoreAlert(restore.dataset.alertRestore); return; }
   if (e.target.closest('[data-alerts-more]')) { alertsOpen = !alertsOpen; renderAlerts(); return; }
@@ -778,6 +804,26 @@ document.addEventListener('click', async e => {
     vinylUi.mode = vinylMode.dataset.vinylMode;
     $$('[data-vinyl-mode]', vinylMode.closest('.card__head')).forEach(b => b.setAttribute('aria-pressed', b === vinylMode));
     renderCard('vinyl');
+    return;
+  }
+  const wakeTile = e.target.closest('[data-wake]');
+  if (wakeTile) {                                                           // Remote Access: wake a sleeping device (Wake-on-LAN)
+    const id = wakeTile.dataset.wake;
+    const name = state.remote.find(r => String(r.id) === id)?.name || 'that device';
+    ui.pending[`vnc:${id}`] = 'wake';
+    renderCard('remote');
+    try {
+      await api.post(`/api/owner/remote/${encodeURIComponent(id)}/wake`);
+      toast(`Waking ${name}…`);
+      // "Waking…" until the ping sees it (the server's quick recheck sends a health event), or 3 minutes
+      const until = Date.now() + 180000;
+      const done = () => state.remote.find(r => String(r.id) === id)?.up || Date.now() > until;
+      const tick = setInterval(() => { if (done()) { clearInterval(tick); delete ui.pending[`vnc:${id}`]; renderCard('remote'); } }, 1000);
+    } catch (err) {
+      delete ui.pending[`vnc:${id}`];
+      renderCard('remote');
+      toast(err.message);
+    }
     return;
   }
   const vnc = e.target.closest('[data-vnc], [data-vnc-close]');

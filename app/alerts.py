@@ -16,8 +16,8 @@ KEEP_DAYS = 45
 LEVELS = {"now": 0, "soon": 1, "info": 2}
 
 # Which of the newer reminder kinds are on (Settings → Notifications). Bins keep their own stream choice in Settings → Bins.
-DEFAULTS: dict[str, Any] = {"releases": True, "f1": True, "onsale": True, "fresh": True, "down": True, "top_artists": 50}
-KINDS = ("releases", "f1", "onsale", "fresh", "down")
+DEFAULTS: dict[str, Any] = {"releases": True, "f1": True, "onsale": True, "fresh": True, "down": True, "machines": True, "top_artists": 50}
+KINDS = ("releases", "f1", "onsale", "fresh", "down", "machines")
 
 
 def settings() -> dict[str, Any]:

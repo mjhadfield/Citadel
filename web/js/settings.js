@@ -134,7 +134,10 @@ function remoteForm(r = {}) {
       ${field('Name', input('name', r.name, 'required maxlength="40" placeholder="e.g. Pi 1 desktop"'))}
       ${field('VNC address', input('address', r.address, 'required maxlength="253" spellcheck="false" placeholder="e.g. pi-1.local"'), 'Host name or IP address. Only for a server not on the usual port 5900: <code>host:1</code> is port 5901, <code>host::5905</code> is port 5905.')}
       ${field('Viewer', select('viewer', [['krdc', 'KRDC (scales to the window)'], ['tigervnc', 'TigerVNC']], r.viewer || 'krdc'))}
+      ${field('Wake-on-LAN MAC address', input('mac', r.mac, 'maxlength="17" spellcheck="false" autocomplete="off" placeholder="blank = no wake"'))}
+      ${field('Monitoring SSH user', input('ssh_user', r.ssh_user, 'maxlength="32" spellcheck="false" autocomplete="off" placeholder="blank = not monitored"'), 'Set up once with <code>tools/machines_setup.py</code>.')}
     </div>
+    <div class="checks">${check('always_on', 'Always on', r.always_on, 'Remind me when it’s been off for a while.')}</div>
     <div class="form-actions">${act('cancel', 'Cancel')}<button class="btn btn--solid" type="submit">Save device</button></div></form>`;
 }
 
@@ -143,7 +146,7 @@ function remoteTab() {
   const rows = list.map((r, i) => editing?.kind === 'remote' && editing.id === r.id
     ? `<li class="item item--edit">${remoteForm(r)}</li>`
     : `<li class="item"><span class="item__icon">${ico('desk')}</span>
-        <div class="item__main"><b>${esc(r.name)}</b><div class="item__sub">${esc(r.address)} · ${r.viewer === 'tigervnc' ? 'TigerVNC' : 'KRDC'}</div></div>
+        <div class="item__main"><b>${esc(r.name)}</b><div class="item__sub">${esc(r.address)} · ${r.viewer === 'tigervnc' ? 'TigerVNC' : 'KRDC'}${r.mac ? ' · wakes' : ''}${r.ssh_user ? ' · monitored' : ''}${r.always_on ? ' · always on' : ''}</div></div>
         <div class="item__acts">
           ${act('move-remote', ico('up'), `data-i="${i}" data-d="-1" aria-label="Move up" ${i > 0 ? '' : 'disabled'}`, 'btn--icon')}
           ${act('move-remote', ico('down'), `data-i="${i}" data-d="1" aria-label="Move down" ${i < list.length - 1 ? '' : 'disabled'}`, 'btn--icon')}
@@ -216,7 +219,8 @@ const ALERT_KINDS = [
   ['f1', 'F1 sessions', 'From three hours before qualifying, a sprint or the race. Session names only, never results.'],
   ['onsale', 'Ticket on-sales', 'When tickets (or a presale) for a gig on your radar go on sale today or tomorrow.'],
   ['fresh', 'Fresh announcements', 'A newly announced album, gig or vinyl pre-order by one of your top artists, for a day.'],
-  ['down', 'Something’s down', 'A running project or a Launchpad service that has stopped answering for 10 minutes, or this PC short of memory or disk.'],
+  ['down', 'Something’s down', 'A running project or a Launchpad service that has stopped answering for 10 minutes, this PC short of memory or disk, or Vinyl Radar unable to read a store.'],
+  ['machines', 'Other machines', 'A disk nearly full, a machine running hot for 5 minutes, the RAID not healthy, or an “Always on” device off for 10 minutes.'],
 ];
 
 function notificationsCard() {
@@ -237,7 +241,7 @@ const calRow = (c = {}) => `<div class="cal-row" data-cal data-id="${esc(c.id ||
 
 function diaryCard() {
   const s = cfg.widgets.diary.settings;
-  return card('Diary — calendars',
+  return card('Calendar — calendars',
     'Google Calendar → Settings → your calendar → Integrate calendar → <i>Secret address in iCal format</i>.',
     `${statusLine(live?.diary, 'diary')}<form class="form" data-form="diary" style="padding:0 18px 12px">
       <div id="cals">${(s.calendars.length ? s.calendars : [{}]).map(calRow).join('')}</div>
@@ -521,7 +525,7 @@ const musicPageTab = () => musicCfg ? spotifyCard() + playlistDefaultsCard() + s
   : card('Music page', '<span class="spin"></span>', '');
 
 // ---- Screens & devices ------------------------------------------------------------------------------------------
-const PANEL_LABELS = { bins: ['Bins', ''], gigs: ['Next gig', ''], diary: ['Diary', 'Anyone who can see the TV will see your events.'] };
+const PANEL_LABELS = { bins: ['Bins', ''], gigs: ['Next gig', ''], diary: ['Calendar', 'Anyone who can see the TV will see your events.'] };
 
 function screensCard() {
   const s = cfg.screens;
@@ -1028,7 +1032,7 @@ panel.addEventListener('submit', e => {
       if (res.warnings?.length) setTimeout(() => toast(res.warnings.join(' ')), 300);
     }, 'Project saved');
   } else if (kind === 'remote') {
-    const body = { name: val(f, 'name'), address: val(f, 'address'), viewer: val(f, 'viewer') }, id = f.dataset.id;
+    const body = { name: val(f, 'name'), address: val(f, 'address'), viewer: val(f, 'viewer'), ssh_user: val(f, 'ssh_user'), always_on: f.elements.always_on.checked, mac: val(f, 'mac') }, id = f.dataset.id;
     run(async () => { await (id ? api.put(`/api/owner/remote/${id}`, body) : api.post('/api/owner/remote', body)); editing = null; }, 'Device saved');
   } else if (kind === 'theme') {
     const t = readTheme(f), id = f.dataset.id;
@@ -1051,7 +1055,7 @@ panel.addEventListener('submit', e => {
       .map(r => ({ id: r.dataset.id || undefined, name: r.querySelector('[name=cal_name]').value.trim() || 'Calendar', colour: r.querySelector('[name=cal_colour]').value,
         ...(r.querySelector('[name=cal_url]').value.trim() ? { url: r.querySelector('[name=cal_url]').value.trim() } : {}) }))
       .filter(c => c.id || c.url);                                          // an untouched "Add calendar" row is ignored
-    run(() => api.put('/api/owner/widgets/diary/settings', { calendars, horizon_days: Number(val(f, 'horizon_days')) || 60 }), 'Calendars saved — syncing');
+    run(() => api.put('/api/owner/widgets/diary/settings', { calendars, horizon_days: Number(val(f, 'horizon_days')) || 93 }), 'Calendars saved — syncing');
   } else if (kind === 'screens') {
     run(() => api.put('/api/owner/screens', { panels: cfg.tv_panels.filter(k => on(f, `panel_${k}`)), rotate_seconds: Number(val(f, 'rotate_seconds')) || 12, show_alerts: on(f, 'show_alerts') }), 'Screen settings saved');
   } else if (kind === 'gig') {

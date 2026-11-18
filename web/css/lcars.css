@@ -291,6 +291,9 @@ html[data-skin="lcars"] .alert > .i { display: none; }
 html[data-skin="lcars"] .alert__when { order: -1; align-self: stretch; display: grid; place-items: center; min-width: 96px; margin: 0; padding: 0 14px; height: auto;
   border: 0; border-radius: 18px 0 0 18px; background: var(--ac); color: var(--lc-on); box-shadow: none; font: 600 14px/1 var(--lc-font); letter-spacing: .12em; }
 html[data-skin="lcars"] .alert__text { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html[data-skin="lcars"] .alert__act { height: 26px; padding: 0 14px; border-radius: 999px; border-color: color-mix(in srgb, var(--ac) 60%, transparent); font: 500 13px/1 var(--lc-font); letter-spacing: .1em; text-transform: uppercase; }
+html[data-skin="lcars"] .alert__act:hover:not(:disabled) { background: var(--ac); border-color: var(--ac); color: var(--lc-on); }
+html[data-skin="lcars"] .alert__act + .alert__x { margin-left: 0; }
 html[data-skin="lcars"] .alert__x { margin: 0 0 0 auto; border-radius: 999px; border: 0; opacity: .7; }
 html[data-skin="lcars"] .alert__x:hover { background: var(--ac); color: var(--lc-on); opacity: 1; }
 html[data-skin="lcars"] .alert--now .alert__when { animation: lc-alert 1s 2 .9s; }
@@ -346,6 +349,10 @@ html[data-skin="lcars"] .fchip { border-radius: 999px; font: 500 13px var(--lc-f
   border-color: color-mix(in srgb, var(--lc-c, var(--silver)) 50%, transparent); }
 html[data-skin="lcars"] .fchip[aria-pressed="true"] { background: var(--lc-c, var(--lc-2)); color: var(--lc-on); border-color: transparent; }
 html[data-skin="lcars"] .card .search { border-radius: 999px; padding: 6px 14px; }
+html[data-skin="lcars"] .fbtn { border: 0; border-radius: 999px; padding: 0 14px 0 12px; font: 500 13px var(--lc-font); letter-spacing: .08em;
+  background: var(--lc-c, var(--lc-2)); color: var(--lc-on); }
+html[data-skin="lcars"] .maxbar.is-fopen .fchips { border: 0; border-radius: 18px 4px 4px 18px; padding: 12px 12px 12px 18px;
+  box-shadow: inset 5px 0 0 var(--lc-c, var(--lc-2)), 0 16px 36px var(--vignette); }
 
 /* ==========================================================================
    An expanded Home card opens as an LCARS console: a thick coloured top bar carrying the header, a side bar and a thin
@@ -387,6 +394,54 @@ html[data-skin="lcars"] .chip { border-radius: 999px; font: 500 11px/1.4 var(--l
 html[data-skin="lcars"] .chip--today, html[data-skin="lcars"] .chip--fresh, html[data-skin="lcars"] .chip--new { background: var(--lc-7); color: var(--lc-on); border-color: transparent; box-shadow: none; }
 html[data-skin="lcars"] .cd--today { border-color: var(--lc-7); box-shadow: none; }
 
+/* Now, full screen: the month calendars, the key, the next collections and the schedule in LCARS shapes rather than
+   Citadel's outlined boxes and mono type. Collections are bands with the bin's colour as a rounded end block; the
+   schedule's dates are key blocks in the card's colour, like the Diary's times. */
+html[data-skin="lcars"] .cal__h { font: 500 20px/1 var(--lc-font); letter-spacing: .12em; text-transform: uppercase; color: var(--lc-c); }
+html[data-skin="lcars"] .cal__dow { font: 500 12px var(--lc-font); letter-spacing: .14em; }
+html[data-skin="lcars"] .cd { border: 0; border-radius: 6px; background: color-mix(in srgb, var(--silver) 5%, transparent); font: 400 16px var(--lc-font); }
+html[data-skin="lcars"] .cd--out { background: none; }
+html[data-skin="lcars"] .cd--today { background: var(--lc-c); color: var(--lc-on); }
+html[data-skin="lcars"] .cd i { height: 4px; border-radius: 2px; box-shadow: none; }
+html[data-skin="lcars"] .cal__legend { gap: 8px 28px; font: 400 15px var(--lc-font); letter-spacing: .04em; }
+html[data-skin="lcars"] .cal__legend i { width: 22px; height: 14px; border-radius: 7px 0 0 7px; }
+html[data-skin="lcars"] #grid > .card.is-max.now .rows { gap: 10px; }
+html[data-skin="lcars"] #grid > .card.is-max.now .rows > li:not(.note) { border: 0; border-radius: 26px 4px 4px 26px; }
+html[data-skin="lcars"] #grid > .card.is-max.now .bin { min-height: 60px; padding: 0 18px 0 0; background: color-mix(in srgb, var(--sw) 10%, transparent); }
+html[data-skin="lcars"] #grid > .card.is-max.now .bin__swatch { width: 40px; border-radius: 26px 0 0 26px; }
+html[data-skin="lcars"] .bin__name { font: 500 18px/1.15 var(--lc-font); letter-spacing: .04em; }
+html[data-skin="lcars"] .bin__sub { font: 400 14px var(--lc-font); letter-spacing: .04em; }
+html[data-skin="lcars"] #grid > .card.is-max.now .bin--due { background: color-mix(in srgb, var(--sw) 18%, transparent); }
+html[data-skin="lcars"] #grid > .card.is-max.now .sched { align-items: center; gap: 16px; min-height: 52px; padding: 0 14px 0 0; background: color-mix(in srgb, var(--lc-c) 6%, transparent); }
+html[data-skin="lcars"] .sched__d { align-self: stretch; display: flex; align-items: center; justify-content: flex-end; width: 104px; padding: 0 12px;
+  border-radius: 26px 0 0 26px; background: var(--lc-c); color: var(--lc-on); font: 500 14px/1 var(--lc-font); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+html[data-skin="lcars"] .sched__b { padding-block: 8px; gap: 6px 20px; font: 400 17px var(--lc-font); letter-spacing: .04em; }
+/* Calendar, full screen: the popover and the days coming up as bands with a date key block (today in amber) */
+html[data-skin="lcars"] .cd--ev:hover, html[data-skin="lcars"] .cd--ev:focus-visible { background: color-mix(in srgb, var(--lc-c) 22%, transparent); }
+html[data-skin="lcars"] .cd--today.cd--ev:hover, html[data-skin="lcars"] .cd--today.cd--ev:focus-visible { background: var(--lc-c); }
+html[data-skin="lcars"] .cd__pop { border: 0; border-radius: 18px 4px 4px 18px; padding: 12px 14px 12px 18px; box-shadow: inset 5px 0 0 var(--lc-c), 0 14px 34px var(--vignette); font: 400 15px var(--lc-font); letter-spacing: .03em; color: var(--silver); }
+html[data-skin="lcars"] .cd__ph { font: 500 13px var(--lc-font); letter-spacing: .14em; color: var(--lc-c); }
+html[data-skin="lcars"] .cd__pe { border-left: 0; padding-left: 0; }
+html[data-skin="lcars"] .cd__pt { width: 56px; padding: 2px 8px; border-radius: 10px 0 0 10px; background: var(--cal); color: var(--lc-on); font: 500 13px var(--lc-font); text-align: right; align-self: start; }
+html[data-skin="lcars"] .cd__pn { font-weight: 500; }
+html[data-skin="lcars"] .cd__pl { font-size: 13px; }
+html[data-skin="lcars"] .crows { gap: 10px; }
+html[data-skin="lcars"] .crow { gap: 16px; padding: 0 14px 0 0; border: 0; border-radius: 26px 4px 4px 26px; background: color-mix(in srgb, var(--lc-c) 6%, transparent); min-height: 52px; }
+html[data-skin="lcars"] .crow__d { align-self: stretch; display: flex; align-items: center; justify-content: flex-end; width: 104px; padding: 0 12px;
+  border-radius: 26px 0 0 26px; background: var(--lc-c); color: var(--lc-on); font: 500 14px/1 var(--lc-font); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+html[data-skin="lcars"] .crow--today { background: color-mix(in srgb, var(--lc-7) 10%, transparent); }
+html[data-skin="lcars"] .crow--today .crow__d { background: var(--lc-7); color: var(--lc-on); }
+html[data-skin="lcars"] .crow__evs { padding-block: 10px; }
+html[data-skin="lcars"] .crow__e { border-left: 0; padding-left: 0; }
+html[data-skin="lcars"] .crow__t { width: 58px; font: 400 15px var(--lc-font); letter-spacing: .04em; color: var(--cal, var(--lc-c)); }
+html[data-skin="lcars"] .crow__n { font: 500 18px/1.15 var(--lc-font); letter-spacing: .04em; }
+html[data-skin="lcars"] .crow__s { font: 400 14px var(--lc-font); letter-spacing: .04em; }
+html[data-skin="lcars"] .sched--next::before { content: none; }
+html[data-skin="lcars"] #grid > .card.is-max.now .sched--next { background: color-mix(in srgb, var(--hc) 12%, transparent); }
+html[data-skin="lcars"] .sched--next .sched__d { background: var(--hl); color: var(--lc-on); }
+html[data-skin="lcars"] .sched__in { font: 400 15px var(--lc-font); letter-spacing: .04em; }
+html[data-skin="lcars"] .sched__b i { width: 18px; height: 12px; border-radius: 6px 0 0 6px; box-shadow: none; }
+
 /* Next gig: a big Antonio countdown with ticking hours, and the other gigs as key-block rows (date | artist | venue) */
 html[data-skin="lcars"] .hero { align-items: baseline; gap: 12px; }
 html[data-skin="lcars"] .hero__count { font: 500 92px/.85 var(--lc-font); background: none; color: var(--lc-c); }
@@ -409,6 +464,7 @@ html[data-skin="lcars"] .ev__t { align-self: stretch; display: flex; align-items
   border-radius: 15px 0 0 15px; background: var(--cal, var(--lc-c)); color: var(--lc-on); font: 500 14px/1 var(--lc-font); letter-spacing: .06em; text-transform: uppercase; }
 html[data-skin="lcars"] .ev__bar { display: none; }
 html[data-skin="lcars"] .card.is-max .ev { padding: 3px 0; }
+html[data-skin="lcars"] #grid > .card.is-max .cols { padding: 0 16px 16px; }
 
 /* Projects: pill Start/Stop buttons */
 html[data-skin="lcars"] .proj__desc { font: 400 13px var(--lc-font); letter-spacing: .04em; }
@@ -426,6 +482,23 @@ html[data-skin="lcars"] .feed--new { box-shadow: none; background: linear-gradie
 html[data-skin="lcars"] .feed--pinned { box-shadow: none; background: linear-gradient(90deg, color-mix(in srgb, var(--lc-c) 10%, transparent), transparent 45%); }
 html[data-skin="lcars"] .feed--new::before, html[data-skin="lcars"] .feed--pinned::before { content: ""; position: absolute; left: 0; top: 6px; bottom: 6px; width: 5px; border-radius: 0 5px 5px 0; background: var(--lc-7); }
 html[data-skin="lcars"] .feed--pinned::before { background: var(--lc-c); }
+/* Full-screen lists in columns (Releases, Vinyl Radar, Gig radar, booked gigs): no hairlines between rows; each row is a
+   faintly tinted band with a rounded left end, a little apart from the next, and the columns get a gutter */
+html[data-skin="lcars"] #grid > .card.is-max .rows--cols { column-gap: 12px; padding: 4px 16px 16px 2px; }
+html[data-skin="lcars"] #grid > .card.is-max .rows--cols > li { border: 0; margin-bottom: 8px; border-radius: 22px 4px 4px 22px;
+  background: color-mix(in srgb, var(--lc-c) 6%, transparent); }
+html[data-skin="lcars"] #grid > .card.is-max .rows--cols > li.note { background: none; }
+html[data-skin="lcars"] #grid > .card.is-max .rows--cols > li::before { left: 5px; top: 12px; bottom: 12px; border-radius: 5px; }   /* new/pinned cap, inside the rounded end */
+html[data-skin="lcars"] .gigs { margin-top: 26px; column-gap: 16px; }
+html[data-skin="lcars"] .gigs__h + .gigs { margin-top: 12px; }
+html[data-skin="lcars"] .gigline { gap: 14px; min-height: 52px; padding: 0 12px 0 0; margin-bottom: 8px; border-top: 0; border-radius: 22px 4px 4px 22px;
+  background: color-mix(in srgb, var(--lc-c) 7%, transparent); }
+html[data-skin="lcars"] .gigline__d { align-self: stretch; display: flex; align-items: center; justify-content: flex-end; width: 104px; padding: 0 12px;
+  border-radius: 22px 0 0 22px; background: var(--lc-c); color: var(--lc-on); font-weight: 500; text-transform: uppercase; white-space: nowrap; }
+html[data-skin="lcars"] .gigline--past .gigline__d { background: color-mix(in srgb, var(--lc-c) 45%, var(--bg)); }
+html[data-skin="lcars"] .gigline__main { padding-block: 8px; }
+html[data-skin="lcars"] .gigline__main b { font: 500 18px/1.15 var(--lc-font); letter-spacing: .04em; }
+html[data-skin="lcars"] .gigline__sub { font: 400 14px var(--lc-font); letter-spacing: .04em; }
 html[data-skin="lcars"] .feed__date, html[data-skin="lcars"] .vin__when, html[data-skin="lcars"] .gigline__d { font-family: var(--lc-font); font-size: 14px; letter-spacing: .04em; }
 html[data-skin="lcars"] .vin__when small { font-size: 10.5px; }
 html[data-skin="lcars"] .cover { border-radius: 12px 2px 2px 12px; clip-path: none; }
@@ -446,7 +519,19 @@ html[data-skin="lcars"] .mon-col__label { font: 500 14px var(--lc-font); letter-
 html[data-skin="lcars"] .mon-temp { font: 400 40px/1 var(--lc-font); font-variant-numeric: tabular-nums; }
 html[data-skin="lcars"] .mon-temp small { font: 400 12px var(--lc-font); letter-spacing: .14em; }
 html[data-skin="lcars"] .mon-temp--warm { color: var(--warn); } html[data-skin="lcars"] .mon-temp--hot { color: var(--bad); }
+html[data-skin="lcars"] .mach .mon-head { min-height: 44px; }
+html[data-skin="lcars"] .mon-temp--sub { font-size: 24px; }
 html[data-skin="lcars"] .kv { font: 400 14px var(--lc-font); letter-spacing: .04em; }
+/* Monitoring's sections and the Services log: an LCARS label running into a bar in the card's colour (like Now's
+   labels), instead of Citadel's "// mono" heading; the machine panels lose their hairlines (the bar heads them) */
+html[data-skin="lcars"] .mon-section .hud, html[data-skin="lcars"] .logwrap > .hud, html[data-skin="lcars"] .gigs__h { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;
+  font: 500 15px/1 var(--lc-font); letter-spacing: .16em; color: var(--lc-c); }
+html[data-skin="lcars"] .mon-section .hud::before, html[data-skin="lcars"] .logwrap > .hud::before, html[data-skin="lcars"] .gigs__h::before { content: none; }
+html[data-skin="lcars"] .mon-section .hud::after, html[data-skin="lcars"] .logwrap > .hud::after, html[data-skin="lcars"] .gigs__h::after { content: ""; flex: 1; min-width: 24px; height: 6px;
+  border-radius: 0 3px 3px 0; background: color-mix(in srgb, var(--lc-c) 40%, transparent); }
+html[data-skin="lcars"] .mon-head--sec { align-items: center; gap: 16px; }
+html[data-skin="lcars"] .mach { border-top: 0; padding-top: 4px; }
+html[data-skin="lcars"] .log { border: 0; border-radius: 14px 4px 4px 14px; }
 html[data-skin="lcars"] .kv dt { text-transform: uppercase; letter-spacing: .1em; }
 
 /* Launchpad: LCARS buttons, a coloured icon block on a rounded left end */
@@ -472,23 +557,84 @@ html[data-skin="lcars"][data-theme="light"] .tile > .i { background: color-mix(i
 html[data-skin="lcars"][data-theme="light"] .tile--primary { background: color-mix(in srgb, var(--silver-dim) 17%, transparent); }
 
 /* ==========================================================================
+   Phone header: an LCARS elbow. A solid block in the frame colour, the logo in its middle and the reminder count (a
+   readout cut into the block, in the attention colour) at the logo's corner, sweeps round into a bar along the header's foot. Bookmarks, Day/Night,
+   Style and Settings are that bar's segments, each its own colour with its name set bottom right, and Settings caps the
+   end. The wordmark is the screen's title, above the bar on the right. What a segment opens, it turns amber for.
+   dashboard.css lays the row out (shared with Citadel).
+   ========================================================================== */
+@media (max-width: 760px) {
+  html[data-skin="lcars"] .top { --lc-elb: 70px; --lc-bar: 30px; --lc-stub: 22px;
+    flex-wrap: nowrap; align-items: flex-end; column-gap: 4px; row-gap: 0; height: 68px; padding: 0; margin-bottom: 18px; }
+  /* the elbow is one shape (a path, so it has no seams): the block (70 wide, rounded top left), its round outer corner,
+     the bar's start (30 tall) and the small inside curve between them. The bar's width is --lc-elb + --lc-stub. */
+  html[data-skin="lcars"] .top::before { content: ""; position: absolute; z-index: -1; left: 0; top: 0; height: 68px; width: calc(var(--lc-elb) + var(--lc-stub));
+    pointer-events: none; background: var(--lc-frame); clip-path: path("M16 0H70V24A14 14 0 0 0 84 38H92V68H34A34 34 0 0 1 0 34V16A16 16 0 0 1 16 0Z"); }
+  html[data-skin="lcars"] .top::after { content: none; }
+  html[data-skin="lcars"] .top__brand { order: 0; flex: none; align-self: stretch; align-items: flex-start; width: calc(var(--lc-elb) + var(--lc-stub)); }
+  html[data-skin="lcars"] .top__logo { width: var(--lc-elb); height: 100%; display: grid; place-items: center; padding: 0; color: var(--lc-on); filter: none; }
+  html[data-skin="lcars"] .top__logo .i { width: 28px; height: 28px; }
+  html[data-skin="lcars"] .top__badge { top: 9px; right: auto; left: calc(50% + 8px); min-width: 20px; height: 20px; padding: 0 5px; border-radius: 6px;
+    background: var(--bg); color: var(--lc-7); font: 500 15px/20px var(--lc-font); letter-spacing: .02em; }
+  html[data-skin="lcars"] .top__brand .wordmark { display: block; position: absolute; top: 2px; right: 2px; font: 500 26px/1 var(--lc-font); letter-spacing: .16em;
+    margin-right: -.16em; background: none; color: var(--lc-frame); -webkit-text-fill-color: currentColor; filter: none; }
+  html[data-skin="lcars"] .shortcuts { flex: 1 1 auto; align-self: flex-end; }
+  html[data-skin="lcars"] .top .sc--menu, html[data-skin="lcars"] .top .look-btn, html[data-skin="lcars"] .top .top__settings {
+    flex: 1 1 auto; align-self: flex-end; width: auto; min-width: 0; height: var(--lc-bar); padding: 0 8px 3px; border: 0; border-radius: 0; box-shadow: none; clip-path: none;
+    justify-content: flex-end; align-items: flex-end; background: var(--lc-c); color: var(--lc-on);
+    font: 500 15px/1 var(--lc-font); letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+  html[data-skin="lcars"] .top .sc--menu { width: 100%; }
+  html[data-skin="lcars"] .top .sc--menu .i, html[data-skin="lcars"] .top .look-btn .i, html[data-skin="lcars"] .top .top__settings .i { display: none; }
+  html[data-skin="lcars"] .top .sc--menu .sc__label, html[data-skin="lcars"] .top .look-btn__word { display: inline; }
+  html[data-skin="lcars"] .top .top__settings::after { content: "Settings"; }
+  html[data-skin="lcars"] .top .top__settings { border-radius: 0 15px 15px 0; padding-right: 14px; }
+  html[data-skin="lcars"] .top .sc--menu { --lc-c: var(--lc-hd-1, var(--lc-2)); }
+  html[data-skin="lcars"] .top [data-mode-toggle] { --lc-c: var(--lc-hd-2, var(--lc-4)); }
+  html[data-skin="lcars"] .top [data-theme-menu] { --lc-c: var(--lc-hd-3, var(--lc-5)); }
+  html[data-skin="lcars"] .top .top__settings { --lc-c: var(--lc-hd-4, var(--lc-1)); }
+  /* Night: the page's pastels are too soft for solid blocks this size, so the header has its own deeper set (the elbow
+     and the Settings cap share the frame colour). Day's colours are already solid. */
+  html[data-skin="lcars"]:not([data-theme="light"]) .top { --lc-frame: #6c5ce7; --lc-hd-1: #9b6bff; --lc-hd-2: #6f86d6; --lc-hd-3: #c05ed8; --lc-hd-4: #6c5ce7; }
+  html[data-skin="lcars"]:not([data-theme="light"]) .top .bmbar { --lc-2: var(--lc-hd-1); }    /* the panels' outline and base, to match */
+  html[data-skin="lcars"] .top .sc--menu:active, html[data-skin="lcars"] .top .look-btn:active, html[data-skin="lcars"] .top .top__settings:active { background: var(--silver-hi); }
+  html[data-skin="lcars"] .top .sc--menu[aria-expanded="true"], html[data-skin="lcars"] .top .look-btn[aria-expanded="true"],
+  html[data-skin="lcars"] .top .sc--menu[aria-expanded="true"]:hover, html[data-skin="lcars"] .top .look-btn[aria-expanded="true"]:hover,
+  html[data-skin="lcars"][data-page="settings"] .top .top__settings { background: var(--lc-7); color: var(--lc-on); }
+  html[data-skin="lcars"] .top__logo[aria-expanded="true"] .top__badge { background: var(--lc-7); color: var(--lc-on); }
+  /* Day: the attention orange is too near the frame's to read as "open", so the open segment goes to ink */
+  html[data-skin="lcars"][data-theme="light"] .top .sc--menu[aria-expanded="true"], html[data-skin="lcars"][data-theme="light"] .top .look-btn[aria-expanded="true"],
+  html[data-skin="lcars"][data-theme="light"][data-page="settings"] .top .top__settings { background: var(--silver-hi); }
+  html[data-skin="lcars"][data-theme="light"] .top__logo[aria-expanded="true"] .top__badge { background: var(--silver-hi); color: var(--lc-on); }
+}
+/* narrow phones (360-ish): a slimmer elbow and tighter names, so all four still read in full */
+@media (max-width: 399px) {
+  html[data-skin="lcars"] .top { --lc-elb: 62px; --lc-stub: 14px; }
+  html[data-skin="lcars"] .top::before { clip-path: path("M16 0H62V24A14 14 0 0 0 76 38V68H34A34 34 0 0 1 0 34V16A16 16 0 0 1 16 0Z"); }
+  html[data-skin="lcars"] .top .sc--menu, html[data-skin="lcars"] .top .look-btn, html[data-skin="lcars"] .top .top__settings { padding: 0 6px 3px; font-size: 14px; letter-spacing: .02em; }
+  html[data-skin="lcars"] .top .top__settings { padding-right: 11px; }
+}
+
+/* ==========================================================================
    Phones: no frame lines (the rail is the bottom tab bar there)
    ========================================================================== */
 @media (max-width: 760px) {
   /* the reminders drawer (dashboard.css): framed like the bookmarks panel, in the attention colour */
   html[data-skin="lcars"] .top > .alerts { border: 0; border-radius: 16px; background: var(--surface-2); box-shadow: inset 0 0 0 2px var(--lc-7), 0 20px 44px var(--vignette); }
-  html[data-skin="lcars"] .top__logo { color: var(--lc-2); filter: none; }
-  html[data-skin="lcars"] .top__badge { background: var(--lc-7); color: var(--lc-on); font: 500 13px/18px var(--lc-font); }
   html[data-skin="lcars"] .now .clock__time { font-size: 64px; }
   html[data-skin="lcars"] .hero__count { font-size: 72px; }
-  html[data-skin="lcars"] .sc, html[data-skin="lcars"] .look-btn { padding: 0 10px; }
   html[data-skin="lcars"] .alert, html[data-skin="lcars"] .top .alert { flex-basis: 100%; }
-  html[data-skin="lcars"] .top__brand { order: 0; }                   /* phones: the wordmark stays first, there's no room on the right */
-  html[data-skin="lcars"] .top__brand .wordmark { font-size: 18px; }
   html[data-skin="lcars"] .mon-temp { font-size: 28px; }
   html[data-skin="lcars"] #grid .card__head { flex-wrap: wrap; row-gap: 6px; }
   html[data-skin="lcars"] #grid .card__tools { flex: 1 0 auto; }      /* keeps its buttons' width: wraps under a long title rather than spilling out */
   html[data-skin="lcars"] #grid .card__head .hud { font-size: 17px; white-space: normal; }
+  /* …but an expanded card's console header is one 30px bar: no wrapping there, or its meta and buttons drop below the
+     bar onto the frame (Releases, Radar, Diary on Mike's phone, 2026-11-17). The meta gives way instead, with "…" */
+  html[data-skin="lcars"] #grid > .card.is-max .card__head { flex-wrap: nowrap; }
+  html[data-skin="lcars"] #grid > .card.is-max .card__head .hud { white-space: nowrap; flex: none; }
+  html[data-skin="lcars"] #grid > .card.is-max .card__tools { flex: 1 1 auto; min-width: 0; margin-left: 10px; }
+  html[data-skin="lcars"] #grid > .card.is-max .card__tools .btn { flex: none; }
+  html[data-skin="lcars"] #grid > .card.is-max .meta { display: block; min-width: 0; flex: 0 1 auto; line-height: 30px; padding: 0 8px; font-size: 12px;
+    overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
   html[data-skin="lcars"] .alert__when { min-width: 0; }
 }
 
@@ -608,7 +754,9 @@ html.mx-ping[data-skin="lcars"] .dot--warn.is-ping::after { color: var(--warn); 
 
 /* new data: the card's lit left edge brightens once (an overlay motion.js adds; the card's clip-path shapes it) */
 @keyframes mx-ack { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0; } }
-html[data-skin="lcars"] #grid > .card { position: relative; }
+/* not an expanded card: this selector outranks .card.is-max's position: fixed, which left every expanded card stuck in its
+   grid slot as a narrow column (2026-11-17) */
+html[data-skin="lcars"] #grid > .card:not(.is-max) { position: relative; }
 html[data-skin="lcars"] .mx-ack { position: absolute; inset: 0 auto 0 0; width: 180px; pointer-events: none; z-index: 2; opacity: 0;
   background: linear-gradient(90deg, var(--lc-c, var(--lc-frame)) 0 4px, color-mix(in srgb, var(--lc-c, var(--lc-frame)) 22%, transparent) 4px, transparent 100%); }
 html.mx-ack[data-skin="lcars"] .card.is-ack > .mx-ack { animation: mx-ack .9s var(--mx-ease) 1; }

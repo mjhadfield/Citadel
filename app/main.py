@@ -10,7 +10,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import api_content, api_maintenance, api_music, api_news, api_owner, api_screens, auth, config, content, coverart, db, logbook, maintenance, monitor, musicbrainz, notify, procs, seed, state
+from . import api_content, api_maintenance, api_music, api_news, api_owner, api_screens, auth, config, content, coverart, db, logbook, machines, maintenance, monitor, musicbrainz, notify, procs, seed, state
 from .health import Health
 from .music import store as music_store
 from .music.rotator import Rotator
@@ -100,12 +100,15 @@ async def lifespan(app: FastAPI):
 
     scheduler = Scheduler({**widgets, **maintenance.jobs(), scrobbles.id: scrobbles, buying.id: buying, discovering.id: discovering}, on_update)
     mon = monitor.Monitor()
+    machine_watch = machines.Machines(health)          # the other machines' stats over SSH (app/machines.py)
     rotator = Rotator()                              # rotating playlists on the Music page (app/music/rotator.py)
     app.state.health, app.state.scheduler, app.state.monitor, app.state.rotator = health, scheduler, mon, rotator
+    app.state.machines = machine_watch
     music_store.learn_secrets()
     await health.start()
     await scheduler.start()
     await mon.start()
+    await machine_watch.start()
     await rotator.start()
     watcher = asyncio.create_task(_watch_units(app), name="unit-watcher")
 
@@ -120,6 +123,7 @@ async def lifespan(app: FastAPI):
         watcher.cancel()
         await asyncio.gather(watcher, return_exceptions=True)
         await rotator.stop()
+        await machine_watch.stop()
         await mon.stop()
         await scheduler.stop()
         await health.stop()

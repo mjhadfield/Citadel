@@ -3,6 +3,11 @@
 import { $, $$, esc, ico } from './util.js';
 import * as motion from './motion.js';
 
+function fopen(bar, on) {
+  bar.classList.toggle('is-fopen', on);
+  bar.querySelector('[data-fbtn]')?.setAttribute('aria-expanded', String(on));
+}
+
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export class Shell {
@@ -21,9 +26,14 @@ export class Shell {
     const el = document.createElement('section');
     el.className = `card a-${def.area}${def.cls ? ` ${def.cls}` : ''}`;
     el.id = def.id;
-    const first = def.defaultFilter ?? def.filters?.[0]?.value;
+    // phoneFilter: a card's starting filter on a phone, when it differs (Calendar shows 30 days there)
+    const phone = def.phoneFilter && window.matchMedia('(max-width: 760px)').matches;
+    const first = (phone ? def.phoneFilter : def.defaultFilter) ?? def.filters?.[0]?.value;
     const chips = (def.filters || []).map(f =>
       `<button class="fchip" data-filter="${esc(f.value)}" aria-pressed="${f.value === first}">${esc(f.label)}</button>`).join('');
+    // Phones show one filter button (the funnel and the filter in use) that drops the choices down (dashboard.css .fchips)
+    const firstLabel = def.filters?.find(f => f.value === first)?.label ?? '';
+    const fpick = chips ? `<button class="fbtn" type="button" data-fbtn aria-expanded="false" aria-label="Filter: ${esc(firstLabel)}">${ico('filter')}<span data-flabel>${esc(firstLabel)}</span></button>` : '';
     const seen = def.markSeen ? `<button class="fchip fchip--action" data-mark-seen="${esc(def.markSeen)}">Mark all seen</button>` : '';
     const search = (seen ? seen : '') + (def.search ? '<input class="search" type="search" placeholder="Filter…" aria-label="Filter">' : '');
     // A small, always-visible shortcut next to Expand — e.g. Next gig's "Add a gig" — so a card with things in it
@@ -36,7 +46,7 @@ export class Shell {
     el.innerHTML = `<div class="card__in">
       <div class="card__head"><span class="hud">${def.labelHtml ? def.label : esc(def.label)}</span><span class="card__tools"><span class="meta"></span>${headerAction}
         ${maxBtn}</span></div>
-      ${chips || search ? `<div class="maxbar"${def.pinnedOpen ? '' : ' hidden'}>${chips}${search}</div>` : ''}
+      ${chips || search ? `<div class="maxbar"${def.pinnedOpen ? '' : ' hidden'}>${fpick}${chips ? `<div class="fchips">${chips}</div>` : ''}${search}</div>` : ''}
       <div class="card__body${def.flush ? ' card__body--flush' : ''}"></div></div>`;
     this.grid.append(el);
     this.cards.set(def.id, { el, def, meta: $('.meta', el), body: $('.card__body', el), last: null,
@@ -86,6 +96,7 @@ export class Shell {
       this.placeholder = null;
     }
     $$('.more, .maxbar', card).forEach(e => { e.hidden = !on; });
+    $$('.maxbar.is-fopen', card).forEach(b => fopen(b, false));
     const btn = $('[data-max]', card);
     btn.setAttribute('aria-expanded', on);
     btn.setAttribute('aria-label', on ? 'Collapse' : 'Expand');
@@ -112,14 +123,19 @@ export class Shell {
 
   #bind() {
     document.addEventListener('click', e => {
+      $$('.maxbar.is-fopen').forEach(b => { if (!b.contains(e.target)) fopen(b, false); });   // a tap elsewhere closes the phone filter list
       if (this.open && !e.target.closest('.is-max')) { this.toggle(this.open); return; }       // backdrop click
       const card = e.target.closest('.card');
       const c = card && this.cards.get(card.id);
       if (!c) return;
 
+      const fbtn = e.target.closest('[data-fbtn]');
+      if (fbtn) { const bar = fbtn.closest('.maxbar'); fopen(bar, !bar.classList.contains('is-fopen')); return; }
       const chip = e.target.closest('.fchip:not(.fchip--action)');
       if (chip) {
         $$('.fchip', chip.parentElement).forEach(x => x.setAttribute('aria-pressed', x === chip));
+        const bar = chip.closest('.maxbar'), label = bar && $('[data-flabel]', bar);
+        if (label) { label.textContent = chip.textContent; $('[data-fbtn]', bar).setAttribute('aria-label', `Filter: ${chip.textContent}`); fopen(bar, false); }
         c.filter = chip.dataset.filter;
         this.renderCard(card.id);
         return;

@@ -6,6 +6,7 @@ from pathlib import Path
 _TMP = tempfile.mkdtemp(prefix="citadel-test-")
 os.environ["HUB_DATA_DIR"] = _TMP
 os.environ["HUB_PORT"] = "18080"
+os.environ["HUB_NO_MACHINES"] = "1"                              # never SSH to the real machines from tests
 os.environ["HUB_NO_FETCH"] = "1"                                  # no live MusicBrainz / RSS / calendar traffic from tests
 os.environ["HUB_MUSIC_DB"] = os.path.join(_TMP, "no-music-db.sqlite")   # never seed from (or touch) the real Music Companion
 # Make sure no real secrets/settings leak into tests via the environment.
