@@ -39,6 +39,10 @@ DISK_SERVER_URL = _env("HUB_DISK_SERVER_URL", "http://127.0.0.1:8765/disks.json"
 MACHINES_KEY = Path(_env("HUB_MACHINES_KEY", str(ROOT / "data" / "machines_ed25519")))
 # Test/demo switch: no SSH to the machines at all.
 NO_MACHINES = _env("HUB_NO_MACHINES") == "1"
+# The Gaming → Phoenix backup (~/Projects/HomeLab/backup) runs from its own systemd user timer and writes this status
+# file; the "Phoenix backup" maintenance job reads it, and its Run now starts the unit ("none" = never start it).
+BACKUP_STATUS = Path(_env("HUB_BACKUP_STATUS", str(Path.home() / ".local" / "state" / "citadel-backup" / "last.json")))
+BACKUP_UNIT = _env("HUB_BACKUP_UNIT", "citadel-backup.service")
 
 
 def ensure_dirs() -> None:

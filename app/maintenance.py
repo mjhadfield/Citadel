@@ -7,6 +7,7 @@ the slower kinds of breakage — a job that hasn't succeeded for far longer than
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
 import shutil
@@ -169,12 +170,87 @@ class CheckJob(Job):
         return "everything looks healthy" if not p else f"needs attention: {', '.join(p)}"
 
 
+# ---- the Phoenix backup ---------------------------------------------------------------------------------------
+# The backup itself (~/Projects/HomeLab/backup/citadel-backup) runs from its own systemd user timer, so it works whether or
+# not Citadel is up. This job only watches it: every hour it reads the status file the script writes and fails when the last
+# run failed or the last good one is too old, so the usual failing/stale rules raise the strip alert. Run now starts the unit
+# and waits for it to finish.
+
+BACKUP_STALE_HOURS = 36
+
+
+def _size(n: Any) -> str:
+    n = float(n or 0)
+    for unit in ("bytes", "KB", "MB", "GB", "TB"):
+        if n < 1000 or unit == "TB":
+            return f"{n:.0f} {unit}" if unit in ("bytes", "KB") or n >= 100 else f"{n:.1f} {unit}"
+        n /= 1000
+    return ""
+
+
+def _read_backup_status(now: float | None = None) -> dict[str, Any]:
+    path = config.BACKUP_STATUS
+    try:
+        data = json.loads(path.read_text())
+    except FileNotFoundError:
+        raise RuntimeError("no backup has run yet") from None
+    except (OSError, ValueError) as exc:
+        raise RuntimeError(f"couldn't read {path.name}: {exc}") from None
+    if data.get("ok") is False:
+        raise RuntimeError(f"the last backup failed while it was at the '{data.get('stage', '?')}' step: {data.get('message', '')}"[:240])
+    last_ok = data.get("last_ok")
+    if not last_ok:
+        raise RuntimeError("no backup has finished yet")
+    hours = ((now or time.time()) - last_ok) / 3600
+    if hours > BACKUP_STALE_HOURS:
+        raise RuntimeError(f"the last good backup was {hours:.0f} hours ago")
+    return data
+
+
+class PhoenixBackupJob(Job):
+    id = "maint-phoenix"
+    title = "Phoenix backup"
+    interval = 3600
+    min_interval = 600
+    timeout = 4 * 3600            # Run now waits for the backup itself
+    log_success = False           # an hourly "read the status file" isn't news
+    setup_hint = "Set it up on this PC with ~/Projects/HomeLab/backup/install.sh --phoenix"
+
+    def configured(self, settings: dict[str, Any]) -> bool:
+        return config.BACKUP_STATUS.exists()
+
+    async def fetch(self, settings: dict[str, Any]) -> dict[str, Any]:
+        if settings.get("_forced") and config.BACKUP_UNIT != "none":
+            proc = await asyncio.create_subprocess_exec("systemctl", "--user", "start", config.BACKUP_UNIT, stdin=asyncio.subprocess.DEVNULL,
+                                                        stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE)
+            _, err = await proc.communicate()
+            if proc.returncode:                 # the status file says why, if the script got far enough to write it
+                log.warning("The Phoenix backup unit exited with %s: %s", proc.returncode, err.decode(errors="replace").strip()[:200], extra={"source": self.id})
+        return await asyncio.to_thread(_read_backup_status)
+
+    def summarise(self, data: dict[str, Any] | None) -> str:
+        d = data or {}
+        if not d.get("last_ok"):
+            return ""
+        parts = [f"last good backup {datetime.fromtimestamp(d['last_ok'], config.TZ).strftime('%a %d %b %H:%M')}, {_size(d.get('data_added'))} new"]
+        if d.get("phoenix_free_bytes"):
+            parts.append(f"{_size(d['phoenix_free_bytes'])} free on Phoenix")
+        off = d.get("offsite") or {}
+        if off.get("at"):
+            when = datetime.fromtimestamp(off["at"], config.TZ).strftime("%a %d %b")
+            parts.append(f"Google Drive copy {when}" + ("" if off.get("ok") else " failed"))
+        warnings = d.get("warnings") or []
+        if warnings:
+            parts.append(f"{len(warnings)} warning{'s' if len(warnings) > 1 else ''}: {warnings[0]}")
+        return " · ".join(parts)
+
+
 _jobs: dict[str, Job] = {}
 
 
 def jobs() -> dict[str, Job]:
     if not _jobs:
-        for j in (BackupJob(), TidyJob(), CheckJob()):
+        for j in (BackupJob(), TidyJob(), CheckJob(), PhoenixBackupJob()):
             _jobs[j.id] = j
     return _jobs
 

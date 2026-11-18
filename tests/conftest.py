@@ -9,6 +9,8 @@ os.environ["HUB_PORT"] = "18080"
 os.environ["HUB_NO_MACHINES"] = "1"                              # never SSH to the real machines from tests
 os.environ["HUB_NO_FETCH"] = "1"                                  # no live MusicBrainz / RSS / calendar traffic from tests
 os.environ["HUB_MUSIC_DB"] = os.path.join(_TMP, "no-music-db.sqlite")   # never seed from (or touch) the real Music Companion
+os.environ["HUB_BACKUP_STATUS"] = os.path.join(_TMP, "no-backup-status.json")   # never read the real Phoenix backup's status
+os.environ["HUB_BACKUP_UNIT"] = "none"                                          # and never start the real backup
 # Make sure no real secrets/settings leak into tests via the environment.
 for var in ("BINS_UPRN", "DIARY_ICAL_URL", "JELLYFIN_URL", "HUB_SECRET"):
     os.environ[var] = ""

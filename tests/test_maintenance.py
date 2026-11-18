@@ -1,5 +1,6 @@
 """The schedule (what is due, and when), the event log and its secret-scrubbing, the maintenance jobs, and Settings → Maintenance."""
 import asyncio
+import json
 import logging
 import os
 import sqlite3
@@ -419,7 +420,7 @@ def test_the_daily_check_ignores_jobs_that_are_not_set_up(tmp_path, monkeypatch)
 
 def test_the_maintenance_jobs_run_on_the_scheduler_at_night_and_are_not_data_widgets():
     jobs = maintenance.jobs()
-    assert {j.id: j.daily_at for j in jobs.values()} == {"maint-backup": "02:30", "maint-tidy": "02:45", "maint-check": "06:00"}
+    assert {j.id: j.daily_at for j in jobs.values()} == {"maint-backup": "02:30", "maint-tidy": "02:45", "maint-check": "06:00", "maint-phoenix": None}
     from app.widgets import discover
     assert not (set(jobs) & set(discover()))                                                                   # they never appear as dashboard cards
     assert all(j.kind == "maintenance" and j.local for j in jobs.values())
@@ -582,3 +583,77 @@ def test_musicbrainz_answering_without_its_usual_list_is_reported(monkeypatch):
     monkeypatch.setattr(releases.mb, "client", fake)
     run(releases.widget.fetch({**releases.widget.defaults}))
     assert any("release-groups" in e["message"] and "has its API changed" in e["message"] for e in logbook.query(level="warning"))
+
+
+# ---- the Phoenix backup watcher ---------------------------------------------------------------------------------
+
+def _status(tmp_path, monkeypatch, **fields):
+    path = tmp_path / "last.json"
+    monkeypatch.setattr(config, "BACKUP_STATUS", path)
+    if fields:
+        path.write_text(json.dumps(fields))
+    return path
+
+
+def test_the_phoenix_backup_is_not_set_up_until_its_status_file_exists(tmp_path, monkeypatch):
+    job = maintenance.jobs()["maint-phoenix"]
+    _status(tmp_path, monkeypatch)
+    assert not job.configured({}) and job.kind == "maintenance" and job.local
+    _status(tmp_path, monkeypatch, ok=True, last_ok=time.time())
+    assert job.configured({})
+
+
+def test_a_recent_good_backup_passes_and_says_what_it_did(tmp_path, monkeypatch):
+    now = time.time()
+    _status(tmp_path, monkeypatch, ok=True, last_ok=now - 3600, data_added=11_000_000, phoenix_free_bytes=838_000_000_000,
+            offsite={"ok": True, "at": now - 7200, "message": ""}, warnings=[])
+    job = maintenance.jobs()["maint-phoenix"]
+    data = asyncio.run(job.fetch({}))
+    text = job.summarise(data)
+    assert "11.0 MB new" in text and "838 GB free on Phoenix" in text and "Google Drive copy" in text and "failed" not in text
+
+
+@pytest.mark.parametrize("fields, why", [
+    ({"ok": False, "stage": "wake", "message": "Phoenix didn't answer", "last_ok": None}, "failed while it was at the 'wake' step"),
+    ({"ok": True, "last_ok": None}, "no backup has finished yet"),
+    ({"ok": True, "last_ok": 1.0}, "hours ago"),
+])
+def test_a_failed_missing_or_old_backup_fails_the_check(tmp_path, monkeypatch, fields, why):
+    _status(tmp_path, monkeypatch, **fields)
+    with pytest.raises(RuntimeError, match=why):
+        asyncio.run(maintenance.jobs()["maint-phoenix"].fetch({}))
+
+
+def test_a_dry_run_keeps_the_last_good_time(tmp_path, monkeypatch):
+    _status(tmp_path, monkeypatch, ok=True, dry_run=True, last_ok=time.time() - 600)
+    assert asyncio.run(maintenance.jobs()["maint-phoenix"].fetch({}))["dry_run"] is True
+
+
+def test_run_now_starts_the_backup_unit_but_the_hourly_check_never_does(tmp_path, monkeypatch):
+    _status(tmp_path, monkeypatch, ok=True, last_ok=time.time())
+    calls = []
+
+    class Proc:
+        returncode = 0
+
+        async def communicate(self):
+            return b"", b""
+
+    async def fake_exec(*argv, **kw):
+        calls.append(argv)
+        return Proc()
+
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", fake_exec)
+    monkeypatch.setattr(config, "BACKUP_UNIT", "citadel-backup.service")
+    job = maintenance.jobs()["maint-phoenix"]
+    asyncio.run(job.fetch({}))
+    assert calls == []
+    asyncio.run(job.fetch({"_forced": True}))
+    assert calls == [("systemctl", "--user", "start", "citadel-backup.service")]
+    monkeypatch.setattr(config, "BACKUP_UNIT", "none")
+    asyncio.run(job.fetch({"_forced": True}))
+    assert len(calls) == 1
+
+
+def test_tests_never_point_at_the_real_backup():
+    assert config.BACKUP_UNIT == "none" and "citadel-test-" in str(config.BACKUP_STATUS)
