@@ -1,84 +1,44 @@
 # Citadel
 
-My home dashboard. It runs on my PC, any device on my home network can open it, and it keeps everything I'd otherwise forget about in one place.
+The service that runs my homelab. It starts and stops my other projects, monitors every machine in the house, keeps an eye on my backups and handles my life admin. I've connected a bunch of external APIs, mostly music services (ticketmaster, spotify, lastfm, musicbrainz, etc)
 
-![Citadel home screen](screenshots/home.webp)
+Have a look at the [online demo](https://www.mikehadfield.co.uk/demo/citadel/#home), a frozen, read-only copy with the personal bits taken out.
 
-## Background
-
-I was sick of going to my council website every week to see which bins I needed to put out. Surely I could automate that? Then I bought a record I already had on pre-order. Relying on flagged emails just doesn't cut it in 2026.
-
-It snowballed from there. It now does my news, builds my Spotify playlists, tells me which records are worth buying, starts and stops my other projects, monitors system resources, etc. 
-
-There's a write-up with more screenshots on [my website](https://www.mikehadfield.co.uk/#/projects/citadel).
+An overview of the devices currently connected to Citadel:
+![Citadel's Fleet page in LCARS Night](screenshots/fleet.webp)
 
 ## What's in it
 
-### Home
+- **Home** - The central interactive dashboard
+  - **Reminder strip** - Notifications and alerts
+  - **Upcoming** - Google calendar integration, upcoming gigs, bin collections from the council website
+  - **Remote Access** - one click opens a VNC viewer on any machine in the house
+  - **Releases** - upcoming albums from my top artists, linked to my music companion project
+  - **Vinyl radar** - pre-orders from labels and record shops, with prices compared across stores
+  - **Gig radar** - upcoming shows near me for bands I actually listen to, via the ticketmaster API
+  - **Services** - start and stop my other projects, with live uptime and detailed logging
+  - **Launchpad** - quick links to everything on my network
+  - **System** - live CPU, GPU, memory and disk space, with a warning before anything fills up
+- **News** - my own news page that learns over time with up/down votes on stories
+- **Media** - my Jellyfin media server
+- **Companion** - my [Music Companion](https://mjhadfield.github.io/music-companion/) project
+- **Music** - Music discovery and spotify playlist creation, links to a bunch of external services
+- **Casino** - Casino World, a multiplayer casino sim I've built in GoDot
+- **Odysseus** - Local AI LLM for simple tasks
+- **House** - Home renovation tasks and projects
+- **Fleet** - CPU, memory, temperatures and disk space monitoring with stats held for a year
+- **Curate** - Music Maintenance, for tidying up the Music Companion SQL database
+- **Settings** - everything is editable in the browser: links, projects, news feeds, record shops, schedules, backups, etc. 
 
-Every tile can be expanded into a full screen view with more detail, pinning and filters. The header's live readout (CPU and GPU temperatures and usage, VRAM, RAM, uptime) opens the full Monitoring view: per-core load, GPU clocks and power, memory, and every service's status.
+## Additional features
 
-Along the top runs a **reminder strip**: bin night, a gig tonight, a pre-order arriving, an album out tomorrow or today, an F1 session starting soon, tickets going on sale, fresh announcements from my top artists, and anything that's stopped answering (or the PC running short of memory or disk). Each one has a ✕ that dismisses it everywhere, the TV included, with a few seconds to undo. Only that one occurrence goes, so next week's bin still shows. Which kinds appear is set in Settings → Widgets → Notifications.
-
-- **Bins** - which bin goes out tonight, pulled from the Council's website
-- **Next gig** - a countdown to my next booked show
-- **Diary** - my Google Calendar
-- **Remote Access** - one click opens a VNC viewer on another machine in the house (laptop, Raspberry Pis), with a dot for whether each one is on
-- **Releases** - upcoming albums from my top 200 artists, from MusicBrainz, up to a year ahead
-- **Vinyl radar** - pre-orders from labels and record shops, with prices compared across stores. Anything I buy moves to a confirmed pre-orders list with a countdown to release day, so I never buy the same record twice again
-- **Gig radar** - upcoming shows near me from Ticketmaster, for bands I actually listen to.
-- **Services** - start and stop project services, with live uptime and logs
-- **Launchpad** - quick links to everything on my network
-- **System** - disk space for my PC and NAS, with a warning before anything fills up
-
-### News
-
-![News page](screenshots/news.webp)
-
-My own front page. BBC's Most read top 10 (with which stories are climbing), then World, UK, Technology, Science and Music sections.
-
-- The same story from different outlets gets merged into one, so I'm not reading it five times
-- The Music section only shows news about bands I listen to, linked to their upcoming releases, pre-orders and gigs
-- Thumbs up/down on a story teaches it what I'm interested in
-- Tabloids are blocked outright
-- **F1 spoiler shield** - once a race weekend starts, nothing that could spoil it gets through until I've marked the race as watched
-
-### Music
-
-![Discover](screenshots/discover.webp)
-
-This hooks into my [Music Companion](https://mjhadfield.github.io/music-companion/) project (my record collection, around 100k Last.fm scrobbles and every gig I've been to).
-
-- **Playlists** - designed from my own listening and saved to Spotify. Mix "ingredients" (deep cuts, a time capsule, a genre, a gig setlist, similar artists...) and set rules like how many songs per artist or how familiar it should be. Rotating playlists rebuild themselves on a schedule into the same Spotify playlist
-- **Discover** - bands I've never (or barely) played, based on who I listen to most, also grouped by vibe
-- **Rediscover** - bands I've drifted away from, with a one-click mix
-- **Gigs** - a predicted setlist for each gig I've booked (from the band's last ten shows), and a pre-gig playlist that switches to the real setlist after the show
-- **Worth buying** - albums I play a lot but don't own on vinyl, with the cheapest original pressing and coloured edition on Discogs right now
-- A player bar that controls Spotify on whatever's playing
-
-![Worth buying](screenshots/worth-buying.webp)
-
-### Everything else
-
-- **Media, Companion and Odysseus pages** - my Jellyfin media server, Music Companion and my local AI setup, embedded so they stay exactly where I left them when I switch pages
+- **Themes** - the original Citadel or an LCARS take on it, each in with light/dark mode, plus custom themes
+- **TV mode** - pair a TV with a short code and it cycles through the panels I allow, with a slow pixel shift so nothing burns in
 - **Guest page** - anyone else on the WiFi just gets the media server
-- **TV mode** - pair a TV with a short code and it cycles through the panels I allow (with a slow pixel shift so nothing burns in). The diary is off by default, since guests can see the TV
-- **Settings** - everything is editable in the browser: links, projects, news feeds, record shops, schedules, devices
-- **Event log** - every sync, failure and error, with secrets stripped out before anything is saved
-- **Nightly backups** and a health check that tells me when something's been failing
-- **Two looks, each in Day and Night** - the original Citadel, or an LCARS take on it (Star Trek's interface: elbowed frame lines, condensed type, coloured key blocks, segmented gauges, cards that open as a console). Each device picks its own from two header buttons, one for Day/Night and one for the theme. Custom themes build on either look with their own Day and Night colours and background pictures
-- **Bookmarks** - the first four in the top bar, the rest a click away in a drop-down
-- Works on my phone too
-
-And yes, there's a dark mode:
-
-![Dark mode](screenshots/home-dark.webp)
-
-## Being polite to other people's servers
-
-Everything syncs overnight, once a day, one job after another, so no one gets hammered. If something fails it backs off and tries again later rather than retrying straight away. Record shops are read once a day, and the ones that ask for a delay between requests in their robots.txt get it.
-
-I learnt this one the hard way with Spotify. It doesn't publish its rate limits, and an over-eager Discover rebuild earned me a 19-hour ban. Every Spotify call now goes through one pacer, and when Spotify says wait, it waits.
+- **Phone layout** - its own header and tabs, with swiping between pages
+- **Android app** - a small WebView app for my phone
+- **Backups** - nightly copies of the database, and a warning when the backup to my other PC hasn't run
+- **Bookmarks** - the first four in the top bar, the rest in a drop-down
 
 ## How it works
 
@@ -88,9 +48,9 @@ It runs as a systemd user service on my PC. The projects it launches run as thei
 
 There are no passwords. A device becomes an "owner" by opening a one-time link printed on the PC's terminal, which needs access to the PC itself. Everything else on the network only gets the guest page.
 
-## Online demo
+Everything syncs overnight, once a day, one job after another, so no one gets hammered. If something fails it backs off and tries again later rather than retrying straight away. Record shops are read once a day, and the ones that ask for a delay between requests in their robots.txt get it.
 
-A frozen, read-only copy runs on [my website](https://www.mikehadfield.co.uk/#/projects/citadel). `tools/build_demo.py` makes it from a copy of the database: it saves what the dashboard, News and Music pages ask the server for and swaps the server for a small script that replays it. Bookmarks, my calendar, gig orders and the pages that only work at home are taken out.
+I learnt this one the hard way with Spotify. It doesn't publish its rate limits, and an over-eager Discover rebuild earned me a 19-hour ban. Every Spotify call now goes through one pacer, and when Spotify says wait, it waits.
 
 ## Can I run it?
 
