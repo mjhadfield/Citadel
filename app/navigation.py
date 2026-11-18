@@ -36,6 +36,7 @@ PAGES: tuple[tuple[str, str, bool, bool, str], ...] = (
     ("casino", "Casino", True, True, "spade"),
     ("ai", "Odysseus", True, True, "spark"),
     ("house", "House", True, True, "tool"),
+    ("stats", "Stats", False, True, "chart"),
     ("curate", "Curate", False, False, "tag"),
     ("settings", "Settings", False, False, "gear"),
 )

@@ -41,8 +41,25 @@ async def owner_events():
 
 @router.get("/machines")
 async def machines(request: Request):
-    """The other machines' latest stats (app/machines.py). Cached by its own 30 s loop: no SSH in the request path."""
+    """The other machines' latest stats (app/machines.py). Cached by its own 30 s loop: nothing fetched in the request path."""
     return {"machines": request.app.state.machines.view()}
+
+
+@router.get("/stats/machines")
+async def stats_machines(request: Request):
+    """The Stats page's machines (Gaming + the monitored devices), their latest readings and the collector's own state."""
+    m = request.app.state.machines
+    return {"machines": m.stats_machines(), "collector": m.collector}
+
+
+@router.get("/stats/{kind}")
+async def stats_history(request: Request, kind: Literal["series", "disks", "spikes"], machine: str, start: int, end: int):
+    """One machine's history from the stats collector on NZXT (app/machines.py `history`)."""
+    from .machines import HistoryError
+    try:
+        return await request.app.state.machines.history(kind, machine, start, end)
+    except HistoryError as exc:
+        raise HTTPException(503, str(exc)) from None
 
 
 @router.get("/monitoring")

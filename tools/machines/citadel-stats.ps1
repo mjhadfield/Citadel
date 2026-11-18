@@ -53,13 +53,39 @@ if (Test-Path $lhm) {
     } catch { }
 }
 
+# CPU % and the busiest processes over one quiet second, measured last: Win32_Processor.LoadPercentage read at the top
+# counted this script's own start-up (PowerShell plus the hardware library pegs a 2-core Pentium for a moment), so
+# Nasferatu showed 30-70 % while idle. The raw _Total counter counts idle time in 100 ns units (timer_100ns_inv).
+$cores = [int]$cpu.NumberOfLogicalProcessors
+$q = "SELECT PercentProcessorTime, Timestamp_Sys100NS FROM Win32_PerfRawData_PerfOS_Processor WHERE Name='_Total'"
+$p1 = @{}; Get-Process | ForEach-Object { if ($_.CPU -ne $null) { $p1[$_.Id] = @($_.ProcessName, [double]$_.CPU) } }
+$r1 = Get-CimInstance -Query $q
+$sw = [Diagnostics.Stopwatch]::StartNew()
+Start-Sleep -Milliseconds 1000
+$r2 = Get-CimInstance -Query $q
+$secs = $sw.Elapsed.TotalSeconds
+$cpuPct = $null
+$dt = [double]$r2.Timestamp_Sys100NS - [double]$r1.Timestamp_Sys100NS
+if ($dt -gt 0) { $cpuPct = [math]::Round([math]::Max(0, [math]::Min(100, 100 * (1 - ([double]$r2.PercentProcessorTime - [double]$r1.PercentProcessorTime) / $dt))), 1) }
+$byName = @{}
+Get-Process | ForEach-Object {
+    $a = $p1[$_.Id]
+    if ($a -and $_.Id -ne $PID -and $_.CPU -ne $null -and $a[0] -eq $_.ProcessName) {
+        $d = [double]$_.CPU - $a[1]
+        if ($d -gt 0) { $byName[$_.ProcessName] = [double]$byName[$_.ProcessName] + $d }
+    }
+}
+$top = @($byName.GetEnumerator() | Sort-Object Value -Descending | Select-Object -First 5 | ForEach-Object {
+    $pct = [math]::Round(100 * $_.Value / ($secs * [math]::Max(1, $cores)), 1)
+    if ($pct -ge 0.5) { [ordered]@{ name = $_.Key; percent = $pct } } })
+
 $out = [ordered]@{
     v = 1
     host = $env:COMPUTERNAME
     os = $os.Caption -replace '^Microsoft ', ''
     uptime_s = [int64]((Get-Date) - $os.LastBootUpTime).TotalSeconds
     load = @()
-    cpu = [ordered]@{ percent = [double]$cpu.LoadPercentage; cores = [int]$cpu.NumberOfLogicalProcessors; temp = $cpuTemp }
+    cpu = [ordered]@{ percent = $cpuPct; cores = $cores; temp = $cpuTemp }
     mem = [ordered]@{ total = $total; used = $total - $avail; available = $avail; swap_total = $swapTotal; swap_used = $swapUsed; buffers = 0; cached = 0 }
     disks = $disks
     drive_temps = $driveTemps
@@ -67,5 +93,6 @@ $out = [ordered]@{
     battery = $null
     pi = $null
     raid = $raid
+    top = $top
 }
 $out | ConvertTo-Json -Depth 4 -Compress

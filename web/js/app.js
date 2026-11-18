@@ -7,6 +7,7 @@ import { $, $$, esc, gcalUrl, hostUrl, ico, safeUrl, tickClock, tickUptimes, toa
 import { THEMES, currentLook, currentSkin, currentTheme, look, mode, setLook, setMode, syncThemes } from './theme.js';
 import * as music from './music.js';
 import * as news from './news.js';
+import * as stats from './stats.js';
 import * as motion from './motion.js';
 
 let state = null;
@@ -412,8 +413,8 @@ async function pollMonitoring() {
   renderReadout();
 }
 
-// ---- view router (Home / News / Media / Companion / SQL DB / Music / Casino / Odysseus / House) --------------------------------------------------------------
-const VIEWS = ['home', 'news', 'media', 'music', 'sql', 'listen', 'casino', 'ai', 'house', 'curate', 'settings'];
+// ---- view router (Home / News / Media / Companion / SQL DB / Music / Casino / Odysseus / House / Stats) --------------------------------------------------------------
+const VIEWS = ['home', 'news', 'media', 'music', 'sql', 'listen', 'casino', 'ai', 'house', 'stats', 'curate', 'settings'];
 // While an embedded page is showing, the phone keyboard shrinks the screen (interactive-widget=resizes-content) rather
 // than sliding over it, so the pinned page (dashboard.css, .main:has(...)) ends just above the keyboard and a chat box
 // at the bottom of it stays visible. Only on those pages: Home, News and Music keep the browser's default.
@@ -451,6 +452,7 @@ function route() {
   markCurrent();
   music.onView(v);                                  // the Music page (music.js) only polls Spotify while it's on screen
   news.onView(v);                                   // the News page (news.js) loads its own stories when shown
+  stats.onView(v);                                  // the Stats page (stats.js): machine history from the collector on NZXT
 }
 function markCurrent() {
   $$('.rail a[data-view], .tabbar a[data-view], #more-sheet a[data-view]').forEach(a => {

@@ -53,6 +53,7 @@ const paths = {
   desk:   '<path d="M4 5h16v11H4zM2 19h20"/>',
   phone:  '<path d="M8 2h8v20H8zM11 18h2"/>',
   history:'<path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5M12 7v5l3 3"/>',
+  chart:  '<path d="M3 3v18h18"/><path d="M6 16l4-6 4 3 5-8"/>',
   tag:    '<path d="M3 12V4h8l10 10-8 8zM7.5 7.5h.01"/>',
   users:  '<path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21a7 7 0 0 1 14 0M16 3.5a4 4 0 0 1 0 7.5M22 21a7 7 0 0 0-4-6.3"/>',
   user:   '<path d="M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM5 21a7 7 0 0 1 14 0"/>',

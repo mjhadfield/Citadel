@@ -60,6 +60,37 @@ def cpu_ticks() -> tuple[int, int, int]:
     return nums[3] + nums[4], sum(nums), cores
 
 
+def proc_ticks() -> dict[int, tuple[str, int]]:
+    """pid -> (name, utime + stime) for every process, from /proc/<pid>/stat. The name is in brackets and may hold
+    spaces or brackets itself, so it's everything between the first "(" and the last ")"."""
+    out: dict[int, tuple[str, int]] = {}
+    for d in glob.glob(path("/proc/[0-9]*")):
+        try:
+            with open(d + "/stat") as f:
+                raw = f.read()
+        except OSError:                  # gone since the glob
+            continue
+        name, rest = raw[raw.find("(") + 1:raw.rfind(")")], raw[raw.rfind(")") + 2:].split()
+        try:
+            out[int(d.rsplit("/", 1)[1])] = (name, int(rest[11]) + int(rest[12]))
+        except (ValueError, IndexError):
+            continue
+    return out
+
+
+def top_procs(a: dict[int, tuple[str, int]], b: dict[int, tuple[str, int]], total: int, n: int = 5) -> list[dict]:
+    """The busiest process names over the sample, as % of the whole machine (all cores), same-named processes summed
+    (a browser's dozens of helpers are one line). Both /proc/stat and /proc/<pid>/stat count in the same clock ticks."""
+    if total <= 0:
+        return []
+    by_name: dict[str, int] = {}
+    for pid, (name, t) in b.items():
+        if pid in a and a[pid][0] == name and t > a[pid][1]:
+            by_name[name] = by_name.get(name, 0) + t - a[pid][1]
+    rows = sorted(by_name.items(), key=lambda kv: -kv[1])[:n]
+    return [{"name": k, "percent": round(100 * v / total, 1)} for k, v in rows if 100 * v / total >= 0.5]
+
+
 def cpu_percent(a: tuple[int, int, int], b: tuple[int, int, int]) -> float | None:
     if b[1] == a[1]:
         return None
@@ -171,10 +202,10 @@ def os_name() -> str | None:
 
 
 def collect() -> dict:
-    a = cpu_ticks()
+    a, pa = cpu_ticks(), proc_ticks()
     if SAMPLE:
         time.sleep(SAMPLE)
-    b = cpu_ticks()
+    b, pb = cpu_ticks(), proc_ticks()
     mons = hwmons()
     return {
         "v": VERSION,
@@ -188,6 +219,7 @@ def collect() -> dict:
         "gpu": gpu(mons),
         "battery": battery(),
         "pi": pi_power(run(["vcgencmd", "get_throttled"])),
+        "top": top_procs(pa, pb, b[1] - a[1]),
     }
 
 

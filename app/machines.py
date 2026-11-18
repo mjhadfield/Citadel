@@ -1,23 +1,31 @@
-"""The other machines on the estate, for Monitoring's Machines row and their reminders.
+"""The other machines on the estate, for Monitoring's Machines row, their reminders and the Stats page's history.
 
-Every Remote Access device with an SSH user is asked for its stats every 30 s. Citadel logs in with its own key
-(config.MACHINES_KEY), which each machine only accepts with a forced command: all it can do is run the stats script
-(tools/machines/citadel-stats, or citadel-stats.ps1 on Windows) and print one JSON object. Nothing keeps running on the
-machines between sweeps, and Mike's own key, which can do far more, is never used here.
+The machines are asked for their stats by the collector on NZXT (collector/citadel_collector.py), not by Citadel: Gaming
+is off or asleep too often to keep a history, NZXT is left on. Citadel stays the source of truth for *which* machines:
+every sweep it makes sure the collector has its Remote Access devices that have a monitoring SSH user (with the IPv4
+address it resolves for each, since NZXT can't resolve `.local` names to IPv4). Gaming has no sshd, so Citadel runs
+the stats script here and pushes Gaming's reading itself. Then it reads every machine's latest reading back; the Stats
+page's history goes through `history`, so the browser never talks to NZXT. Plan: docs/tasks/stats-collector.md.
 
-A machine the health ping already says is off isn't asked (Phoenix and the laptop sleep most of the time; each would
-otherwise cost a connect timeout every sweep). Its last reading is kept and shown as asleep.
+The collector being down only loses readings (nothing is buffered): the last good ones stay on the panels, each marked
+with the collector's error, and the charts show a gap.
 
 One instance per app lifespan on app.state, like Monitor and Health, never module state.
 """
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import json
 import logging
+import re
+import socket
+import sys
 import time
 from datetime import datetime
 from typing import Any
+
+import httpx
 
 from . import alerts as alert_settings, config, procs
 from .db import db
@@ -27,37 +35,18 @@ from .monitor import DISK_LOW_BYTES, DISK_LOW_FRACTION
 log = logging.getLogger("hub.machines")
 
 INTERVAL = 30.0
-TIMEOUT = 15.0                # the script samples CPU for 0.5 s; Windows PowerShell takes a few seconds to start
 # "Running hot": held this long, so a compile or a game loading doesn't raise a reminder.
 HOT_FOR = 5 * 60
 CPU_HOT, PI_HOT, GPU_HOT = 85.0, 80.0, 85.0     # a Pi 4 starts slowing itself down at 80 °C
 DOWN_AFTER = 10 * 60          # same patience as the services' "isn't answering"
-
-
-def ssh_argv(user: str, host: str) -> list[str]:
-    """`-F /dev/null`: none of Mike's ssh_config (aliases, his IdentityFile) applies. IdentitiesOnly: only Citadel's key is
-    offered, never one from an agent. StrictHostKeyChecking=yes against Mike's known_hosts: a reinstalled machine is
-    reported, not trusted on sight."""
-    return ["ssh", "-F", "/dev/null", "-i", str(config.MACHINES_KEY), "-o", "IdentitiesOnly=yes", "-o", "BatchMode=yes",
-            "-o", "StrictHostKeyChecking=yes", "-o", "ConnectTimeout=5", "-o", "LogLevel=ERROR", "-T", f"{user}@{host}"]
-
-
-def explain(stderr: str, code: int | None) -> str:
-    """What went wrong, for Mike to read on the panel."""
-    s = stderr.lower()
-    if "remote host identification has changed" in s:
-        return "Host key changed: if it was reinstalled, connect once by hand to accept the new key"
-    if "host key verification failed" in s or "no matching host key" in s:
-        return "Host key not known yet: connect once by hand from this PC"
-    if "permission denied" in s:
-        return "Not set up for monitoring (run tools/machines_setup.py)"
-    if "no such identity" in s or "identity file" in s and "not accessible" in s:
-        return "Citadel's monitoring key is missing (run tools/machines_setup.py)"
-    if "could not resolve" in s or "name or service not known" in s:
-        return "Can't find it on the network"
-    if code is None or "timed out" in s or "no route to host" in s or "connection refused" in s:
-        return "No answer"
-    return "Stats script failed" + (f": {stderr.strip().splitlines()[-1][:120]}" if stderr.strip() else "")
+# The machine list is sent again this often even when it hasn't changed, so a reinstalled collector gets it back.
+RESEND = 10 * 60
+THIS_ID, THIS_NAME = "this", "Gaming"
+STATS_SCRIPT = config.ROOT / "tools" / "machines" / "citadel-stats"
+HISTORY = {"series", "disks", "spikes"}
+MACHINE_ID = re.compile(r"^(this|rh\d{1,9})$")
+DOWN = "The stats collector on NZXT isn't answering"
+NOT_SET_UP = "The stats collector isn't set up (tools/collector_setup.py)"
 
 
 def _hot(stats: dict[str, Any], is_pi: bool) -> bool:
@@ -66,24 +55,54 @@ def _hot(stats: dict[str, Any], is_pi: bool) -> bool:
     return (cpu is not None and cpu >= (PI_HOT if is_pi else CPU_HOT)) or (gpu is not None and gpu >= GPU_HOT)
 
 
+def _is_ip(host: str) -> bool:
+    try:
+        ipaddress.ip_address(host)
+        return True
+    except ValueError:
+        return False
+
+
+def ipv4(host: str) -> str | None:
+    """The IPv4 address this PC resolves a name to (an address is returned as it is), or None."""
+    if _is_ip(host):
+        return host
+    try:
+        return socket.getaddrinfo(host, None, socket.AF_INET)[0][4][0]
+    except (OSError, IndexError):
+        return None
+
+
+class HistoryError(Exception):
+    """The collector couldn't answer a history question; the message is for Mike."""
+
+
 class Machines:
     def __init__(self, health: Health) -> None:
         self.health = health
         # remote_hosts id -> {stats, at, error, hot_since}
         self.state: dict[int, dict[str, Any]] = {}
+        self.this: dict[str, Any] = {"stats": None, "at": None, "error": None}     # Gaming, as the collector has it
+        self.collector: dict[str, Any] = {"ok": None, "error": None, "at": None}
         self._task: asyncio.Task | None = None
+        self._client: httpx.AsyncClient | None = None
+        self._sent: tuple[str, float] | None = None              # (machine list JSON, when) last sent to the collector
+        self._addr: dict[str, tuple[str | None, float]] = {}     # host -> (IPv4, when resolved)
 
     async def start(self) -> None:
         if not config.NO_MACHINES:
+            self._client = httpx.AsyncClient(timeout=httpx.Timeout(8.0, connect=4.0))
             self._task = asyncio.create_task(self._loop(), name="machines")
 
     async def stop(self) -> None:
         if self._task:
             self._task.cancel()
             await asyncio.gather(self._task, return_exceptions=True)
+        if self._client:
+            await self._client.aclose()
 
     async def _loop(self) -> None:
-        await asyncio.sleep(5)          # let the first health sweep say which machines are off
+        await asyncio.sleep(5)
         while True:
             try:
                 await self.sweep()
@@ -98,51 +117,104 @@ class Machines:
         with db() as con:
             return [dict(r) for r in con.execute("SELECT id, name, address, ssh_user, always_on FROM remote_hosts ORDER BY sort, id")]
 
-    def _asleep(self, host_id: int) -> bool:
-        h = self.health.state.get(f"remote:{host_id}")
-        return bool(h and not h["ok"])
+    @staticmethod
+    def _token() -> str | None:
+        try:
+            return config.COLLECTOR_TOKEN_FILE.read_text().strip() or None
+        except OSError:
+            return None
+
+    async def _resolve(self, host: str) -> str:
+        """IPv4 for the collector, cached for 10 minutes (a `.local` lookup can take a moment)."""
+        hit = self._addr.get(host)
+        if hit and time.time() - hit[1] < 600:
+            return hit[0] or ""
+        addr = await asyncio.to_thread(ipv4, host)
+        self._addr[host] = (addr, time.time())
+        return addr or ""
+
+    async def _call(self, method: str, path: str, **kw: Any) -> Any:
+        token = self._token()
+        if not token or not config.COLLECTOR_URL or self._client is None:
+            raise HistoryError(NOT_SET_UP)
+        try:
+            r = await self._client.request(method, config.COLLECTOR_URL + path, headers={"Authorization": f"Bearer {token}"}, **kw)
+        except httpx.HTTPError:
+            raise HistoryError(DOWN) from None
+        if r.status_code == 401:
+            raise HistoryError("The stats collector turned down Citadel's token: run tools/collector_setup.py again")
+        if r.status_code >= 400:
+            raise HistoryError(f"The stats collector said: {r.json().get('error', r.status_code) if r.headers.get('content-type', '').startswith('application/json') else r.status_code}")
+        return r.json()
+
+    async def _local_stats(self) -> dict[str, Any] | None:
+        """Gaming's own reading, from the same script the other Linux machines run."""
+        try:
+            proc = await asyncio.create_subprocess_exec(sys.executable, "-I", str(STATS_SCRIPT), stdin=asyncio.subprocess.DEVNULL,
+                                                        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL)
+            out, _ = await asyncio.wait_for(proc.communicate(), 10)
+            return json.loads(out.decode().strip().splitlines()[-1])
+        except (OSError, ValueError, IndexError, asyncio.TimeoutError):
+            return None
 
     async def sweep(self) -> None:
         rows = [r for r in self._rows() if r["ssh_user"]]
         keep = {r["id"] for r in rows}
         self.state = {k: v for k, v in self.state.items() if k in keep}
-        due = [r for r in rows if not self._asleep(r["id"])]
-        results = await asyncio.gather(*(self.fetch(r["ssh_user"], procs.vnc_port(r["address"])[0]) for r in due))
+        try:
+            await self._send_machines(rows)
+            local = await self._local_stats()
+            if local is not None:
+                await self._call("POST", f"/api/ingest/{THIS_ID}", json=local)
+            latest = await self._call("GET", "/api/latest")
+        except HistoryError as exc:
+            self.collector.update(ok=False, error=str(exc))
+            for s in [*self.state.values(), self.this]:
+                s["error"] = str(exc)
+            return
+        self.collector.update(ok=True, error=None, at=int(time.time()))
+        by_id = {m["id"]: m for m in latest.get("machines") or []}
         now = time.time()
-        for r, (stats, error) in zip(due, results):
-            s = self.state.setdefault(r["id"], {"stats": None, "at": None, "error": None, "hot_since": None})
-            s["error"] = error
-            if stats is not None:
-                s["stats"], s["at"] = stats, int(now)
-                hot = _hot(stats, bool(stats.get("pi")))
-                s["hot_since"] = (s["hot_since"] or now) if hot else None
         for r in rows:
-            if self._asleep(r["id"]) and r["id"] in self.state:
-                self.state[r["id"]]["hot_since"] = None
+            m = by_id.get(f"rh{r['id']}") or {}
+            s = self.state.setdefault(r["id"], {"stats": None, "at": None, "error": None, "hot_since": None})
+            s["error"] = m.get("error")
+            if m.get("stats") is not None and m.get("at") != s["at"]:
+                s["stats"], s["at"] = m["stats"], m["at"]
+                hot = _hot(s["stats"], bool(s["stats"].get("pi")))
+                s["hot_since"] = (s["hot_since"] or now) if hot else None
+            if m.get("error") or self._asleep(r["id"]):
+                s["hot_since"] = None
+        t = by_id.get(THIS_ID) or {}
+        self.this.update(stats=t.get("stats"), at=t.get("at"), error=t.get("error"))
 
-    @staticmethod
-    async def fetch(user: str, host: str) -> tuple[dict[str, Any] | None, str | None]:
-        """(stats, None) or (None, what went wrong). The forced command ignores anything sent, so nothing is."""
-        try:
-            proc = await asyncio.create_subprocess_exec(*ssh_argv(user, host), stdin=asyncio.subprocess.DEVNULL,
-                                                        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
-        except OSError as exc:
-            return None, f"Couldn't run ssh: {exc}"
-        try:
-            out, err = await asyncio.wait_for(proc.communicate(), TIMEOUT)
-        except asyncio.TimeoutError:
-            proc.kill()
-            await proc.wait()
-            return None, explain("", None)
-        if proc.returncode != 0:
-            return None, explain(err.decode(errors="replace"), proc.returncode)
-        try:
-            stats = json.loads(out.decode(errors="replace").strip().splitlines()[-1])
-        except (ValueError, IndexError):
-            return None, "Stats script printed something unexpected"
-        if not isinstance(stats, dict) or stats.get("v") != 1:
-            return None, "Stats script is a different version: run tools/machines_setup.py again"
-        return stats, None
+    async def _send_machines(self, rows: list[dict[str, Any]]) -> None:
+        items = [{"id": THIS_ID, "name": THIS_NAME, "push": True}]
+        for r in rows:
+            host = procs.vnc_port(r["address"])[0]
+            items.append({"id": f"rh{r['id']}", "name": r["name"], "host": host, "addr": await self._resolve(host), "user": r["ssh_user"]})
+        body = json.dumps(items, sort_keys=True)
+        if self._sent and self._sent[0] == body and time.time() - self._sent[1] < RESEND:
+            return
+        await self._call("PUT", "/api/machines", json=items)
+        self._sent = (body, time.time())
+
+    def _asleep(self, host_id: int) -> bool:
+        h = self.health.state.get(f"remote:{host_id}")
+        return bool(h and not h["ok"])
+
+    async def history(self, kind: str, machine: str, frm: int, to: int) -> dict[str, Any]:
+        """The Stats page's history, from the collector: `series`, `disks` or `spikes` for one machine."""
+        if kind not in HISTORY or not MACHINE_ID.match(machine) or frm >= to:
+            raise HistoryError("That isn't a history Citadel can ask for")
+        return await self._call("GET", f"/api/{kind}", params={"machine": machine, "from": frm, "to": to})
+
+    def stats_machines(self) -> list[dict[str, Any]]:
+        """The Stats page's machine chips: Gaming first, then the monitored Remote Access devices in their order."""
+        out = [{"id": THIS_ID, "name": THIS_NAME, "up": True, "at": self.this.get("at"), "stats": self.this.get("stats"), "error": self.this.get("error")}]
+        for v in self.view():
+            out.append({**v, "id": f"rh{v['id']}"})
+        return out
 
     def view(self) -> list[dict[str, Any]]:
         """Every monitored machine in Remote Access order: on/asleep from the ping, the last stats and when they came."""

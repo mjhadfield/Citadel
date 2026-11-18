@@ -1,0 +1,15 @@
+# Citadel's stats collector (citadel_collector.py), a user unit on NZXT. Installed by tools/collector_setup.py, which
+# copies the code to ~/.local/lib/citadel-collector. Needs lingering (loginctl enable-linger) to run without a login.
+[Unit]
+Description=Citadel stats collector
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/python3 -I %h/.local/lib/citadel-collector/citadel_collector.py
+Restart=always
+RestartSec=10
+Nice=10
+
+[Install]
+WantedBy=default.target

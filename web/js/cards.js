@@ -353,7 +353,7 @@ function machinePanel(m) {
       ${extra.length ? `<dl class="kv">${extra.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>` : ''}`;
   }
   return `<div class="mach${asleep ? ' mach--asleep' : ''}">
-    <div class="mon-head"><span class="mach__name">${dot}<span class="mon-col__label">${esc(m.name)}</span></span>${temp != null && !asleep
+    <div class="mon-head"><span class="mach__name">${dot}<span class="mon-col__label">${esc(m.name)}</span><a class="mach__hist" href="#stats" data-rs-machine="rh${esc(m.id)}" title="${esc(m.name)}’s history">${ico('chart')}</a></span>${temp != null && !asleep
       ? `<span class="mon-temp${tempClass(temp)}" title="CPU temperature"><small>temp</small>${temp.toFixed(1)}°</span>` : ''}</div>
     ${sub ? `<div class="mach__sub">${esc(sub)}</div>` : ''}
     ${m.error && !asleep ? `<div class="mach__err">${esc(m.error)}</div>` : ''}

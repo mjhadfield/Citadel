@@ -39,6 +39,11 @@ DISK_SERVER_URL = _env("HUB_DISK_SERVER_URL", "http://127.0.0.1:8765/disks.json"
 MACHINES_KEY = Path(_env("HUB_MACHINES_KEY", str(ROOT / "data" / "machines_ed25519")))
 # Test/demo switch: no SSH to the machines at all.
 NO_MACHINES = _env("HUB_NO_MACHINES") == "1"
+# The stats collector on NZXT (collector/citadel_collector.py, docs/tasks/stats-collector.md) asks the machines for their
+# stats and keeps the history; Citadel reads it back. The token is in the data dir, unlike the SSH key above, so a
+# scratch copy (its own HUB_DATA_DIR) has none and never pushes its machine list to the live collector.
+COLLECTOR_URL = (_env("HUB_COLLECTOR_URL", "http://192.168.0.70:8680") or "").rstrip("/")
+COLLECTOR_TOKEN_FILE = DATA_DIR / "collector_token"
 # The Gaming → Phoenix backup (~/Projects/HomeLab/backup) runs from its own systemd user timer and writes this status
 # file; the "Phoenix backup" maintenance job reads it, and its Run now starts the unit ("none" = never start it).
 BACKUP_STATUS = Path(_env("HUB_BACKUP_STATUS", str(Path.home() / ".local" / "state" / "citadel-backup" / "last.json")))
