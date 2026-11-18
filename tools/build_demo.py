@@ -13,7 +13,9 @@ Citadel's frontend is plain ES modules reading a handful of /api/owner/* GETs, s
    that could name any of those;
 4. copies web/ with its absolute /static/ paths made relative, and adds demo.js (tools/demo/), which answers /api/*
    from data/, refuses every change, stubs the event stream and freezes the clock at the snapshot time;
-5. fails if any address, home path, calendar link or known secret turns up anywhere in the output.
+5. gives the home-network pages a blurred screenshot behind their "not available" notice (data/demo-shots/), and Fleet
+   a made-up history worked out in demo.js from FLEET (data/fleet.json): no real machine readings are published;
+6. fails if any address, home path, calendar link or known secret turns up anywhere in the output.
 
 Everything written to --out becomes public once the website repo is pushed (its mirror publishes every committed file).
 """
@@ -45,13 +47,51 @@ COMPANION_URL = "https://mjhadfield.github.io/music-companion/"
 KEEP_ALERTS = {"bin", "release", "f1", "onsale", "fresh", "vinyl", "gig"}   # not: event (calendar), down, system, maintenance
 MONITOR_FRAMES, MONITOR_EVERY = 20, 1.5
 
-# The pages that only exist on the home network. Icons are Citadel's own (icons.js).
+# The pages that only exist on the home network. Icons are Citadel's own (icons.js); the text is HTML (Mike's wording).
 NOT_HERE = {
     "media": ("film", "Media is a Jellyfin server running locally"),
-    "casino": ("spade", "Casino World is a multiplayer game server running locally"),
+    "casino": ("spade", 'This project can be viewed here: <a href="https://github.com/mjhadfield/CasinoWorld" target="_blank" '
+                        'rel="noopener">github.com/mjhadfield/CasinoWorld</a>'),
     "ai": ("spark", "Odysseus is an LLM container running locally"),
     "house": ("tool", "This is too sensitive to share online"),
     "curate": ("tag", "Curate is Music Companion's private maintenance tool on my home network."),
+}
+# Behind each "not available" notice: a screenshot of the real page, blurred past reading. The originals are Mike's own
+# captures in data/demo-shots/<view>.png|jpg (git-ignored, never copied out); only the small blurred copy is published.
+# A page without one just shows the notice.
+SHOTS = LIVE_DATA / "demo-shots"
+SHOT_WIDTH, SHOT_BLUR = 480, 5          # px wide, then a Gaussian blur of this sigma: shapes and colours, no words
+
+# Fleet (the Stats page) in the demo: no real readings leave the house (HUB_NO_MACHINES). These are the machines as they
+# were on 2026-11-18 (what each one is, not what it was doing), and demo.js makes up their history for any range from a
+# fixed seed, so every visit and every range agrees with itself. Matched to Remote Access by name; Mike's PC is "this"
+# and shows as "Citadel" (its real host name is kept out of the demo).
+GB = 1024 ** 3
+FLEET = {
+    "this": {"name": "Citadel", "os": "CachyOS", "cores": 16, "mem": 32 * GB, "swap": 48 * GB, "uptime_s": 101651,
+             "gpu": {"name": "NVIDIA GeForce RTX 3080 Ti", "mem_total_mb": 12288}, "disks": [["/", 996e9, 325e9]],
+             "p": {"cpu": 7, "evening": 22, "temp": 42, "temp_k": .45, "mem": 45, "swap": 8, "gpu": 6, "gpu_evening": 55,
+                   "gpu_temp": 38, "spikes": 3, "procs": ["python3", "code", "brave", "ffmpeg", "kwin_wayland"]}},
+    "Nasferatu": {"os": "Windows 10 Pro N", "cores": 2, "mem": 8 * GB, "swap": 1.2 * GB, "uptime_s": 6063337,
+                  "disks": [["C:", 120e9, 35e9], ["D:", 12002e9, 1389e9]], "raid": {"name": "Intel Raid 5 Volume", "health": "Healthy", "status": "OK", "events_24h": 0},
+                  "p": {"cpu": 2, "mem": 50, "swap": 5, "spikes": 1.2, "procs": ["MsMpEng", "svchost", "TiWorker", "SearchIndexer"]}},
+    "NZXT": {"os": "CachyOS", "cores": 8, "mem": 24 * GB, "swap": 24 * GB, "uptime_s": 98103,
+             "gpu": {"name": "NVIDIA GeForce GTX 1080", "mem_total_mb": 8192}, "disks": [["/", 500e9, 445e9]],
+             "p": {"cpu": 2, "temp": 29, "temp_k": .5, "mem": 11, "swap": 0, "gpu": 1, "gpu_evening": 12, "gpu_temp": 37,
+                   "spikes": 4, "procs": ["jellyfin", "ffmpeg", "python3", "ollama"]}},
+    "Phoenix": {"os": "Debian GNU/Linux 13 (trixie)", "cores": 4, "mem": 16 * GB, "swap": 16 * GB, "uptime_s": 84422,
+                "gpu": {"name": "AMD Radeon", "mem_total_mb": 1024}, "disks": [["/", 966e9, 902e9]],
+                "p": {"cpu": 1, "temp": 31, "temp_k": .4, "mem": 17, "swap": 0, "gpu": 0, "gpu_temp": 31, "spikes": .8,
+                      "procs": ["restic", "rclone", "plasmashell"]}},
+    "Runabout": {"os": "CachyOS", "cores": 8, "mem": 8 * GB, "swap": 8 * GB, "uptime_s": 182285, "disks": [["/", 252e9, 171e9]],
+                 "battery": {"percent": 100, "status": "Full"},
+                 "p": {"cpu": 1, "temp": 44, "temp_k": .35, "mem": 24, "swap": 3, "spikes": .7, "procs": ["brave", "kwin_x11", "python3"]}},
+    "Probe-1": {"os": "Debian GNU/Linux 13 (trixie)", "cores": 4, "mem": 4 * GB, "swap": 2 * GB, "uptime_s": 9731, "disks": [["/", 31e9, 22e9]],
+                "pi": {"throttled": "0x0", "under_voltage_now": False, "under_voltage_seen": False},
+                "p": {"cpu": 1, "temp": 49, "temp_k": .3, "mem": 12, "swap": 0, "spikes": .6, "procs": ["apt", "python3", "unattended-upgr"]}},
+    "Probe-2": {"os": "Debian GNU/Linux 13 (trixie)", "cores": 4, "mem": 4 * GB, "swap": 2 * GB, "uptime_s": 9726, "disks": [["/", 31e9, 20e9]],
+                "pi": {"throttled": "0x0", "under_voltage_now": False, "under_voltage_seen": False},
+                "p": {"cpu": 1, "temp": 51, "temp_k": .3, "mem": 12, "swap": 0, "spikes": .6, "procs": ["apt", "python3", "unattended-upgr"]}},
 }
 # Settings is in the demo as a read-only snapshot (settings.html, framed like the real one): these are the GETs it asks
 # for, censored by censor_settings. The log viewer opens on "warning" (Problems); Everything ("all") and Errors only are
@@ -323,6 +363,7 @@ def copy_frontend(out: Path, snap_label: str) -> None:
          ("/static/img/", "img/"),
          (", ['buying', 'Worth buying', 'bag']]", "]"))          # Discogs' terms restrict republishing prices
     edit("js/content-cards.js", ("startsWith('/covers/')", "startsWith('covers/')"))
+    edit("js/motion.js", ("import('/static/js/motion.js')", "import('./js/motion.js')"))   # a comment, but the check below reads it
     edit("js/app.js", ('src="/backgrounds/', 'src="backgrounds/'),
          ("let MUSIC_ORIGIN = 'http://192.168.0.66:8642';", f"let MUSIC_ORIGIN = '{COMPANION_URL.split('/', 3)[0]}//{COMPANION_URL.split('/', 3)[2]}';"))
     # Settings' example placeholders are this house's own: a LAN address and the radar's coordinates
@@ -345,6 +386,7 @@ def copy_frontend(out: Path, snap_label: str) -> None:
     html = must_replace(html, '<span class="hud" id="host-label"></span>',
                         f'<span class="hud" id="host-label"></span><span class="chip demo-chip" title="A frozen copy of my home dashboard: nothing here is live or saved">Snapshot · {snap_label} · read-only</span>',
                         "index.html", 1)
+    shots = blur_shots(out)
     for view, (icon, why) in NOT_HERE.items():
         html = re.sub(rf'(<section class="view" id="view-{view}"[^>]*>\s*)<div class="frame-shell">',
                       rf'\1<div class="frame-shell" hidden>', html, count=1)
@@ -353,8 +395,10 @@ def copy_frontend(out: Path, snap_label: str) -> None:
         if i < 0:
             raise SystemExit(f"build_demo: no #{view}-frame in index.html")
         end = html.find("</div>", i) + len("</div>")
-        html = html[:end] + (f'\n      <div class="demo-na"><svg class="i"><use href="#i-{icon}"/></svg>'
-                             f'<b>Not available in the online demo</b><span>{why}</span></div>') + html[end:]
+        shot = f' style="background-image:url(&quot;{shots[view]}&quot;)"' if view in shots else ""   # inline: resolved against the page
+        html = html[:end] + (f'\n      <div class="demo-na{" has-shot" if shot else ""}"{shot}><div class="demo-na__card">'
+                             f'<svg class="i"><use href="#i-{icon}"/></svg>'
+                             f'<b>Not available in the online demo</b><span>{why}</span></div></div>') + html[end:]
     if html.count('class="frame-shell" hidden') != len(NOT_HERE):
         raise SystemExit("build_demo: couldn't hide every home-network frame in index.html")
     (out / "index.html").write_text(html)
@@ -372,6 +416,42 @@ def copy_frontend(out: Path, snap_label: str) -> None:
     for p in out.rglob("*"):
         if p.suffix in (".js", ".css", ".html") and "/static/" in p.read_text():
             raise SystemExit(f"build_demo: an absolute /static/ path is left in {p.relative_to(out)}")
+
+
+def blur_shots(out: Path) -> dict[str, str]:
+    """The "not available" pages' backdrops: each of Mike's screenshots shrunk and blurred into img/demo-na/<view>.jpg.
+    Needs ImageMagick; without it (or without a screenshot) that page keeps the plain notice."""
+    magick = shutil.which("magick")
+    done: dict[str, str] = {}
+    if not magick or not SHOTS.is_dir():
+        print("note: no ImageMagick or no data/demo-shots/; the 'not available' pages have no backdrop")
+        return done
+    (out / "img" / "demo-na").mkdir(parents=True, exist_ok=True)
+    for view in NOT_HERE:
+        src = next((p for p in (SHOTS / f"{view}.png", SHOTS / f"{view}.jpg") if p.is_file()), None)
+        if not src:
+            continue
+        rel = f"img/demo-na/{view}.jpg"
+        r = subprocess.run([magick, str(src), "-resize", f"{SHOT_WIDTH}x", "-blur", f"0x{SHOT_BLUR}", "-strip", "-quality", "70",
+                            str(out / rel)], capture_output=True)
+        if r.returncode == 0:
+            done[view] = rel
+        else:
+            print(f"note: couldn't blur {src.name}: {r.stderr.decode()[:200]}")
+    return done
+
+
+def fleet_spec(state: dict[str, Any]) -> dict[str, Any]:
+    """data/fleet.json for demo.js: Mike's PC, then the Remote Access devices that have a FLEET entry, in Remote Access
+    order, each on or asleep as its tile shows."""
+    def one(mid: str, spec: dict[str, Any], up: bool, rid: int | None, always_on: bool) -> dict[str, Any]:
+        return {"id": mid, "rid": rid, "up": up, "always_on": always_on, **{k: v for k, v in spec.items()}}
+    always = {"Nasferatu", "NZXT", "Probe-1", "Probe-2"}          # "Always on" in Remote Access
+    out = [one("this", FLEET["this"], True, None, True)]
+    for r in state.get("remote", []):
+        if spec := FLEET.get(r["name"]):
+            out.append(one(f"rh{r['id']}", {"name": r["name"], **spec}, r.get("up") is not False, r["id"], r["name"] in always))
+    return {"machines": out}
 
 
 def rewrite_paths(obj: Any, files: set[str]) -> Any:
@@ -510,8 +590,9 @@ def main() -> None:
             text = text.replace(old_name, new_name)
         (tmp_out / "data" / f"{key_of(path)}.json").write_text(text)
     (tmp_out / "data" / "monitoring_frames.json").write_text(json.dumps(frames, separators=(",", ":")))
+    (tmp_out / "data" / "fleet.json").write_text(json.dumps(fleet_spec(cleaned["/api/owner/state"]), separators=(",", ":")))
     # what was saved, so demo.js answers "not available" for anything else without asking the server (no 404s)
-    (tmp_out / "data" / "index.json").write_text(json.dumps(sorted([key_of(p) for p in cleaned] + ["monitoring_frames"])))
+    (tmp_out / "data" / "index.json").write_text(json.dumps(sorted([key_of(p) for p in cleaned] + ["monitoring_frames", "fleet"])))
     shim = (TEMPLATES / "demo.js").read_text().replace("__SNAPSHOT_MS__", str(int(snap_at.timestamp() * 1000)))
     (tmp_out / "demo.js").write_text(shim)
     shutil.copy2(TEMPLATES / "demo.css", tmp_out / "demo.css")
