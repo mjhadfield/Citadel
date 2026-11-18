@@ -14,7 +14,7 @@ def _cleanup():
         con.execute("DELETE FROM remote_hosts")
 
 
-def mk(c, name="Pi 1 desktop", address="pi-1.local"):
+def mk(c, name="Probe-1 desktop", address="probe-1.local"):
     r = c.post(f"{BASE}/remote", json={"name": name, "address": address})
     assert r.status_code == 201, r.text
     return r.json()["id"]
@@ -26,10 +26,10 @@ def cfg(c):
 
 def test_crud_and_order(owner_client):
     a, b = mk(owner_client, "Lappy desktop", "100.64.0.9"), mk(owner_client)
-    assert [r["name"] for r in cfg(owner_client)] == ["Lappy desktop", "Pi 1 desktop"]
+    assert [r["name"] for r in cfg(owner_client)] == ["Lappy desktop", "Probe-1 desktop"]
     assert owner_client.put(f"{BASE}/remote/{a}", json={"name": "Lappy", "address": "lappy::5901"}).status_code == 200
     assert owner_client.post(f"{BASE}/remote/reorder", json={"ids": [b, a]}).status_code == 200
-    assert [(r["name"], r["address"]) for r in cfg(owner_client)] == [("Pi 1 desktop", "pi-1.local"), ("Lappy", "lappy::5901")]
+    assert [(r["name"], r["address"]) for r in cfg(owner_client)] == [("Probe-1 desktop", "probe-1.local"), ("Lappy", "lappy::5901")]
     assert owner_client.delete(f"{BASE}/remote/{b}").status_code == 200
     assert [r["id"] for r in cfg(owner_client)] == [a]
     assert owner_client.delete(f"{BASE}/remote/{b}").status_code == 404
@@ -38,14 +38,14 @@ def test_crud_and_order(owner_client):
 def test_viewer_defaults_to_krdc_and_can_be_tigervnc(owner_client):
     a = mk(owner_client, "NZXT", "192.168.0.70")
     assert cfg(owner_client)[0]["viewer"] == "krdc"
-    assert owner_client.put(f"{BASE}/remote/{a}", json={"name": "Pi 2", "address": "pi-2.local", "viewer": "tigervnc"}).status_code == 200
+    assert owner_client.put(f"{BASE}/remote/{a}", json={"name": "Probe-2", "address": "probe-2.local", "viewer": "tigervnc"}).status_code == 200
     assert cfg(owner_client)[0]["viewer"] == "tigervnc"
-    assert owner_client.put(f"{BASE}/remote/{a}", json={"name": "x", "address": "pi-2.local", "viewer": "rustdesk"}).status_code == 422
+    assert owner_client.put(f"{BASE}/remote/{a}", json={"name": "x", "address": "probe-2.local", "viewer": "rustdesk"}).status_code == 422
 
 
 @pytest.mark.parametrize("address,viewer,argv", [
     ("192.168.0.70", "krdc", ["krdc", "vnc://192.168.0.70"]),          # port 5900 left off: krdcrc keys settings by this URL
-    ("pi-2.local", "tigervnc", ["vncviewer", "pi-2.local"]),
+    ("probe-2.local", "tigervnc", ["vncviewer", "probe-2.local"]),
     ("server:1", "krdc", ["krdc", "vnc://server:5901"]),
     ("server::6000", "krdc", ["krdc", "vnc://server:6000"]),
     ("[fd00::1]", "krdc", ["krdc", "vnc://[fd00::1]"]),
@@ -77,11 +77,11 @@ def test_address_is_validated(owner_client, address):
 
 
 def test_owner_only(guest_client):
-    assert guest_client.post(f"{BASE}/remote", json={"name": "x", "address": "pi-1.local"}).status_code == 403
+    assert guest_client.post(f"{BASE}/remote", json={"name": "x", "address": "probe-1.local"}).status_code == 403
 
 
 @pytest.mark.parametrize("address,expected", [
-    ("pi-2.local", ("pi-2.local", 5900)),
+    ("probe-2.local", ("probe-2.local", 5900)),
     ("100.110.168.96", ("100.110.168.96", 5900)),
     ("server:1", ("server", 5901)),
     ("server:5999", ("server", 5999)),
@@ -106,11 +106,11 @@ def test_state_and_open(owner_client, monkeypatch):
     r = owner_client.post(f"{BASE}/remote/{hid}/open")
     assert r.status_code == 200 and r.json() == {"ok": True, "already_open": False}
     assert owner_client.post(f"{BASE}/remote/{hid}/open").json()["already_open"] is True
-    assert opened == [(hid, "pi-1.local"), (hid, "pi-1.local")]
+    assert opened == [(hid, "probe-1.local"), (hid, "probe-1.local")]
     assert owner_client.post(f"{BASE}/remote/999999/open").status_code == 404
 
     row = next(r for r in owner_client.get(f"{BASE}/state").json()["remote"] if r["id"] == hid)
-    assert row["name"] == "Pi 1 desktop" and row["open"] is False and "up" in row
+    assert row["name"] == "Probe-1 desktop" and row["open"] is False and "up" in row
 
 
 def test_viewer_unit_counts_as_open(owner_client, monkeypatch):
@@ -132,7 +132,7 @@ def test_device_by_name_shows_its_lan_address(monkeypatch):
     from app.health import Health
 
     h = Health(Bus())
-    answers = {"pi-2.local": "192.168.0.80"}
+    answers = {"probe-2.local": "192.168.0.80"}
     pinged = []
 
     async def fake_getaddrinfo(host, *a, **kw):
@@ -148,10 +148,10 @@ def test_device_by_name_shows_its_lan_address(monkeypatch):
 
     async def run():
         monkeypatch.setattr(asyncio.get_running_loop(), "getaddrinfo", fake_getaddrinfo)
-        assert await h._remote("remote:1", "pi-2.local") == (True, 3)
+        assert await h._remote("remote:1", "probe-2.local") == (True, 3)
         assert h.resolved == {"remote:1": "192.168.0.80"} and h._resolved_changed
         answers.clear()                                         # switched off: no mDNS answer, no ping, address kept
-        assert await h._remote("remote:1", "pi-2.local") == (False, 0)
+        assert await h._remote("remote:1", "probe-2.local") == (False, 0)
         assert h.resolved == {"remote:1": "192.168.0.80"}
         assert await h._remote("remote:2", "100.64.0.9") == (True, 3)   # an IP is pinged as it is, nothing to show
         assert "remote:2" not in h.resolved

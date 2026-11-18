@@ -268,7 +268,7 @@ function remote(s) {
   const tiles = list.map(r => {
     const busy = ui.pending[`vnc:${r.id}`];
     const dot = r.up === true ? '<span class="dot dot--ok"></span>' : r.up === false ? '<span class="dot dot--bad"></span>' : '';
-    // a device reached by name (pi-2.local) shows the LAN address that name last resolved to
+    // a device reached by name (probe-2.local) shows the LAN address that name last resolved to
     // asleep or off, with a MAC address: the tile wakes it (Wake-on-LAN) instead of opening a viewer that can't connect
     const wake = r.wake && r.up === false && !r.open;
     const sub = busy === 'open' ? 'Opening…' : busy === 'close' ? 'Closing…' : busy === 'wake' ? 'Waking…' : r.open ? 'Viewer open' : wake ? 'Asleep · wake' : r.lan_ip || r.address;

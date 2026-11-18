@@ -71,6 +71,15 @@ def test_script_on_a_phenom_with_a_radeon(tmp_path):
     json.dumps(s)
 
 
+def test_script_reads_radeontop_for_load_and_vram():
+    """Phoenix's radeon driver has no load figure: radeontop's one-line dump gives it, and VRAM used + total."""
+    mod = load_script()
+    line = ("Dumping to -, line limit 1.\n1795028249.517164: bus 01, gpu 12.50%, ee 0.00%, vgt 0.00%, cb 0.00%, "
+            "vram 43.14% 441.77mb, gtt 2.78% 56.80mb, mclk inf% 0.150ghz, sclk 30.00% 0.300ghz\n")
+    assert mod.radeontop(line) == {"percent": 12.5, "mem_used_mb": 442, "mem_total_mb": 1024}
+    assert mod.radeontop(None) == {} and mod.radeontop("Dumping to -, line limit 1.\n") == {}
+
+
 def test_script_prefers_the_labelled_package_sensor(tmp_path):
     root = fake_root(tmp_path, {"coretemp": {"temp1_label": "Core 0", "temp1_input": "40000", "temp2_label": "Package id 0", "temp2_input": "47000"}},
                      battery=True)
@@ -127,7 +136,7 @@ def hosts(client):
         con.execute("DELETE FROM remote_hosts")
         con.executemany("INSERT INTO remote_hosts (id, name, address, viewer, ssh_user, always_on, sort) VALUES (?, ?, ?, 'krdc', ?, ?, ?)",
                         [(1, "NZXT", "192.168.0.70", "mike", 1, 10), (2, "Phoenix", "192.168.0.82", "mike", 0, 20),
-                         (3, "Pi-1", "pi-1.local", "", 1, 30), (4, "Nasferatu", "192.168.0.32::5901", "admin", 1, 40)])
+                         (3, "Probe-1", "probe-1.local", "", 1, 30), (4, "Nasferatu", "192.168.0.32::5901", "admin", 1, 40)])
     yield
     with db.db() as con:
         con.execute("DELETE FROM remote_hosts")
@@ -178,7 +187,7 @@ def watcher(health_state, fake=None):
     async def local():
         return stats(cpu_temp=55)
     m._local_stats = local
-    m._resolve = lambda host: asyncio.sleep(0, result={"pi-1.local": "192.168.0.79"}.get(host, host))
+    m._resolve = lambda host: asyncio.sleep(0, result={"probe-1.local": "192.168.0.79"}.get(host, host))
     return m
 
 
@@ -189,7 +198,7 @@ def test_sweep_sends_the_machines_pushes_gaming_and_reads_the_latest(hosts, toke
     health = {"remote:1": {"ok": True}, "remote:2": {"ok": False, "down_since": 1}, "remote:4": {"ok": True}}
     m = watcher(health, fake)
     asyncio.run(m.sweep())
-    # Pi-1 has no SSH user; Nasferatu's VNC port is stripped; Gaming goes first and is pushed, never polled
+    # Probe-1 has no SSH user; Nasferatu's VNC port is stripped; Gaming goes first and is pushed, never polled
     assert [x["id"] for x in fake.machines] == ["this", "rh1", "rh2", "rh4"]
     assert fake.machines[0]["push"] and fake.machines[3]["host"] == "192.168.0.32" and fake.machines[3]["user"] == "admin"
     assert ("POST", "/api/ingest/this") in fake.calls
@@ -270,8 +279,8 @@ def test_reminders_disk_raid_hot_and_always_on_off(hosts):
                            raid={"health": "Warning", "status": "Degraded"}), "at": int(t), "error": None, "hot_since": None},
     }
     got = {a["key"]: a for a in m.alerts(AT)}
-    # Phoenix is off but isn't "always on"; Pi-1 is (no SSH user needed for that one)
-    assert f"mdown:3:{int(t - 900)}" in got and got[f"mdown:3:{int(t - 900)}"]["title"] == "Pi-1 isn't answering"
+    # Phoenix is off but isn't "always on"; Probe-1 is (no SSH user needed for that one)
+    assert f"mdown:3:{int(t - 900)}" in got and got[f"mdown:3:{int(t - 900)}"]["title"] == "Probe-1 isn't answering"
     assert not any(k.startswith("mdown:2:") for k in got)
     assert got[f"mdisk:4:D::{AT.date()}"]["title"] == "Nasferatu: D: is nearly full"
     assert not any(k.startswith("mdisk:4:C:") for k in got)

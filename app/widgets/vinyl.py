@@ -9,7 +9,13 @@ Titles, artists and prices come straight from the store. Release dates are only 
 (Earache, Deathwish, Juno and Crash Records do); otherwise we show when the pre-order was listed.
 
 Juno is not Shopify: it is read from its public pre-order listing pages (metal, rock, punk…), politely — paced by the
-Crawl-delay in its robots.txt, only pages robots.txt allows, and at most once a day.
+Crawl-delay in its robots.txt, only pages robots.txt allows, and at most once a day. Since late Oct 2026 Juno puts a
+Cloudflare browser challenge in front of every page, so it gets no requests at all until COOL_OFF ends, then one
+robots.txt a week (quietly, after the first report) until it lets us in again.
+
+Every store type honours robots.txt (a refused robots.txt = leave the site alone), Shopify pages are 10 s apart, and a
+store that answers 403/429 rests for 1, 2, 4… days (at most a week, never less than its Retry-After) — the rest is
+kept in widget_settings `_vinyl_rest`, so neither a failed pass, the scheduler's retry nor "Recheck" asks it again early.
 
 Wix stores (Nesi Media) have no catalogue feed, so the whole shop is watched instead of a pre-order list: the product
 sitemap (one request) names every product page; only pages whose address starts with an artist you follow are read,
@@ -45,7 +51,7 @@ DEFAULT_SHOPS = [   # checked against the live stores; order = priority when the
     {"id": "relapse", "name": "Relapse", "url": "https://relapse.com", "collection": "pre-orders", "enabled": True},
     {"id": "deathwish", "name": "Deathwish", "url": "https://www.deathwishinc.com", "collection": "pre-order", "enabled": True},
     {"id": "crash-records", "name": "Crash Records", "url": "https://www.crashrecords.co.uk", "collection": "music-pre-orders", "enabled": True},   # GBP; general record shop (not metal-specific), by far the biggest catalogue here
-    {"id": "juno", "name": "Juno", "url": "https://www.juno.co.uk", "kind": "juno", "collection": "metal,rock,punk-hardcore", "enabled": True},   # GBP; HTML listing, not Shopify
+    {"id": "juno", "name": "Juno", "url": "https://www.juno.co.uk", "kind": "juno", "collection": "metal,rock,punk-hardcore", "enabled": True},   # GBP; HTML listing, not Shopify. Behind a Cloudflare browser challenge since late Oct 2026: see COOL_OFF
     {"id": "nesi-media", "name": "Nesi Media", "url": "https://www.nesimedia.com", "kind": "wix", "collection": "", "enabled": True},   # HKD; Hong Kong label (licensed variants); Wix, whole shop — not just pre-orders
     {"id": "metal-injection", "name": "Metal Injection", "url": "https://store.metalinjection.net", "collection": "preorders", "enabled": True},   # USD; US shop with its own exclusive pressings, reasonable international shipping
     {"id": "nuclear-blast-us", "name": "Nuclear Blast (US)", "url": "https://shop.nuclearblast.com", "collection": "pre-order", "enabled": False},   # mostly the EU catalogue again
@@ -413,9 +419,7 @@ def parse_juno_page(html: str, section: str, page: int = 1) -> tuple[list[dict[s
 async def fetch_juno(client: httpx.AsyncClient, shop: dict[str, Any], *, max_pages: int = JUNO_MAX_PAGES, sleep=None) -> list[dict[str, Any]]:
     """Walk Juno's pre-order listing for each chosen section. Obeys robots.txt: only pages it allows, spaced by its Crawl-delay."""
     base = shop["url"].rstrip("/")
-    robots = RobotFileParser()
-    resp = await client.get(f"{base}/robots.txt")
-    robots.parse(resp.text.splitlines() if resp.status_code == 200 else [])
+    robots = await read_robots(client, base)
     delay = max(float(robots.crawl_delay(USER_AGENT) or 0), 2.0)
     seen: dict[str, dict[str, Any]] = {}
     first = True
@@ -517,9 +521,7 @@ def parse_wix_product(page: str, url: str, lastmod: str = "") -> dict[str, Any] 
 async def fetch_wix(client: httpx.AsyncClient, shop: dict[str, Any], followed: dict[str, str], *, max_pages: int = WIX_MAX_PAGES, sleep=None) -> list[dict[str, Any]]:
     """Read the product sitemap, then (slowly, as robots.txt allows) the product pages of followed artists."""
     base = shop["url"].rstrip("/")
-    robots = RobotFileParser()
-    resp = await client.get(f"{base}/robots.txt")
-    robots.parse(resp.text.splitlines() if resp.status_code == 200 else [])
+    robots = await read_robots(client, base)
     delay = max(float(robots.crawl_delay(USER_AGENT) or 0), 2.0)
     sitemap_url = f"{base}/store-products-sitemap.xml"
     if not robots.can_fetch(USER_AGENT, sitemap_url):
@@ -546,27 +548,99 @@ async def fetch_wix(client: httpx.AsyncClient, shop: dict[str, Any], followed: d
     return out
 
 
+# ---- politeness shared by every store type --------------------------------------------------------------------------
+
+# From 26 Oct 2026 the Shopify stores began answering 429 to a second page asked for 0.7 s after the first (and for a
+# while to every page), and Juno put a Cloudflare browser challenge in front of everything, robots.txt included. So:
+# pages of one store are 10 s apart, stores 3 s apart (the Shopify ones share one platform), a store that refuses us
+# rests for days before it's asked again, and a robots.txt that refuses us means "don't read this site" rather than
+# the 4xx "no rules, read anything" reading.
+SHOPIFY_PAGE_GAP = 10.0
+STORE_GAP = 3.0
+REST_DAYS_MAX = 7               # a store still refusing is asked at most once a week
+REFUSED = (403, 429)
+REST_KEY = "_vinyl_rest"        # widget_settings row holding which stores are resting
+# Stores left completely alone until a date (no requests at all), then asked as any blocked store is: robots.txt once a
+# week, quietly, until it answers. Juno: challenged every request from late Oct 2026; Mike is asking them to let Citadel in.
+COOL_OFF = {"juno": date(2026, 12, 16)}
+
+
+class Blocked(RuntimeError):
+    """The site turns automated readers away (robots.txt refused, or a browser challenge): leave it alone."""
+
+
+async def read_robots(client: httpx.AsyncClient, base: str) -> RobotFileParser:
+    """robots.txt for `base`. 404 = no rules; a refusal or challenge = Blocked; an outage raises (try again tomorrow)."""
+    resp = await client.get(f"{base}/robots.txt")
+    if resp.status_code in (401, *REFUSED) or resp.headers.get("cf-mitigated"):
+        raise Blocked(f"{base} turns automated readers away (robots.txt answered {resp.status_code}" + (", a browser challenge)" if resp.headers.get("cf-mitigated") else ")"))
+    if resp.status_code >= 500:
+        resp.raise_for_status()
+    robots = RobotFileParser()
+    robots.parse(resp.text.splitlines() if resp.status_code == 200 else [])
+    return robots
+
+
+def retry_after(resp: httpx.Response | None) -> int:
+    """Seconds a 429/503 asked us to wait (Retry-After as a number; a date or nothing counts as 0)."""
+    try:
+        return max(0, int((resp.headers.get("retry-after") if resp is not None else "") or 0))
+    except ValueError:
+        return 0
+
+
+def reason(exc: Exception) -> str:
+    """What went wrong, in words for the sync summary (the store name goes in front)."""
+    if isinstance(exc, Blocked):
+        return "blocks automated readers"
+    if isinstance(exc, httpx.HTTPStatusError):
+        code = exc.response.status_code
+        return {429: "too many requests", 403: "refused"}.get(code, f"HTTP {code}")
+    return type(exc).__name__
+
+
+# ---- Shopify (products.json) ----------------------------------------------------------------------------------------
+
 _currency_cache: dict[str, str] = {}
 
 
+class Partial(Exception):
+    """Some pages were read, then the store refused the next one: use what came, but don't treat it as the full list."""
+    def __init__(self, products: list[dict[str, Any]], exc: httpx.HTTPStatusError) -> None:
+        super().__init__(str(exc))
+        self.products, self.exc = products, exc
+
+
 async def fetch_products(client: httpx.AsyncClient, shop: dict[str, Any], max_pages: int) -> list[dict[str, Any]]:
+    """Up to `max_pages` pages of 250, paced, only where robots.txt allows. Never retries a refusal within a pass."""
     base = shop["url"].rstrip("/")
     path = f"/collections/{shop['collection']}/products.json" if shop.get("collection") else "/products.json"
+    robots = await read_robots(client, base)
+    if not robots.can_fetch(USER_AGENT, base + path):
+        raise Blocked(f"robots.txt doesn't allow {base + path}")
+    gap = max(float(robots.crawl_delay(USER_AGENT) or 0), SHOPIFY_PAGE_GAP)
     out: list[dict[str, Any]] = []
     for page in range(1, max_pages + 1):
+        if page > 1:
+            await asyncio.sleep(gap)
         resp = await client.get(base + path, params={"limit": 250, "page": page})
-        resp.raise_for_status()
+        try:
+            resp.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            if out and resp.status_code in REFUSED:
+                raise Partial(out, exc) from exc
+            raise
         batch = resp.json().get("products", [])
         out += batch
         if len(batch) < 250:
             break
-        await asyncio.sleep(0.7)                       # gentle on someone else's shop
     return out
 
 
 async def currency_of(client: httpx.AsyncClient, shop: dict[str, Any]) -> str:
     base = shop["url"].rstrip("/")
     if base not in _currency_cache:
+        await asyncio.sleep(STORE_GAP)                 # once per store per process: a pause like any other request
         try:
             resp = await client.get(base + "/meta.json")
             _currency_cache[base] = (resp.json().get("currency") or "") if resp.status_code == 200 else ""
@@ -603,6 +677,8 @@ async def check_shop(url: str, collection: str, kind: str = "shopify") -> dict[s
                     "note": f"{last} pages in “{section}” (about {last * 5 // 60 + 1} min at the pace Juno asks for); each section is read slowly, and only once a day."}
         try:
             products = await fetch_products(client, shop, 1)
+        except Blocked:
+            return {"ok": False, "error": "That store turns automated readers away (its robots.txt says no), so the radar won't read it."}
         except (httpx.HTTPError, ValueError) as exc:
             return {"ok": False, "error": f"Couldn't read a Shopify catalogue there ({type(exc).__name__}). Check the address" + (" and collection name." if collection else ".")}
         currency = await currency_of(client, shop)
@@ -686,10 +762,30 @@ class VinylWidget(Widget):
     async def fetch(self, settings: dict[str, Any]) -> dict[str, Any]:
         today = datetime.now(config.TZ).date()
         followed = {key(a["name"]): a["name"] for a in content.list_artists() if a["status"] != "mute"}
-        crawled = dict((db.cache_get(self.id)["data"] or {}).get("crawled") or {})        # when each slow store was last read
-        ok, errors, found = 0, [], 0
+        before = db.cache_get(self.id)["data"] or {}
+        crawled = dict(before.get("crawled") or {})        # when each slow store was last read
+        rest = db.get_settings(REST_KEY)                   # stores that refused us: {id: {"n": refusals in a row, "until": epoch}}; kept apart from the cache so a failed pass still remembers
+        ok, errors, found, partial, resting = 0, [], 0, [], []
+        now = time.time()
+
+        def refused(shop: dict[str, Any], exc: Exception) -> None:
+            """Rest a store that turned us away: 1, 2, 4… days (a block: a week), and never less than its Retry-After."""
+            n = int((rest.get(shop["id"]) or {}).get("n", 0)) + 1
+            days = REST_DAYS_MAX if isinstance(exc, Blocked) else min(2 ** (n - 1), REST_DAYS_MAX)
+            wait = max(days * 86400 - 2 * 3600, retry_after(getattr(exc, "response", None)))   # 2 h slack so the daily 04:30 slot still lands on the right day
+            rest[shop["id"]] = {"n": n, "until": int(now + wait), "blocked": isinstance(exc, Blocked)}
+
         async with httpx.AsyncClient(headers={"User-Agent": USER_AGENT}, timeout=30, follow_redirects=True) as client:
+            first = True
             for shop in [s for s in settings["shops"] if s.get("enabled")]:
+                if (rest.get(shop["id"]) or {}).get("until", 0) > now or today < COOL_OFF.get(shop["id"], date.min):
+                    resting.append(shop["name"])                  # asked us to go away recently: not even a "Recheck" asks again yet
+                    continue
+                if not first:
+                    await asyncio.sleep(STORE_GAP)
+                first = False
+                complete = True
+                was_blocked = bool((rest.get(shop["id"]) or {}).get("blocked"))
                 try:
                     if shop.get("kind") == "juno":
                         seen = crawled.get(shop["id"]) or {}
@@ -702,29 +798,48 @@ class VinylWidget(Widget):
                         products = await fetch_wix(client, shop, followed)
                         currency = next((p["_currency"] for p in products if p.get("_currency")), "")
                     else:
-                        products = await fetch_products(client, shop, settings["max_pages"])
-                        if not products:                                  # a store that suddenly lists nothing: renamed collection? keep what we have
+                        try:
+                            products = await fetch_products(client, shop, settings["max_pages"])
+                        except Partial as p:
+                            products, complete = p.products, False
+                            refused(shop, p.exc)
+                            partial.append(shop["name"])
+                            log.warning("%s refused a later page (%s); keeping the %d products read before it and resting the store", shop["name"], reason(p.exc), len(products))
+                        if not products:                                 # a store that suddenly lists nothing: renamed collection? keep what we have
                             log.warning("%s returned no products for '%s' — the collection may have been renamed or emptied; keeping what was found before", shop["name"], shop.get("collection") or "all products")
                             ok += 1
                             continue
                         currency = await currency_of(client, shop)
                     items = build_items(products, shop, followed, currency=currency, today=today)
                     content.upsert_items("vinyl", shop["id"], items, baseline=not content.has_source("vinyl", shop["id"]))
-                    content.drop_missing("vinyl", shop["id"], {i["external_id"] for i in items})   # only after a successful look
+                    if complete:
+                        content.drop_missing("vinyl", shop["id"], {i["external_id"] for i in items})   # only after a full, successful look
+                        if rest.pop(shop["id"], None) and was_blocked:
+                            log.info("%s is letting the radar read it again", shop["name"])
                     if shop.get("kind") == "juno":
                         crawled[shop["id"]] = {"at": int(time.time()), "sig": shop["collection"]}
                     ok += 1
                     found += len(items)
                 except Exception as exc:
-                    errors.append(f"{shop['name']}: {type(exc).__name__}")
+                    if isinstance(exc, Blocked) or (isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code in REFUSED):
+                        refused(shop, exc)
+                    if isinstance(exc, Blocked) and was_blocked:      # still blocked: said once already, now just the weekly look
+                        resting.append(shop["name"])
+                        log.info("%s still turns automated readers away; asking again in a week", shop["name"])
+                        continue
+                    errors.append(f"{shop['name']}: {reason(exc)}")
                     log.warning("%s couldn't be read: %s: %s", shop["name"], type(exc).__name__, exc)
+        db.put_settings(REST_KEY, rest)
         if errors and not ok:
             raise RuntimeError("; ".join(errors))
-        return {"stores": ok, "errors": errors, "found": found, "crawled": crawled}
+        return {"stores": ok, "errors": errors, "found": found, "crawled": crawled, "partial": partial, "resting": resting}
 
     def summarise(self, data: dict[str, Any] | None) -> str:
         d = data or {}
-        return f"{d.get('stores', 0)} stores read, {d.get('found', 0)} pre-orders matched" + (f"; couldn't read {', '.join(d['errors'])}" if d.get("errors") else "")
+        return (f"{d.get('stores', 0)} stores read, {d.get('found', 0)} pre-orders matched"
+                + (f"; couldn't read {', '.join(d['errors'])}" if d.get("errors") else "")
+                + (f"; only partly read {', '.join(d['partial'])}" if d.get("partial") else "")
+                + (f"; resting {', '.join(d['resting'])} (they turned us away)" if d.get("resting") else ""))
 
     def view(self, data: dict[str, Any] | None, settings: dict[str, Any], now: datetime) -> dict[str, Any]:
         enabled = {s["id"]: s["name"] for s in settings["shops"] if s.get("enabled")}

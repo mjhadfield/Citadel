@@ -12,18 +12,22 @@ from app import config, content, db
 from app.widgets import vinyl
 from tests.test_content import REAL_CLIENT, REAL_SLEEP, checked_at, handler_factory, make_music_db, patch_http  # noqa: F401
 
+REAL_COOL_OFF = dict(vinyl.COOL_OFF)      # taken before the autouse fixture empties it
+
 TODAY = date(2026, 9, 22)
 NOW = datetime(2026, 9, 22, 12, tzinfo=config.TZ)
 FOLLOWED = {vinyl.key(n): n for n in ("Gojira", "Ghost", "Anthrax", "Amon Amarth", "Judas Priest", "Saxon", "System of a Down", "Outer Heaven", "Kiss")}
 
 
 @pytest.fixture(autouse=True)
-def _clean(client):
+def _clean(client, monkeypatch):
     def wipe():
         with db.db() as con:
             for t in ("feed_items", "followed_artists", "gigs"):
                 con.execute(f"DELETE FROM {t}")
-            con.execute("DELETE FROM widget_settings WHERE widget = 'vinyl'")
+            con.execute("DELETE FROM widget_settings WHERE widget IN ('vinyl', ?)", (vinyl.REST_KEY,))
+    monkeypatch.setattr(vinyl, "asyncio", SimpleNamespace(sleep=lambda s: REAL_SLEEP(0)))     # the politeness pauses are real seconds; tests that check them patch their own
+    monkeypatch.setattr(vinyl, "COOL_OFF", {})                                                   # the real cooling-off dates would silence the Juno tests
     wipe()
     yield
     wipe()
@@ -281,7 +285,7 @@ def test_sync_finds_preorders_baselines_then_flags_new_and_drops_vanished(monkey
     patch_http(monkeypatch, vinyl, shop_routes(live))
     s = with_shops(SHOP)
     out = run(vinyl.widget.fetch(s))
-    assert out == {"stores": 1, "errors": [], "found": 1, "crawled": {}}
+    assert out == {"stores": 1, "errors": [], "found": 1, "crawled": {}, "partial": [], "resting": []}
     got = content.list_items("vinyl")
     assert [i["title"] for i in got["items"]] == ["Magma"] and got["new"] == 0                     # first sight of a shop: silent baseline
 
@@ -325,12 +329,12 @@ def test_one_broken_store_does_not_hide_the_others_and_never_empties_its_own_ite
     routes["https://other.example/collections/"] = httpx.Response(503)                              # Other goes down
     patch_http(monkeypatch, vinyl, routes)
     out = run(vinyl.widget.fetch(s))
-    assert out["stores"] == 1 and out["errors"] == ["Other: HTTPStatusError"]
+    assert out["stores"] == 1 and out["errors"] == ["Other: HTTP 503"]
     titles = sorted(i["title"] for i in content.list_items("vinyl")["items"])
     assert titles == ["Magma", "Skeletá"]                                                           # Other's items are kept through its outage
 
     patch_http(monkeypatch, vinyl, {**routes, "https://earache.example/collections/": httpx.Response(500)})
-    with pytest.raises(RuntimeError, match="Earache: HTTPStatusError; Other: HTTPStatusError"):
+    with pytest.raises(RuntimeError, match="Earache: HTTP 500; Other: HTTP 503"):
         run(vinyl.widget.fetch(s))                                                                  # everything down = a real error (stale badge)
 
 
@@ -688,7 +692,7 @@ def test_juno_failure_is_reported_without_touching_other_stores_or_its_own_items
     monkeypatch.setattr(vinyl.db, "cache_get", lambda widget: {"data": None})
     vinyl._currency_cache.clear()
     out = run(vinyl.widget.fetch(with_shops(SHOP, JUNO)))
-    assert out["stores"] == 1 and out["errors"] == ["Juno: HTTPStatusError"] and "juno" not in out["crawled"]
+    assert out["stores"] == 1 and out["errors"] == ["Juno: HTTP 503"] and "juno" not in out["crawled"]
     assert [i["title"] for i in content.list_items("vinyl")["items"]] == ["Magma"]
 
 
@@ -701,7 +705,7 @@ def test_juno_settings_are_validated_and_the_defaults_are_valid():
             vinyl.widget.merge_settings({}, {"shops": [{"name": "Juno", "kind": bad.get("kind", "juno"), **{k: v for k, v in bad.items() if k != "kind"}}]})
     assert vinyl.widget.merge_settings({}, {"shops": vinyl.DEFAULT_SHOPS})["shops"]                 # what ships must itself pass validation
     juno = next(s for s in vinyl.DEFAULT_SHOPS if s["id"] == "juno")
-    assert juno["enabled"] and juno["kind"] == "juno" and "metal" in juno["collection"]
+    assert juno["enabled"] and juno["kind"] == "juno" and "metal" in juno["collection"] and juno["id"] in REAL_COOL_OFF      # on, but left alone until its cooling-off ends
 
 
 def test_check_a_juno_section(monkeypatch):
@@ -744,3 +748,185 @@ def test_store_dates_still_update_when_nobody_has_set_one():
     content.upsert_items("vinyl", "earache", [item], baseline=True)
     content.upsert_items("vinyl", "earache", [{**item, "date": "2027-01-15"}], baseline=False)
     assert content.list_items("vinyl")["items"][0]["date"] == "2027-01-15"
+
+
+# ======================================================= politeness: pacing, refusals and resting stores
+
+def paced(monkeypatch):
+    """Record the pauses instead of taking them."""
+    sleeps = []
+    async def nap(seconds):
+        sleeps.append(seconds)
+    monkeypatch.setattr(vinyl, "asyncio", SimpleNamespace(sleep=nap))
+    return sleeps
+
+
+def counting(routes, seen):
+    """Wrap every route so each request is recorded (path + page)."""
+    def wrap(resp):
+        def handler(req):
+            seen.append((req.url.host, req.url.path, req.url.params.get("page")))
+            return resp(req) if callable(resp) else resp
+        return handler
+    return {k: wrap(v) for k, v in routes.items()}
+
+
+def test_pages_of_a_store_are_ten_seconds_apart_and_stores_three(monkeypatch):
+    content.add_artist("Gojira")
+    filler = [prod(f"Filler {i} - Vinyl - PRE-ORDER") for i in range(250)]
+    other = {**SHOP, "id": "other", "name": "Other", "url": "https://other.example"}
+    patch_http(monkeypatch, vinyl, shop_routes({"earache.example": {1: filler, 2: [prod('Gojira "Magma" Vinyl - PRE-ORDER')]}, "other.example": {1: []}}))
+    vinyl._currency_cache.clear()
+    sleeps = paced(monkeypatch)
+    run(vinyl.widget.fetch(with_shops(SHOP, other)))
+    assert sleeps == [vinyl.SHOPIFY_PAGE_GAP, vinyl.STORE_GAP, vinyl.STORE_GAP]          # page 2, before Earache's meta.json, before the next store (Other lists nothing: no meta.json)
+    assert vinyl.SHOPIFY_PAGE_GAP >= 10 and vinyl.STORE_GAP >= 3
+
+
+def test_a_crawl_delay_longer_than_ours_is_obeyed(monkeypatch):
+    filler = [prod(f"Filler {i} - Vinyl - PRE-ORDER") for i in range(250)]
+    routes = {**shop_routes({"earache.example": {1: filler, 2: []}}), "https://earache.example/robots.txt": httpx.Response(200, text="User-agent: *\nCrawl-delay: 30\n")}
+    patch_http(monkeypatch, vinyl, routes)
+    sleeps = paced(monkeypatch)
+    async def go():
+        async with httpx.AsyncClient() as client:
+            return await vinyl.fetch_products(client, SHOP, 5)
+    run(go())
+    assert sleeps == [30.0]
+
+
+def test_a_refused_later_page_keeps_what_was_read_drops_nothing_and_rests_the_store(monkeypatch):
+    content.add_artist("Gojira"); content.add_artist("Ghost")
+    content.upsert_items("vinyl", "earache", [{"external_id": "earache:ghost:old", "artist": "Ghost", "title": "Older", "date": None, "meta": {"shop": "Earache"}}], baseline=True)
+    page1 = [prod('Gojira "Magma" Vinyl - PRE-ORDER')] + [prod(f"Filler {i} - Vinyl - PRE-ORDER") for i in range(249)]
+    seen = []
+    def products(req):
+        return httpx.Response(200, json={"products": page1}) if req.url.params.get("page") == "1" else httpx.Response(429, headers={"Retry-After": "60"})
+    patch_http(monkeypatch, vinyl, counting({"https://earache.example/collections/": products, "https://earache.example/meta.json": httpx.Response(200, json={"currency": "GBP"})}, seen))
+    vinyl._currency_cache.clear()
+    out = run(vinyl.widget.fetch(with_shops(SHOP)))
+    assert out["errors"] == [] and out["partial"] == ["Earache"] and out["stores"] == 1
+    assert sorted(i["title"] for i in content.list_items("vinyl")["items"]) == ["Magma", "Older"]          # page 1's find is used; nothing dropped on a partial look
+    assert [p for _, path, p in seen if path.endswith("products.json")] == ["1", "2"]                         # page 2 asked once, never retried
+    assert db.get_settings(vinyl.REST_KEY)["earache"]["n"] == 1
+    assert "only partly read Earache" in vinyl.widget.summarise(out)
+
+
+def test_a_store_that_refuses_rests_for_longer_each_time_even_through_recheck_and_recovers(monkeypatch):
+    content.add_artist("Gojira")
+    seen = []
+    state = {"code": 429}
+    def products(req):
+        return httpx.Response(state["code"], json={"products": [prod('Gojira "Magma" Vinyl - PRE-ORDER')]})
+    patch_http(monkeypatch, vinyl, counting({"https://earache.example/collections/": products, "https://earache.example/meta.json": httpx.Response(200, json={"currency": "GBP"})}, seen))
+    vinyl._currency_cache.clear()
+    clock = {"now": 1_800_000_000.0}
+    monkeypatch.setattr(vinyl, "time", SimpleNamespace(time=lambda: clock["now"]))
+    s = with_shops(SHOP)
+    day = 86400
+
+    with pytest.raises(RuntimeError, match="Earache: too many requests"):
+        run(vinyl.widget.fetch(s))                                                       # the only store refused: a real error
+    rest = db.get_settings(vinyl.REST_KEY)["earache"]
+    assert rest["n"] == 1 and rest["until"] == clock["now"] + day - 7200               # saved even though the pass failed
+    asked = len(seen)
+    clock["now"] += 3600                                                                 # a Recheck (or the scheduler's failure retry) an hour later…
+    out = run(vinyl.widget.fetch({**s, "_forced": True}))
+    assert len(seen) == asked and out["resting"] == ["Earache"] and out["errors"] == []  # …doesn't ask again
+
+    clock["now"] += day                                                                  # next day: asked again, refused again → 2 days
+    with pytest.raises(RuntimeError):
+        run(vinyl.widget.fetch(s))
+    assert db.get_settings(vinyl.REST_KEY)["earache"] == {"n": 2, "until": int(clock["now"] + 2 * day - 7200), "blocked": False}
+    for _ in range(4):                                                                   # keeps refusing: capped at a week
+        clock["now"] += vinyl.REST_DAYS_MAX * day
+        with pytest.raises(RuntimeError):
+            run(vinyl.widget.fetch(s))
+    assert db.get_settings(vinyl.REST_KEY)["earache"]["until"] == int(clock["now"] + vinyl.REST_DAYS_MAX * day - 7200)
+
+    state["code"] = 200
+    clock["now"] += vinyl.REST_DAYS_MAX * day
+    assert run(vinyl.widget.fetch(s))["found"] == 1
+    assert db.get_settings(vinyl.REST_KEY) == {}                                         # a full read clears the rest
+
+
+def test_a_long_retry_after_is_honoured_over_the_daily_rest(monkeypatch):
+    patch_http(monkeypatch, vinyl, {"https://earache.example/collections/": httpx.Response(429, headers={"Retry-After": str(3 * 86400)})})
+    clock = {"now": 1_800_000_000.0}
+    monkeypatch.setattr(vinyl, "time", SimpleNamespace(time=lambda: clock["now"]))
+    with pytest.raises(RuntimeError):
+        run(vinyl.widget.fetch(with_shops(SHOP)))
+    assert db.get_settings(vinyl.REST_KEY)["earache"]["until"] == clock["now"] + 3 * 86400
+
+
+def test_an_outage_is_not_a_refusal_and_does_not_rest_the_store(monkeypatch):
+    patch_http(monkeypatch, vinyl, {"https://earache.example/collections/": httpx.Response(503)})
+    with pytest.raises(RuntimeError, match="Earache: HTTP 503"):
+        run(vinyl.widget.fetch(with_shops(SHOP)))
+    assert db.get_settings(vinyl.REST_KEY) == {}
+
+
+@pytest.mark.parametrize("robots", [httpx.Response(403, headers={"cf-mitigated": "challenge"}, text="Just a moment..."), httpx.Response(401), httpx.Response(429)])
+def test_a_robots_txt_that_turns_us_away_means_leave_the_site_alone_for_a_week(monkeypatch, robots):
+    seen = []
+    routes = {"https://www.juno.example/robots.txt": robots, "https://www.juno.example/metal/preorders/": httpx.Response(200, text=FIXTURE)}
+    patch_http(monkeypatch, vinyl, counting(routes, seen))
+    monkeypatch.setattr(vinyl.db, "cache_get", lambda widget: {"data": None})
+    clock = {"now": 1_800_000_000.0}
+    monkeypatch.setattr(vinyl, "time", SimpleNamespace(time=lambda: clock["now"]))
+    with pytest.raises(RuntimeError, match="Juno: blocks automated readers"):
+        run(vinyl.widget.fetch(with_shops(JUNO)))
+    assert [path for _, path, _ in seen] == ["/robots.txt"]                              # never went past robots.txt
+    assert db.get_settings(vinyl.REST_KEY)["juno"]["until"] == clock["now"] + vinyl.REST_DAYS_MAX * 86400 - 7200
+
+
+def test_a_shopify_store_whose_robots_txt_disallows_the_catalogue_is_not_read(monkeypatch):
+    seen = []
+    routes = {**shop_routes({"earache.example": {1: [prod('Gojira "Magma" Vinyl - PRE-ORDER')]}}), "https://earache.example/robots.txt": httpx.Response(200, text="User-agent: *\nDisallow: /collections/\n")}
+    patch_http(monkeypatch, vinyl, counting(routes, seen))
+    with pytest.raises(RuntimeError, match="Earache: blocks automated readers"):
+        run(vinyl.widget.fetch(with_shops(SHOP)))
+    assert [path for _, path, _ in seen] == ["/robots.txt"]
+    res = run(vinyl.check_shop("https://earache.example", "pre-orders"))
+    assert not res["ok"] and "robots.txt" in res["error"]
+
+
+def test_a_store_cooling_off_gets_no_requests_at_all_until_its_date(monkeypatch):
+    seen = []
+    patch_http(monkeypatch, vinyl, counting(juno_routes({"metal": {1: FIXTURE}}), seen))
+    monkeypatch.setattr(vinyl.db, "cache_get", lambda widget: {"data": None})
+    monkeypatch.setattr(vinyl, "COOL_OFF", {"juno": date(2999, 1, 1)})
+    out = run(vinyl.widget.fetch(with_shops(JUNO)))
+    assert seen == [] and out["resting"] == ["Juno"] and out["errors"] == []
+
+
+def test_a_blocked_store_is_reported_once_then_checked_quietly_each_week_until_it_opens(monkeypatch):
+    content.add_artist("Brutal Truth")
+    seen = []
+    state = {"robots": httpx.Response(403, headers={"cf-mitigated": "challenge"})}
+    routes = juno_routes({"metal": {1: FIXTURE}})
+    routes["https://www.juno.example/robots.txt"] = lambda req: state["robots"]
+    patch_http(monkeypatch, vinyl, counting(routes, seen))
+    monkeypatch.setattr(vinyl.db, "cache_get", lambda widget: {"data": None})
+    monkeypatch.setattr(vinyl, "COOL_OFF", {})
+    clock = {"now": 1_800_000_000.0}
+    monkeypatch.setattr(vinyl, "time", SimpleNamespace(time=lambda: clock["now"]))
+    s, week = with_shops(SHOP, JUNO), vinyl.REST_DAYS_MAX * 86400
+    patch_routes = {**shop_routes({"earache.example": {1: []}}), **routes}
+    patch_http(monkeypatch, vinyl, counting(patch_routes, seen))
+
+    assert run(vinyl.widget.fetch(s))["errors"] == ["Juno: blocks automated readers"]      # the first time: said out loud
+    for _ in range(3):
+        clock["now"] += 86400                                                               # daily passes in between: Juno not asked
+        assert run(vinyl.widget.fetch(s))["resting"] == ["Juno"]
+    juno_asks = lambda: [p for h, p, _ in seen if h == "www.juno.example"]
+    assert juno_asks() == ["/robots.txt"]
+    clock["now"] += week
+    out = run(vinyl.widget.fetch(s))
+    assert out["errors"] == [] and out["resting"] == ["Juno"] and juno_asks() == ["/robots.txt"] * 2   # a week on: one robots.txt, no alert
+
+    state["robots"] = httpx.Response(200, text=ROBOTS)                                      # Juno lets us in
+    clock["now"] += week
+    out = run(vinyl.widget.fetch(s))
+    assert out["errors"] == [] and out["resting"] == [] and "/metal/preorders/" in juno_asks()
+    assert db.get_settings(vinyl.REST_KEY) == {}

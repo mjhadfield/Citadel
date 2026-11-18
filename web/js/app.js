@@ -452,7 +452,7 @@ function route() {
   markCurrent();
   music.onView(v);                                  // the Music page (music.js) only polls Spotify while it's on screen
   news.onView(v);                                   // the News page (news.js) loads its own stories when shown
-  stats.onView(v);                                  // the Stats page (stats.js): machine history from the collector on NZXT
+  stats.onView(v);                                  // the Fleet page (stats.js): machine history from the collector on NZXT
 }
 function markCurrent() {
   $$('.rail a[data-view], .tabbar a[data-view], #more-sheet a[data-view]').forEach(a => {

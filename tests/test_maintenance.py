@@ -556,9 +556,10 @@ def test_one_broken_store_is_logged_by_name_while_the_others_carry_on(monkeypatc
     ok = httpx.Response(200, json={"products": [{"title": 'Gojira "Magma" Vinyl - PRE-ORDER', "handle": "m", "product_type": "12\"", "tags": [], "published_at": "2026-09-01T00:00:00Z", "variants": [{"price": "30", "available": True}]}]})
     patch_http(monkeypatch, vinyl, {"https://earache.example/collections/": ok, "https://earache.example/meta.json": httpx.Response(200, json={"currency": "GBP"}), "https://gone.example/": httpx.Response(500)})
     monkeypatch.setattr(vinyl.db, "cache_get", lambda widget: {"data": None})
+    monkeypatch.setattr(vinyl, "asyncio", SimpleNamespace(sleep=lambda s: REAL_SLEEP(0)))         # skip the politeness pauses
     vinyl._currency_cache.clear()
     out = run(vinyl.widget.fetch({**vinyl.widget.defaults, "shops": [good, bad]}))
-    assert out["stores"] == 1 and out["errors"] == ["Gone Store: HTTPStatusError"]
+    assert out["stores"] == 1 and out["errors"] == ["Gone Store: HTTP 500"]
     assert any(e["source"] == "vinyl" and e["message"].startswith("Gone Store couldn't be read: HTTPStatusError") for e in logbook.query(level="warning"))
 
 

@@ -73,6 +73,7 @@ html[data-skin="lcars"] .rail [data-view="listen"] { --lc-c: var(--lc-1); }
 html[data-skin="lcars"] .rail [data-view="casino"] { --lc-c: var(--lc-4); }
 html[data-skin="lcars"] .rail [data-view="ai"] { --lc-c: var(--lc-6); }
 html[data-skin="lcars"] .rail [data-view="house"] { --lc-c: var(--lc-3); }
+html[data-skin="lcars"] .rail [data-view="stats"] { --lc-c: var(--lc-1); }
 html[data-skin="lcars"] .rail [data-view="curate"] { --lc-c: var(--lc-2); }
 html[data-skin="lcars"] .rail .rail__settings { --lc-c: var(--lc-5); }
 
@@ -675,7 +676,7 @@ html.lc-boot[data-skin="lcars"] .rail a { animation: lc-grow-y .34s var(--lc-eas
 html.lc-boot[data-skin="lcars"] .rail a:nth-child(3) { --lc-d: 30ms; } html.lc-boot[data-skin="lcars"] .rail a:nth-child(4) { --lc-d: 60ms; }
 html.lc-boot[data-skin="lcars"] .rail a:nth-child(5) { --lc-d: 90ms; } html.lc-boot[data-skin="lcars"] .rail a:nth-child(6) { --lc-d: 120ms; }
 html.lc-boot[data-skin="lcars"] .rail a:nth-child(7) { --lc-d: 150ms; } html.lc-boot[data-skin="lcars"] .rail a:nth-child(8) { --lc-d: 180ms; }
-html.lc-boot[data-skin="lcars"] .rail a[data-view="curate"] { --lc-d: 210ms; } html.lc-boot[data-skin="lcars"] .rail a.rail__settings { --lc-d: 240ms; }
+html.lc-boot[data-skin="lcars"] .rail a[data-view="stats"] { --lc-d: 195ms; } html.lc-boot[data-skin="lcars"] .rail a[data-view="curate"] { --lc-d: 210ms; } html.lc-boot[data-skin="lcars"] .rail a.rail__settings { --lc-d: 240ms; }
 /* cards: arrive one after another, then each header draws left to right and its gauges fill block by block */
 html.lc-boot[data-skin="lcars"] #grid > .card:not(.ph) { animation: lc-in .34s var(--lc-ease) both; animation-delay: var(--lc-d, 260ms); }
 html.lc-boot[data-skin="lcars"] #grid > .card:nth-child(2) { --lc-d: 305ms; } html.lc-boot[data-skin="lcars"] #grid > .card:nth-child(3) { --lc-d: 350ms; }
@@ -938,3 +939,25 @@ html[data-skin="lcars"] .mu-bar--msg .acts > .btn:not(.btn--icon):hover { backgr
 }
 html[data-skin="lcars"] .mu-mini { border: 0; border-radius: 999px; padding: 5px 12px 5px 8px; font: 500 14px var(--lc-font); letter-spacing: .06em; clip-path: none;
   background: color-mix(in srgb, var(--lc-1) 14%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lc-1) 40%, transparent); }
+
+/* ---- Screen overlay (Settings → Appearance → Overlay, this device's own; theme-init.js sets html[data-lc-overlay]) ----
+   No attribute = Citadel's scanlines + vignette (tokens.css body::after), unchanged. The rest swap that layer, LCARS only.
+   Bands drift on their own layer (body::before) by transform, so the screen isn't repainted every frame; they stand
+   still when Motion is Off or the device asks for reduced motion. */
+html[data-skin="lcars"] { --lc-vignette: radial-gradient(120% 90% at 50% 40%, transparent 55%, var(--vignette) 100%); }
+html[data-skin="lcars"][data-lc-overlay="none"] body::after { display: none; }
+html[data-skin="lcars"][data-lc-overlay="vignette"] body::after,
+html[data-skin="lcars"][data-lc-overlay="bands"] body::after { background: var(--lc-vignette); }
+html[data-skin="lcars"][data-lc-overlay="dots"] body::after {
+  background: radial-gradient(circle, rgba(255, 255, 255, .045) 0 .7px, transparent 1.1px) 0 0 / 4px 4px, var(--lc-vignette); }
+html[data-skin="lcars"][data-theme="light"][data-lc-overlay="dots"] body::after {
+  background: radial-gradient(circle, rgba(0, 0, 0, .05) 0 .7px, transparent 1.1px) 0 0 / 4px 4px, var(--lc-vignette); }
+html[data-skin="lcars"][data-lc-overlay="tint"] body::after {
+  background: repeating-linear-gradient(to bottom, color-mix(in srgb, var(--lc-1) 5%, transparent) 0 1px, transparent 1px 3px), var(--lc-vignette); }
+html[data-skin="lcars"][data-lc-overlay="bands"] body::before {
+  content: ""; position: fixed; left: 0; right: 0; top: -240px; height: calc(100% + 240px); pointer-events: none; z-index: 100;
+  background: repeating-linear-gradient(to bottom, transparent 0, color-mix(in srgb, var(--lc-1) 3.5%, transparent) 70px, transparent 140px, transparent 240px);
+  animation: lc-bands 14s linear infinite; will-change: transform; }
+html[data-skin="lcars"][data-lc-overlay="bands"][data-motion="off"] body::before { animation: none; }
+@keyframes lc-bands { to { transform: translateY(240px); } }
+@media (prefers-reduced-motion: reduce) { html[data-skin="lcars"][data-lc-overlay="bands"] body::before { animation: none; } }

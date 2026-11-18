@@ -119,8 +119,8 @@ def test_sweep_polls_only_ssh_machines_and_keeps_the_last_good_reading(store):
 
 
 def test_ssh_argv_checks_the_name_but_connects_to_the_address():
-    argv = cc.ssh_argv({"host": "pi-2.local", "addr": "192.168.0.80", "user": "mike"})
-    assert "HostKeyAlias=pi-2.local" in argv and argv[-1] == "mike@192.168.0.80" and "-F" in argv
+    argv = cc.ssh_argv({"host": "probe-2.local", "addr": "192.168.0.80", "user": "mike"})
+    assert "HostKeyAlias=probe-2.local" in argv and argv[-1] == "mike@192.168.0.80" and "-F" in argv
     assert cc.explain("Permission denied (publickey).", 255).startswith("Not set up")
 
 

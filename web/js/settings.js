@@ -6,6 +6,8 @@ import { THEMES, applySpec, look, mode, setLook, setMode, specOf, syncThemes } f
 import * as motion from './motion.js';
 
 const TABS = [['links', 'Links', 'globe'], ['projects', 'Projects', 'grid'], ['remote', 'Remote access', 'desk'], ['widgets', 'Widgets', 'cal'], ['appearance', 'Appearance', 'sun'], ['navigation', 'Navigation', 'list'], ['music', 'Music', 'disc'], ['listen', 'Music page', 'wave'], ['news', 'News', 'news'], ['screens', 'Screens & devices', 'server'], ['maintenance', 'Maintenance & logs', 'gear'], ['about', 'About', 'chip']];
+// LCARS screen overlays to try (Settings → Appearance → Overlay; lcars.css). 'scan' = the Citadel scanlines, the default.
+const LC_OVERLAYS = [['scan', 'Scanlines'], ['none', 'None'], ['vignette', 'Vignette'], ['dots', 'Dot grid'], ['bands', 'Bands'], ['tint', 'Tinted']];
 const panel = $('#panel');
 let cfg = null, live = null, extras = { artists: { artists: [], music_db: false }, gigs: [] };   // config, live widget status, artists + gigs
 let maint = { jobs: [], log_counts: {}, backups: [], now: 0 }, logs = { items: [], sources: [], counts: {} };   // schedule table + event log
@@ -131,8 +133,8 @@ function projectsTab() {
 function remoteForm(r = {}) {
   return `<form class="form" data-form="remote" data-id="${esc(r.id || '')}">
     <div class="form-grid">
-      ${field('Name', input('name', r.name, 'required maxlength="40" placeholder="e.g. Pi 1 desktop"'))}
-      ${field('VNC address', input('address', r.address, 'required maxlength="253" spellcheck="false" placeholder="e.g. pi-1.local"'), 'Host name or IP address. Only for a server not on the usual port 5900: <code>host:1</code> is port 5901, <code>host::5905</code> is port 5905.')}
+      ${field('Name', input('name', r.name, 'required maxlength="40" placeholder="e.g. Probe-1 desktop"'))}
+      ${field('VNC address', input('address', r.address, 'required maxlength="253" spellcheck="false" placeholder="e.g. probe-1.local"'), 'Host name or IP address. Only for a server not on the usual port 5900: <code>host:1</code> is port 5901, <code>host::5905</code> is port 5905.')}
       ${field('Viewer', select('viewer', [['krdc', 'KRDC (scales to the window)'], ['tigervnc', 'TigerVNC']], r.viewer || 'krdc'))}
       ${field('Wake-on-LAN MAC address', input('mac', r.mac, 'maxlength="17" spellcheck="false" autocomplete="off" placeholder="blank = no wake"'))}
       ${field('Monitoring SSH user', input('ssh_user', r.ssh_user, 'maxlength="32" spellcheck="false" autocomplete="off" placeholder="blank = not monitored"'), 'Set up once with <code>tools/machines_setup.py</code>.')}
@@ -734,10 +736,15 @@ function appearanceTab() {
   const lv = motion.savedLevel(), motionRow = document.documentElement.dataset.skin !== 'lcars' ? ''
     : `<div class="bar-actions modepick modepick--motion"><span class="field__l">Motion</span>${motion.LEVEL_NAMES.map(([k, label]) =>
       `<button type="button" class="btn${k === lv ? ' btn--go' : ''}" data-do="use-motion" data-level="${k}" aria-pressed="${k === lv}">${label}</button>`).join('')}</div>`;
+  // LCARS only: the screen overlay over everything (theme-init.js sets html[data-lc-overlay]; lcars.css draws it)
+  const ovCur = (() => { try { return localStorage.getItem('lc-overlay') || 'scan'; } catch { return 'scan'; } })();
+  const overlayRow = document.documentElement.dataset.skin !== 'lcars' ? ''
+    : `<div class="bar-actions modepick modepick--motion"><span class="field__l">Overlay</span>${LC_OVERLAYS.map(([k, label]) =>
+      `<button type="button" class="btn${k === ovCur ? ' btn--go' : ''}" data-do="use-overlay" data-overlay="${k}" aria-pressed="${k === ovCur}">${label}</button>`).join('')}</div>`;
   const adding = editing?.kind === 'theme' && editing.id === 'new' ? `<li class="item item--edit">${themeForm(editing.seed || {})}</li>` : '';
   return card('This device',
     'Day or Night, and which theme. The same two buttons sit in the dashboard’s header.',
-    `<div class="bar-actions modepick">${modes}</div><div class="themepicks">${tiles}</div>${motionRow}`)
+    `<div class="bar-actions modepick">${modes}</div><div class="themepicks">${tiles}</div>${motionRow}${overlayRow}`)
     + card('Custom themes',
     'A variant of Citadel or LCARS, with its own Day and Night colours and pictures.',
     `<div class="bar-actions">${act('new-theme', `${ico('plus')}New theme`, '', 'btn--go')}</div><ul class="items">${adding}${rows}</ul>
@@ -873,6 +880,11 @@ panel.addEventListener('click', e => {
     case 'use-theme': setLook(d.id, cfg.appearance.themes); render(); toast('Theme set for this device'); break;
     case 'use-mode': setMode(d.mode); render(); break;
     case 'use-motion': motion.saveLevel(d.level); render(); break;
+    case 'use-overlay': {
+      try { localStorage.setItem('lc-overlay', d.overlay); } catch { /* private window: this page only */ }
+      if (d.overlay === 'scan') delete document.documentElement.dataset.lcOverlay; else document.documentElement.dataset.lcOverlay = d.overlay;
+      render(); break;
+    }
     case 'new-theme': editing = { kind: 'theme', id: 'new', seed: { skin: look() === 'lcars' ? 'lcars' : 'citadel' } }; render(); $('[data-form="theme"] [name=name]')?.focus(); previewTheme($('[data-form="theme"]')); break;
     case 'edit-theme': editing = { kind: 'theme', id: d.id }; render(); previewTheme($('[data-form="theme"]')); break;
     case 'copy-theme': { const t = cfg.appearance.themes.find(x => x.id === d.id); editing = { kind: 'theme', id: 'new', seed: { ...t, id: '', name: `${t.name} copy`.slice(0, 40) } }; render(); previewTheme($('[data-form="theme"]')); break; }

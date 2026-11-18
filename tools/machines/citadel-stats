@@ -168,11 +168,36 @@ def gpu(mons: dict[str, str]) -> dict | None:
                 except ValueError:
                     return None
             return {"name": parts[0], "percent": num(parts[1]), "temp": num(parts[2]), "mem_used_mb": num(parts[3]), "mem_total_mb": num(parts[4])}
-    for name in ("amdgpu", "radeon", "nouveau"):          # no usage figures from these, just the temperature
+    for name in ("amdgpu", "radeon", "nouveau"):          # the drivers give just the temperature…
         if name in mons:
-            return {"name": {"amdgpu": "AMD Radeon", "radeon": "AMD Radeon", "nouveau": "NVIDIA"}[name], "percent": None,
-                    "temp": hwmon_temp(mons[name], ("edge",)), "mem_used_mb": None, "mem_total_mb": None}
+            out = {"name": {"amdgpu": "AMD Radeon", "radeon": "AMD Radeon", "nouveau": "NVIDIA"}[name], "percent": None,
+                   "temp": hwmon_temp(mons[name], ("edge",)), "mem_used_mb": None, "mem_total_mb": None}
+            if name != "nouveau":                          # …and radeontop, when installed, the load and VRAM (Phoenix)
+                out.update(radeontop(run(["radeontop", "-d", "-", "-l", "1"])))
+            return out
     return None
+
+
+def radeontop(text: str | None) -> dict:
+    """One `radeontop -d - -l 1` line (a second's sample, no root needed) →
+    "…: bus 01, gpu 2.50%, ee 0.00%, …, vram 43.14% 441.77mb, gtt …" → load %, VRAM used and total in MB."""
+    out: dict = {}
+    line = next((l for l in (text or "").splitlines() if ": bus " in l), None)
+    if not line:
+        return out
+    for part in line.split(": ", 1)[1].split(", "):
+        bits = part.split()
+        try:
+            if bits[0] == "gpu":
+                out["percent"] = round(float(bits[1].rstrip("%")), 1)
+            elif bits[0] == "vram" and len(bits) == 3:
+                pct, used = float(bits[1].rstrip("%")), float(bits[2].rstrip("mb"))
+                out["mem_used_mb"] = round(used)
+                if pct > 0:
+                    out["mem_total_mb"] = round(used * 100 / pct)
+        except (ValueError, IndexError):
+            continue
+    return out
 
 
 def battery() -> dict | None:

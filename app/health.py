@@ -28,8 +28,8 @@ class Health:
         self.bus = bus
         self.interval = interval
         self.state: dict[str, dict[str, Any]] = {}
-        # Remote Access device named by host name (pi-2.local) -> the LAN address it last resolved to, shown on its tile.
-        # Kept while the device is off, so the tile doesn't fall back to the name every time a Pi sleeps.
+        # Remote Access device named by host name (probe-2.local) -> the LAN address it last resolved to, shown on its tile.
+        # Kept while the device is off, so the tile doesn't fall back to the name every time a Probe sleeps.
         self.resolved: dict[str, str] = {}
         self._resolved_changed = False
         self._task: asyncio.Task | None = None
