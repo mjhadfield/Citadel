@@ -396,6 +396,15 @@ button.tile:disabled { cursor: default; opacity: .6; transform: none; }
   .feed:has(.cover) .feed__meta { padding-left: 56px; }
   .feed__date { min-width: 0; text-align: left; }
   .meta--opt { display: none; }
+  /* Monitoring's two columns fit the screen (their 1fr grew to the CPU/GPU temp heading and pushed GPU off the edge) */
+  .mon-split { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+  .mon-col:first-child { padding-right: 16px; }
+  .mon-col:last-child { padding-left: 0; }
+  .mon-head { flex-wrap: wrap; row-gap: 2px; }
+  /* a safety net: nothing on a phone page may be wider than the screen. Any overflow makes Chrome widen the page, and
+     the fixed tab bar then hangs off the bottom and slides about with the page (Mike's phone, 2026-11-21). clip, not
+     hidden: no scroll box, so sticky headers and the expanded (fixed) cards are untouched */
+  .main { overflow-x: clip; }
   .tabbar {
     display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);     /* one column per tab: Settings → Navigation picks them */
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
@@ -420,8 +429,7 @@ button.tile:disabled { cursor: default; opacity: .6; transform: none; }
   .more-sheet a + a { border-top: 1px solid var(--edge); }
   .more-sheet a[aria-current] { color: var(--accent-soft); }
   .more-sheet .i { width: 20px; height: 20px; flex: none; }
-  /* a swipe to the next or previous page slides it in (app.js); .main clips it meanwhile so the page never widens */
-  html.is-sliding .main { overflow-x: clip; }
+  /* a swipe to the next or previous page slides it in (app.js); .main always clips on phones (above), so the page never widens */
   .view.is-active[data-slide="next"] { animation: view-in-next .24s ease-out; }
   .view.is-active[data-slide="prev"] { animation: view-in-prev .24s ease-out; }
 }

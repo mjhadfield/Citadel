@@ -26,7 +26,6 @@ class CompanionService(Service):
 service = CompanionService(
     id="companion", name="Music Companion", order=5, always_on=True,
     blurb="Your plays, records and gigs — read-only. Where the database is comes from HUB_MUSIC_DB in .env. "
-          "The maintenance server's password lets Settings → Maintenance run its scheduled Last.fm import.",
-    fields=(Field("maintenance_url", "Maintenance server", placeholder="http://127.0.0.1:8643", required=False),
-            Field("maintenance_password", "Maintenance password", secret=True, required=False)),
+          "The maintenance server runs the scheduled Last.fm import (Settings → Maintenance).",
+    fields=(Field("maintenance_url", "Maintenance server", placeholder="http://127.0.0.1:8643", required=False),),
 )

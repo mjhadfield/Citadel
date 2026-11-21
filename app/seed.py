@@ -24,9 +24,9 @@ PROJECTS: list[dict[str, Any]] = [
     dict(slug="setlist-spotify", name="Setlist → Spotify", description="setlist.fm to Spotify playlists", kind="web", sort=20,
          url="http://127.0.0.1:8888/", port=8888, cwd=str(P / "SpotifyPlaylists"), lan_visible=0,   # binds loopback; OAuth redirect is loopback too
          argv=["venv/bin/python", "app.py"]),
-    dict(slug="star-epr", name="Star EPR", description="Dummy patient record front-end", kind="web", sort=30,
-         url="http://{ip}:5173/StarEPR/", port=5173, cwd=str(P / "StarEPR"),   # {ip}: Vite blocks unknown hostnames, not IPs
-         argv=["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"], env={"BROWSER": "none"}),  # BROWSER=none: don't pop a window on start
+    dict(slug="star-epr", name="Star Lab", description="StarLab LIMS (StarEPR on :8691)", kind="web", sort=30,
+         url="http://{host}:8690/", port=8690, cwd=str(P / "StarEPR"),
+         argv=["tools/dev.sh", "demo"]),   # starts StarLab (:8690) and StarEPR (:8691) together; "live" once Mirth's channels exist
     dict(slug="terminal", name="Terminal", description="pygame terminal (web build)", kind="web", sort=40,
          url="http://{host}:8000/", port=8000, cwd=str(P / "Terminal"),
          argv=[".venv/bin/python", "-m", "pygbag", "--bind", "0.0.0.0", "--template", "web-template/loader.tmpl",

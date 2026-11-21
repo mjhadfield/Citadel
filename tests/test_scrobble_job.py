@@ -17,7 +17,7 @@ def run(coro):
 def job(monkeypatch):
     j = ScrobbleJob()
     monkeypatch.setattr(scrobble_job, "POLL_SECONDS", 0)
-    monkeypatch.setattr(ScrobbleJob, "_cfg", staticmethod(lambda: {"maintenance_password": "s3cret-pw"}))
+    monkeypatch.setattr(ScrobbleJob, "_cfg", staticmethod(lambda: {}))
     return j
 
 
@@ -44,9 +44,9 @@ def test_it_is_scheduled_every_two_hours_with_an_hour_floor_and_listed_in_settin
     assert any(r["id"] == "music-lastfm" for r in rows)
 
 
-def test_without_the_maintenance_password_it_is_not_set_up(monkeypatch):
+def test_it_needs_no_password_to_be_set_up(monkeypatch):
     monkeypatch.setattr(ScrobbleJob, "_cfg", staticmethod(lambda: {}))
-    assert not ScrobbleJob().configured({})
+    assert ScrobbleJob().configured({})
 
 
 def test_a_run_waits_for_the_import_and_reports_what_arrived(job):
@@ -58,7 +58,7 @@ def test_a_run_waits_for_the_import_and_reports_what_arrived(job):
     data = run(job.fetch({}))
     assert data == {"imported": 18, "events": {"new_song": 3, "new_album": 1}, "lookups": 2, "inbox": 5}
     assert job.summarise(data) == "18 new plays · 1 new album · 3 new songs · inbox: 5 to review"
-    assert seen[0][:2] == ("POST", "/api/scheduled/lastfm") and seen[0][2].startswith("Basic ")
+    assert seen[0][:2] == ("POST", "/api/scheduled/lastfm") and seen[0][2] is None
     assert job.retry_after(data) is None
 
 
@@ -70,14 +70,7 @@ def test_a_busy_server_is_a_retry_soon_not_a_failure(job):
     assert "skipped" in job.summarise(data)
 
 
-def test_a_wrong_password_says_where_to_fix_it(job):
-    job.transport = server({"status": 401, "polls": []})
-    with pytest.raises(RuntimeError, match="Settings → Music page"):
-        run(job.fetch({}))
-
-
-def test_a_failed_import_fails_the_job_and_the_password_is_a_secret(job):
+def test_a_failed_import_fails_the_job(job):
     job.transport = server({"start": {"jobId": "j2"}, "polls": [{"done": True, "returncode": 1, "tail": ["...", "requests.exceptions.HTTPError: 503"]}]})
     with pytest.raises(RuntimeError, match="503"):
         run(job.fetch({}))
-    assert job.secrets({}) == ["s3cret-pw"]

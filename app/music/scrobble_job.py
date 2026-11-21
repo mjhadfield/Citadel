@@ -8,7 +8,8 @@ sooner rather than counting a failure.
 
 Every 2 hours by default (at least 1): an incremental pull is one Last.fm request per 200 new plays, far inside Last.fm's
 limits, and the MusicBrainz lookups it makes depend on how much new music you play, not on how often it runs.
-The maintenance server's address and password live on the Music Companion connection (Settings → Music page).
+The maintenance server's address lives on the Music Companion connection (Settings → Music page); it has no password
+(removed 2026-11-19), so the job is always set up.
 """
 from __future__ import annotations
 
@@ -32,28 +33,17 @@ class ScrobbleJob(Widget):
     min_interval = 3600
     kind = "sync"
     timeout = 30 * 60              # a big catch-up (days of plays + new editions to look up) can take a while
-    setup_hint = "Add the maintenance password in Settings → Music page → Music services → Music Companion"
     transport: httpx.AsyncBaseTransport | None = None   # tests swap in a fake maintenance server
 
     @staticmethod
     def _cfg() -> dict[str, Any]:
         return store.service_cfg("companion")
 
-    def configured(self, settings: dict[str, Any]) -> bool:
-        return bool(self._cfg().get("maintenance_password"))
-
-    def secrets(self, settings: dict[str, Any]) -> list[str]:
-        pw = self._cfg().get("maintenance_password")
-        return [str(pw)] if pw else []
-
     async def fetch(self, settings: dict[str, Any]) -> dict[str, Any]:
         cfg = self._cfg()
         base = (cfg.get("maintenance_url") or DEFAULT_URL).rstrip("/")
-        auth = ("citadel", str(cfg.get("maintenance_password") or ""))
-        async with httpx.AsyncClient(timeout=60, auth=auth, transport=self.transport) as client:
+        async with httpx.AsyncClient(timeout=60, transport=self.transport) as client:
             r = await client.post(f"{base}/api/scheduled/lastfm", json={})
-            if r.status_code == 401:
-                raise RuntimeError("the Music Companion maintenance server didn't accept the password — update it in Settings → Music page → Music Companion")
             r.raise_for_status()
             started = r.json()
             if started.get("skipped"):

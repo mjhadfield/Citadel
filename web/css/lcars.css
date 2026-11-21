@@ -766,7 +766,9 @@ html.mx-ack[data-skin="lcars"] .card.is-ack > .mx-ack { animation: mx-ack .9s va
    the recent high, on the track). Alive even when the reading holds still: the lead block breathes (with a soft halo at
    Night), a sheen now and then runs up the lit blocks, and a falling gauge leaves a dim afterglow that lets go behind it.
    Each gauge in its own phase (--ph, --phs from motion.js), so a re-render every 2 s carries on mid-breath. */
-html.mx-gauge[data-skin="lcars"] .bar__fill { width: var(--gw, var(--v)); }
+/* overflow: the sheen below slides 260% past the fill; the mask already hides it, but unclipped it still counted as page
+   width, and on a phone near the right edge it widened the page and dragged the tab bar off the bottom (2026-11-21) */
+html.mx-gauge[data-skin="lcars"] .bar__fill { width: var(--gw, var(--v)); overflow: hidden; }
 html.mx-gauge[data-skin="lcars"] .bar__track::before { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--gp, 0%); border-radius: 5px 0 0 5px;
   background: color-mix(in srgb, var(--lc-c, var(--lc-frame)) 34%, transparent);
   -webkit-mask: repeating-linear-gradient(90deg, #000 0 11px, transparent 11px 14px); mask: repeating-linear-gradient(90deg, #000 0 11px, transparent 11px 14px); }
