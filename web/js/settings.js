@@ -2,7 +2,7 @@
 // returning HTML; forms submit to the validated owner API and the page re-renders from fresh config.
 import * as api from './api.js';
 import { $, $$, esc, ico, hhmm, ago, toast, isoOf } from './util.js';
-import { THEMES, applySpec, look, mode, setLook, setMode, specOf, syncThemes } from './theme.js';
+import { THEMES, FAMILY_LABEL, applySpec, family, familyOf, mode, setMode, setStyle, setTheme, specOf, style, stylesForFamily, syncStyles, theme } from './theme.js';
 import { GROUPS, TOKENS, alpha, derive, opacityOf, solid, tokensFor } from './palette.js';
 import * as motion from './motion.js';
 
@@ -657,35 +657,35 @@ async function paintMaint() {
   const tabBtn = $('[data-tab="maintenance"]'); if (tabBtn) tabBtn.classList.toggle('has-attn', needsAttention());
 }
 
-// ---- Appearance: Day/Night, the theme, and custom themes -------------------------------------------------------------
-// A device picks its mode (Day/Night) and its theme (Citadel, LCARS or a custom one) — the same two choices as the
-// dashboard header. A custom theme is built on Citadel or LCARS and has a Day half and a Night half. Basic sets each
-// half's four colours (primary, secondary, third, panel), see-through panels and a background picture, and palette.js
-// works every other colour out from them; Advanced shows every colour token for both halves, and any one changed there
-// is kept as an override (half.tokens) while the rest keep following Basic.
+// ---- Appearance: Day/Night, Theme, and Styles -------------------------------------------------------------------------
+// A device picks its mode (Day/Night), its theme (Citadel, LCARS, LCARS 25 or Borg) and a style for that theme's family
+// (built-in Standard, COM/SCI/ENG/ENT for LCARS, or a custom style). Every style has a Day half and a Night half. Basic
+// sets each half's four colours (primary, secondary, third, panel), see-through panels and a background picture, and
+// palette.js works every other colour out from them; Advanced shows every colour token for both halves, and any one
+// changed there is kept as an override (half.tokens) while the rest keep following Basic.
 const FIT_LABELS = { cover: 'Fill the screen', contain: 'Show all of it', tile: 'Tile', center: 'Centre, actual size' };
 const MODE_LABEL = { day: 'Day', night: 'Night' };
-const SKIN_LABEL = { citadel: 'Citadel', lcars: 'LCARS', lcars2: 'LCARS 25', borg: 'Borg' };
 const BASIC = [['accent', 'Primary'], ['secondary', 'Secondary'], ['third', 'Third'], ['panel', 'Panel']];
-const BUILTIN_LOOK = { citadel: { day: { panel: '#f8f0e2', accent: '#b5541f' }, night: { panel: '#0e0b14', accent: '#8b5cf6' } },
-  lcars: { day: { panel: '#f2e8d5', accent: '#b5541f' }, night: { panel: '#050407', accent: '#a78bfa' } },
-  lcars2: { day: { panel: '#f2e8d5', accent: '#b5541f' }, night: { panel: '#050407', accent: '#8577e0' } },
-  borg: { day: { panel: '#f3f7f4', accent: '#167a3e' }, night: { panel: '#060e08', accent: '#2ee86c' } } };
-const baseOf = (skin, m) => (cfg.appearance.base[skin] || cfg.appearance.base.citadel)[m];
-const overrides = t => Object.keys(t?.day?.tokens || {}).length + Object.keys(t?.night?.tokens || {}).length;
+const baseOf = (fam, m) => (cfg.appearance.base[fam] || cfg.appearance.base.citadel)[m];
+const overrides = s => Object.keys(s?.day?.tokens || {}).length + Object.keys(s?.night?.tokens || {}).length;
 
 function themePreview(t, m = mode()) {
-  const skin = t.skin || t.id, h = t[m] || BUILTIN_LOOK[skin]?.[m] || BUILTIN_LOOK.citadel[m];
+  const isThemeTile = 'family' in t && !t.day && !t.night;
+  const fam = t.family || familyOf(t.id);
+  const std = stylesForFamily(fam)[0];
+  const h = t[m] || std[m];
   const bg = h.background?.file ? `<img src="/backgrounds/${esc(h.background.file)}" alt="">` : '';
-  const base = m === 'day' ? (skin === 'borg' ? '#e8efe9' : '#f2e8d5') : (skin === 'borg' ? '#030704' : '#07060a');
-  const cls = skin === 'lcars' ? ' tp--lcars' : skin === 'lcars2' ? ' tp--lcars tp--lcars2' : skin === 'borg' ? ' tp--borg' : '';
-  return `<span class="tp${cls}" style="--tp-panel:${esc(h.panel)};--tp-accent:${esc(h.accent)};--tp-base:${base}">${bg}
+  const base = m === 'day' ? (fam === 'borg' ? '#e8efe9' : '#f2e8d5') : (fam === 'borg' ? '#030704' : '#07060a');
+  const cls = t.id === 'lcars25' ? ' tp--lcars tp--lcars25' : fam === 'lcars' ? ' tp--lcars' : fam === 'borg' ? ' tp--borg' : '';
+  const panelCol = isThemeTile && fam === 'lcars' && m === 'night' ? '#050407' : h.panel;
+  const accentCol = isThemeTile && t.id === 'lcars25' && m === 'night' ? '#8577e0' : h.accent;
+  return `<span class="tp${cls}" style="--tp-panel:${esc(panelCol)};--tp-accent:${esc(accentCol)};--tp-base:${base}">${bg}
     <span class="tp__card"><span class="tp__tick"></span><span class="tp__line"></span><span class="tp__line tp__line--short"></span></span></span>`;
 }
 
 const pct = (n, v, min, max, step) => `<span class="range"><input type="range" name="${n}" min="${min}" max="${max}" step="${step}" value="${v}"><output>${v}%</output></span>`;
-function halfFields(m, h = {}, skin = 'citadel') {
-  const bg = h.background || {}, base = baseOf(skin, m);
+function halfFields(m, h = {}, fam = 'citadel') {
+  const bg = h.background || {}, base = baseOf(fam, m);
   const colour = ([k, label]) => { const v = h[k] || base[k];
     return field(label, `<span class="colour"><input type="color" name="${m}_${k}" value="${esc(v)}"><code>${esc(v)}</code>${k === 'panel' ? act('panel-reset', 'Reset', `data-half="${m}" title="Back to ${MODE_LABEL[m]}’s own panel colour"`, 'btn--icon-text') : ''}</span>`, ''); };
   return `<fieldset class="half" data-half="${m}"><legend>${ico(m === 'day' ? 'sun' : 'moon')}${MODE_LABEL[m]}</legend>
@@ -709,36 +709,36 @@ function halfFields(m, h = {}, skin = 'citadel') {
 
 /** Advanced: one row per colour token, a cell for Day and one for Night. A cell's value is filled in by paintTokens
  * (Basic's when it isn't overridden); data-set marks an override. */
-function tokenCell(name, label, m, a, t) {
-  const set = t[m]?.tokens?.[name];
+function tokenCell(name, label, m, a, s) {
+  const set = s[m]?.tokens?.[name];
   return `<span class="tok"${set ? ' data-set' : ''} data-tok="${esc(name)}" data-half="${m}"${set ? ` data-v="${esc(set)}"` : ''}>
     <input type="color" aria-label="${MODE_LABEL[m]} ${esc(label)}">${a ? '<input type="range" min="0" max="100" step="1" aria-label="Opacity">' : ''}
     <code></code><button type="button" class="tok__reset" data-do="tok-reset" title="Back to Basic">${ico('x')}</button></span>`;
 }
-function tokenTables(t) {
+function tokenTables(s) {
   return GROUPS.map(([g, label, only]) => {
     const rows = TOKENS.filter(x => x[2] === g).map(([name, l, , a]) => `<div class="tok-row"><span class="tok-row__l">${esc(l)}<small>${esc(name)}</small></span>
-      ${tokenCell(name, l, 'day', a, t)}${tokenCell(name, l, 'night', a, t)}</div>`).join('');
+      ${tokenCell(name, l, 'day', a, s)}${tokenCell(name, l, 'night', a, s)}</div>`).join('');
     return `<details class="toks" open${only ? ` data-only="${only}"` : ''}><summary>${esc(label)}</summary>
       <div class="tok-row tok-row--head"><span></span><span>${ico('sun')}Day</span><span>${ico('moon')}Night</span></div>${rows}</details>`;
   }).join('');
 }
 
-function themeForm(t, view = 'basic') {
-  const skin = t.skin || 'citadel';
-  return `<form class="form" data-form="theme" data-id="${esc(t.id || '')}" data-view="${view}" data-skin="${skin}">
+function styleForm(s, view = 'basic') {
+  const fam = s.family || family();
+  return `<form class="form" data-form="style" data-id="${esc(s.id || '')}" data-view="${view}" data-family="${fam}">
     <div class="form-grid">
-      ${field('Name', input('name', t.name || '', 'required maxlength="40" placeholder="e.g. Midnight blue"'))}
-      ${field('Built on', select('skin', cfg.appearance.skins.map(k => [k, SKIN_LABEL[k] || k]), skin), 'Its layout, shapes and type; your colours go on top.')}
-      ${field('Preview', select('preview', [['night', 'Night'], ['day', 'Day']], mode()), 'Which half you see on this page while you edit.')}
+      ${field('Name', input('name', s.name || '', 'required maxlength="40" placeholder="e.g. Midnight blue"'))}
+      ${field('Family', select('family', cfg.appearance.families.map(k => [k, FAMILY_LABEL[k] || k]), fam), 'LCARS styles work on both LCARS and LCARS 25.')}
+      ${field('Preview', select('preview', [['night', 'Night'], ['day', 'Day']], mode()))}
     </div>
     <div class="bar-actions modepick theme-views">${[['basic', 'Basic'], ['advanced', 'Advanced']].map(([k, l]) =>
-      `<button type="button" class="btn${k === view ? ' btn--go' : ''}" data-do="theme-view" data-view="${k}" aria-pressed="${k === view}">${l}</button>`).join('')}
-      <button type="button" class="chip chip--new" data-do="theme-view" data-view="advanced" data-tok-count hidden></button></div>
-    <div class="theme-basic"><div class="halves">${halfFields('day', t.day, skin)}${halfFields('night', t.night, skin)}</div>
+      `<button type="button" class="btn${k === view ? ' btn--go' : ''}" data-do="style-view" data-view="${k}" aria-pressed="${k === view}">${l}</button>`).join('')}
+      <button type="button" class="chip chip--new" data-do="style-view" data-view="advanced" data-tok-count hidden></button></div>
+    <div class="theme-basic"><div class="halves">${halfFields('day', s.day, fam)}${halfFields('night', s.night, fam)}</div>
     <p class="field__h" style="margin-top:6px">JPEG, PNG, WebP or GIF pictures, up to ${cfg.appearance.max_background_mb} MB. Previews live; nothing is kept until you save.</p></div>
-    <div class="theme-adv">${tokenTables(t)}<div class="bar-actions">${act('tok-reset-all', 'Reset all to Basic')}</div></div>
-    <div class="form-actions">${act('cancel', 'Cancel')}<button class="btn btn--solid" type="submit">${t.id ? 'Save theme' : 'Create theme'}</button></div></form>`;
+    <div class="theme-adv">${tokenTables(s)}<div class="bar-actions">${act('tok-reset-all', 'Reset all to Basic')}</div></div>
+    <div class="form-actions">${act('cancel', 'Cancel')}<button class="btn btn--solid" type="submit">${s.id ? 'Save style' : 'Create style'}</button></div></form>`;
 }
 
 /** A token cell's value: its colour, with the opacity range's see-through when it has one. */
@@ -746,20 +746,20 @@ function cellValue(c) {
   const col = c.querySelector('input[type=color]').value, r = c.querySelector('input[type=range]');
   return r ? alpha(col, Number(r.value)) : col;
 }
-/** The theme the editor form describes right now (for the live preview and for saving). */
-function readHalf(f, m, skin) {
-  const el = n => f.elements[`${m}_${n}`], names = new Set(tokensFor(skin).map(x => x[0]));
+/** The style the editor form describes right now (for the live preview and for saving). */
+function readHalf(f, m, fam) {
+  const el = n => f.elements[`${m}_${n}`], names = new Set(tokensFor(fam).map(x => x[0]));
   const tokens = Object.fromEntries($$(`.tok[data-half="${m}"][data-set]`, f).filter(c => names.has(c.dataset.tok)).map(c => [c.dataset.tok, c.dataset.v || cellValue(c)]));
   return { accent: el('accent').value, secondary: el('secondary').value, third: el('third').value, panel: el('panel').value, panel_opacity: Number(el('panel_opacity').value),
     background: { file: el('bg_file').value, fit: el('fit').value, dim: Number(el('dim').value), glow: el('glow').checked }, tokens };
 }
-function readTheme(f) {
-  const skin = f.elements.skin.value;
-  return { name: val(f, 'name'), skin, day: readHalf(f, 'day', skin), night: readHalf(f, 'night', skin) };
+function readStyle(f) {
+  const fam = f.elements.family.value;
+  return { name: val(f, 'name'), family: fam, day: readHalf(f, 'day', fam), night: readHalf(f, 'night', fam) };
 }
 /** Fill Advanced's cells: overridden ones show their own value, the rest what Basic works out right now. */
-function paintTokens(f, t) {
-  const derived = { day: derive(t.day, 'day', t.skin), night: derive(t.night, 'night', t.skin) };
+function paintTokens(f, s) {
+  const derived = { day: derive(s.day, 'day', s.family), night: derive(s.night, 'night', s.family) };
   $$('.tok', f).forEach(c => {
     const v = c.dataset.v || derived[c.dataset.half][c.dataset.tok] || '#000000';
     const col = c.querySelector('input[type=color]'), r = c.querySelector('input[type=range]');
@@ -767,48 +767,52 @@ function paintTokens(f, t) {
     if (r && document.activeElement !== r) r.value = opacityOf(v);
     c.querySelector('code').textContent = v;
   });
-  const n = overrides(t), chip = $('[data-tok-count]', f);
+  const n = overrides(s), chip = $('[data-tok-count]', f);
   chip.hidden = !n || f.dataset.view === 'advanced';
   chip.textContent = `${n} advanced change${n === 1 ? '' : 's'}`;
 }
-function previewTheme(f) {
-  f.dataset.skin = f.elements.skin.value;
-  const t = readTheme(f);
-  applySpec(specOf(t), f.elements.preview.value);
-  paintTokens(f, t);
+function previewStyle(f) {
+  f.dataset.family = f.elements.family.value;
+  const s = readStyle(f);
+  applySpec(specOf(s, s.family), f.elements.preview.value);
+  paintTokens(f, s);
   $$('.range output', f).forEach(o => { o.textContent = `${o.previousElementSibling.value}%`; });
   $$('.colour', f).forEach(c => { c.querySelector('code').textContent = c.querySelector('input').value; });
 }
 
 function appearanceTab() {
-  const themes = cfg.appearance.themes, cur = look(), m = mode();
+  const customs = cfg.appearance.styles, curTheme = theme(), curFam = family(), curStyle = style(), m = mode();
+  const builtins = stylesForFamily(curFam);
+  const famCustoms = customs.filter(s => s.family === curFam);
   const modes = ['day', 'night'].map(k => `<button type="button" class="btn${k === m ? ' btn--go' : ''}" data-do="use-mode" data-mode="${k}" aria-pressed="${k === m}">${ico(k === 'day' ? 'sun' : 'moon')}${MODE_LABEL[k]}</button>`).join('');
-  const tiles = [...THEMES, ...themes].map(t => `<button type="button" class="themepick${t.id === cur ? ' is-current' : ''}" data-do="use-theme" data-id="${esc(t.id)}" aria-pressed="${t.id === cur}">
-      ${themePreview(t)}<span class="themepick__name">${esc(t.name)}${t.id === cur ? `<small>${ico('check')}On this device</small>` : ''}</span></button>`).join('');
-  const rows = themes.map(t => editing?.kind === 'theme' && editing.id === t.id ? `<li class="item item--edit">${themeForm(t, editing.view)}</li>`
-    : `<li class="item"><span class="item__icon item__icon--theme">${themePreview(t)}</span>
-        <div class="item__main"><b>${esc(t.name)}</b>${t.id === cur ? '<span class="chip chip--new">This device</span>' : ''}<span class="chip">built on ${esc(SKIN_LABEL[t.skin] || t.skin)}</span>${t.day.background.file || t.night.background.file ? '<span class="chip">Background</span>' : ''}${overrides(t) ? '<span class="chip">Advanced</span>' : ''}
-          <div class="item__sub">Day primary ${esc(t.day.accent)} · Night primary ${esc(t.night.accent)}</div></div>
-        <div class="item__acts">${act('edit-theme', 'Edit', `data-id="${esc(t.id)}"`)}${act('copy-theme', 'Duplicate', `data-id="${esc(t.id)}"`)}${act('delete-theme', 'Delete', `data-id="${esc(t.id)}" data-name="${esc(t.name)}"`, 'btn--danger')}</div></li>`).join('');
+  const themeTiles = THEMES.map(t => `<button type="button" class="themepick${t.id === curTheme ? ' is-current' : ''}" data-do="use-theme" data-id="${esc(t.id)}" aria-pressed="${t.id === curTheme}">
+      ${themePreview(t)}<span class="themepick__name">${esc(t.name)}${t.id === curTheme ? `<small>${ico('check')}On this device</small>` : ''}</span></button>`).join('');
+  const styleTiles = [
+    ...builtins.map(s => ({ ...s, key: s.id, family: curFam })),
+    ...famCustoms.map(s => ({ ...s, key: `c:${s.id}` })),
+  ].map(s => `<button type="button" class="themepick${s.key === curStyle ? ' is-current' : ''}" data-do="use-style" data-id="${esc(s.key)}" aria-pressed="${s.key === curStyle}">
+      ${themePreview(s)}<span class="themepick__name">${esc(s.name)}${s.key === curStyle ? `<small>${ico('check')}On this device</small>` : ''}</span></button>`).join('');
+  const rows = famCustoms.map(s => editing?.kind === 'style' && editing.id === s.id ? `<li class="item item--edit">${styleForm(s, editing.view)}</li>`
+    : `<li class="item"><span class="item__icon item__icon--theme">${themePreview(s)}</span>
+        <div class="item__main"><b>${esc(s.name)}</b>${`c:${s.id}` === curStyle ? '<span class="chip chip--new">This device</span>' : ''}${s.day.background.file || s.night.background.file ? '<span class="chip">Background</span>' : ''}${overrides(s) ? '<span class="chip">Advanced</span>' : ''}
+          <div class="item__sub">Day primary ${esc(s.day.accent)} · Night primary ${esc(s.night.accent)}</div></div>
+        <div class="item__acts">${act('edit-style', 'Edit', `data-id="${esc(s.id)}"`)}${act('copy-style', 'Duplicate', `data-id="${esc(s.id)}"`)}${act('delete-style', 'Delete', `data-id="${esc(s.id)}" data-name="${esc(s.name)}"`, 'btn--danger')}</div></li>`).join('');
   // LCARS and Borg: how much it moves between page changes (motion.js), this device's own
-  const sk = document.documentElement.dataset.skin;
-  const lv = motion.savedLevel(), motionRow = (sk !== 'lcars' && sk !== 'borg') ? ''
+  const lv = motion.savedLevel(), motionRow = (curFam !== 'lcars' && curFam !== 'borg') ? ''
     : `<div class="bar-actions modepick modepick--motion"><span class="field__l">Motion</span>${motion.LEVEL_NAMES.map(([k, label]) =>
       `<button type="button" class="btn${k === lv ? ' btn--go' : ''}" data-do="use-motion" data-level="${k}" aria-pressed="${k === lv}">${label}</button>`).join('')}</div>`;
-  // LCARS only: the screen overlay over everything (theme-init.js sets html[data-lc-overlay]; lcars.css draws it)
+  // LCARS family only: the screen overlay over everything (theme-init.js sets html[data-lc-overlay]; lcars.css draws it)
   const ovCur = (() => { try { return localStorage.getItem('lc-overlay') || 'scan'; } catch { return 'scan'; } })();
-  const overlayRow = sk !== 'lcars' ? ''
+  const overlayRow = curFam !== 'lcars' ? ''
     : `<div class="bar-actions modepick modepick--motion"><span class="field__l">Overlay</span>${LC_OVERLAYS.map(([k, label]) =>
       `<button type="button" class="btn${k === ovCur ? ' btn--go' : ''}" data-do="use-overlay" data-overlay="${k}" aria-pressed="${k === ovCur}">${label}</button>`).join('')}</div>`;
-  const adding = editing?.kind === 'theme' && editing.id === 'new' ? `<li class="item item--edit">${themeForm(editing.seed || {}, editing.view)}</li>` : '';
-  const starts = [...THEMES.map(x => [x.id, x.name]), ...cfg.appearance.presets.map(x => [`p:${x.id}`, x.name])];
-  return card('This device',
-    'Day or Night, and which theme. The same two buttons sit in the dashboard’s header.',
-    `<div class="bar-actions modepick">${modes}</div><div class="themepicks">${tiles}</div>${motionRow}${overlayRow}`)
-    + card('Custom themes',
-    'A variant of Citadel, LCARS, LCARS 25 or Borg, with its own Day and Night colours and pictures.',
-    `<div class="bar-actions modepick modepick--motion"><span class="field__l">New theme</span>${starts.map(([k, label]) => act('new-theme', `${ico('plus')}${esc(label)}`, `data-from="${esc(k)}"`)).join('')}</div><ul class="items">${adding}${rows}</ul>
-     ${themes.length || adding ? '' : '<p class="sx__intro" style="padding-top:0">No custom themes yet.</p>'}`);
+  const adding = editing?.kind === 'style' && editing.id === 'new' ? `<li class="item item--edit">${styleForm(editing.seed || { family: curFam }, editing.view)}</li>` : '';
+  return card('Theme', '',
+    `<div class="bar-actions modepick">${modes}</div><div class="themepicks">${themeTiles}</div>${motionRow}${overlayRow}`)
+    + card(`${FAMILY_LABEL[curFam]} styles`, '',
+    `<div class="themepicks">${styleTiles}</div>
+     <div class="bar-actions modepick modepick--motion"><span class="field__l">New style</span>${builtins.map(s => act('new-style', `${ico('plus')}${esc(s.name)}`, `data-from="${esc(s.id)}"`)).join('')}</div>
+     <ul class="items">${adding}${rows}</ul>`);
 }
 
 // ---- Navigation: page names, which pages a phone has tabs for (the rest go under More), which the desktop rail shows,
@@ -847,7 +851,7 @@ function aboutTab() {
 
 // ---- rendering ---------------------------------------------------------------------------------------------------
 function render() {
-  if (editing?.kind !== 'theme') { syncThemes(cfg.appearance.themes); applySpec(); }   // ends any live preview; picks up edits made elsewhere
+  if (editing?.kind !== 'style') { syncStyles(cfg.appearance.styles, cfg.appearance.migrated_presets); applySpec(); }   // ends any live preview; picks up edits made elsewhere
   $('#tabs').innerHTML = TABS.map(([id, label, icon]) => `<button role="tab" data-tab="${id}" aria-selected="${id === tab}"${id === 'maintenance' && needsAttention() ? ' class="has-attn"' : ''}>${ico(icon)}${esc(label)}</button>`).join('');
   panel.innerHTML = { links: linksTab, projects: projectsTab, remote: remoteTab, widgets: () => shortcutsCard() + binsCard() + notificationsCard() + diaryCard(), appearance: appearanceTab, navigation: navigationTab, music: () => gigsCard() + artistsCard() + releasesCard() + vinylCard() + purchasesCard() + radarCard(), listen: musicPageTab, news: newsTab, screens: () => screensCard() + pairCard() + devicesCard() + enrolCard(), maintenance: maintenanceTab, about: aboutTab }[tab]();
   motion.phaseAll(panel);
@@ -883,12 +887,12 @@ panel.addEventListener('change', e => {
         f.elements[`${m}_bg_file`].value = name;
         $('.bgpick__thumb', half).innerHTML = `<img src="/backgrounds/${esc(name)}" alt="">`;
         half.querySelector('[data-do="bg-remove"]').hidden = false;
-        previewTheme(f); toast('Picture added — save the theme to keep it');
+        previewStyle(f); toast('Picture added — save the style to keep it');
       }).catch(err => toast(err.message));
     return;
   }
-  const tf = e.target.closest('[data-form="theme"]');
-  if (tf) { previewTheme(tf); return; }
+  const sf = e.target.closest('[data-form="style"]');
+  if (sf) { previewStyle(sf); return; }
   const scMode = e.target.closest('[name=sc_mode]');
   if (scMode) {
     const row = scMode.closest('[data-sc]');
@@ -916,11 +920,11 @@ panel.addEventListener('change', e => {
 });
 let logTimer;
 panel.addEventListener('input', e => {
-  const tf = e.target.closest('[data-form="theme"]');
-  if (tf && !e.target.matches('[data-bg-file]')) {
+  const sf = e.target.closest('[data-form="style"]');
+  if (sf && !e.target.matches('[data-bg-file]')) {
     const cell = e.target.closest('.tok');
     if (cell) { cell.dataset.set = ''; cell.dataset.v = cellValue(cell); }       // changed in Advanced: now an override
-    previewTheme(tf);
+    previewStyle(sf);
     return;
   }
   const lq = e.target.closest('[data-log-q]');
@@ -939,7 +943,8 @@ panel.addEventListener('click', e => {
   const d = b.dataset;
   switch (b.dataset.do) {
     case 'cancel': editing = null; render(); break;
-    case 'use-theme': setLook(d.id, cfg.appearance.themes); render(); toast('Theme set for this device'); break;
+    case 'use-theme': setTheme(d.id, cfg.appearance.styles); render(); toast('Theme set for this device'); break;
+    case 'use-style': setStyle(d.id, cfg.appearance.styles); render(); toast('Style set for this device'); break;
     case 'use-mode': setMode(d.mode); render(); break;
     case 'use-motion': motion.saveLevel(d.level); render(); break;
     case 'use-overlay': {
@@ -947,23 +952,26 @@ panel.addEventListener('click', e => {
       if (d.overlay === 'scan') delete document.documentElement.dataset.lcOverlay; else document.documentElement.dataset.lcOverlay = d.overlay;
       render(); break;
     }
-    case 'new-theme': {
-      const p = cfg.appearance.presets.find(x => `p:${x.id}` === d.from);
-      editing = { kind: 'theme', id: 'new', seed: p ? { ...structuredClone(p), id: '' } : { skin: ['lcars', 'lcars2', 'borg'].includes(d.from) ? d.from : 'citadel' } };
-      render(); $('[data-form="theme"] [name=name]')?.focus(); previewTheme($('[data-form="theme"]')); break;
+    case 'new-style': {
+      const curFam = family();
+      const base = stylesForFamily(curFam).find(x => x.id === d.from) || stylesForFamily(curFam)[0];
+      const seed = structuredClone(base);
+      seed.id = ''; seed.name = ''; seed.family = curFam;
+      editing = { kind: 'style', id: 'new', seed };
+      render(); $('[data-form="style"] [name=name]')?.focus(); previewStyle($('[data-form="style"]')); break;
     }
-    case 'theme-view': {
+    case 'style-view': {
       const f = b.closest('form'); f.dataset.view = d.view; if (editing) editing.view = d.view;
       $$('.theme-views [data-view]:not([data-tok-count])', f).forEach(x => { const on = x.dataset.view === d.view; x.classList.toggle('btn--go', on); x.setAttribute('aria-pressed', on); });
-      previewTheme(f); break;
+      previewStyle(f); break;
     }
-    case 'tok-reset': { const c = b.closest('.tok'); delete c.dataset.set; delete c.dataset.v; previewTheme(b.closest('form')); break; }
-    case 'tok-reset-all': { const f = b.closest('form'); $$('.tok[data-set]', f).forEach(c => { delete c.dataset.set; delete c.dataset.v; }); previewTheme(f); break; }
-    case 'edit-theme': editing = { kind: 'theme', id: d.id }; render(); previewTheme($('[data-form="theme"]')); break;
-    case 'copy-theme': { const t = cfg.appearance.themes.find(x => x.id === d.id); editing = { kind: 'theme', id: 'new', seed: { ...t, id: '', name: `${t.name} copy`.slice(0, 40) } }; render(); previewTheme($('[data-form="theme"]')); break; }
-    case 'delete-theme': if (confirm(`Delete the “${d.name}” theme? Any device using it goes back to Citadel.`)) run(() => api.del(`/api/owner/appearance/themes/${d.id}`), 'Theme deleted'); break;
-    case 'panel-reset': { const f = b.closest('form'); f.elements[`${d.half}_panel`].value = baseOf(f.elements.skin.value, d.half).panel; previewTheme(f); break; }
-    case 'bg-remove': { const f = b.closest('form'); f.elements[`${d.half}_bg_file`].value = ''; $('.bgpick__thumb', b.closest('[data-half]')).innerHTML = '<span>None</span>'; b.hidden = true; previewTheme(f); break; }
+    case 'tok-reset': { const c = b.closest('.tok'); delete c.dataset.set; delete c.dataset.v; previewStyle(b.closest('form')); break; }
+    case 'tok-reset-all': { const f = b.closest('form'); $$('.tok[data-set]', f).forEach(c => { delete c.dataset.set; delete c.dataset.v; }); previewStyle(f); break; }
+    case 'edit-style': editing = { kind: 'style', id: d.id }; render(); previewStyle($('[data-form="style"]')); break;
+    case 'copy-style': { const s = cfg.appearance.styles.find(x => x.id === d.id); editing = { kind: 'style', id: 'new', seed: { ...structuredClone(s), id: '', name: `${s.name} copy`.slice(0, 40) } }; render(); previewStyle($('[data-form="style"]')); break; }
+    case 'delete-style': if (confirm(`Delete the “${d.name}” style? Any device using it goes back to Standard.`)) run(() => api.del(`/api/owner/appearance/styles/${d.id}`), 'Style deleted'); break;
+    case 'panel-reset': { const f = b.closest('form'); f.elements[`${d.half}_panel`].value = baseOf(f.elements.family.value, d.half).panel; previewStyle(f); break; }
+    case 'bg-remove': { const f = b.closest('form'); f.elements[`${d.half}_bg_file`].value = ''; $('.bgpick__thumb', b.closest('[data-half]')).innerHTML = '<span>None</span>'; b.hidden = true; previewStyle(f); break; }
     case 'new-link': editing = { kind: 'link', id: 'new' }; render(); $('[data-form="link"] input')?.focus(); break;
     case 'edit-link': editing = { kind: 'link', id: Number(d.id) }; render(); break;
     case 'new-project': editing = { kind: 'project', id: 'new' }; render(); $('[data-form="project"] input')?.focus(); break;
@@ -1119,13 +1127,13 @@ panel.addEventListener('submit', e => {
   } else if (kind === 'remote') {
     const body = { name: val(f, 'name'), address: val(f, 'address'), viewer: val(f, 'viewer'), ssh_user: val(f, 'ssh_user'), always_on: f.elements.always_on.checked, mac: val(f, 'mac') }, id = f.dataset.id;
     run(async () => { await (id ? api.put(`/api/owner/remote/${id}`, body) : api.post('/api/owner/remote', body)); editing = null; }, 'Device saved');
-  } else if (kind === 'theme') {
-    const t = readTheme(f), id = f.dataset.id;
+  } else if (kind === 'style') {
+    const s = readStyle(f), id = f.dataset.id;
     run(async () => {
-      const saved = await (id ? api.put(`/api/owner/appearance/themes/${id}`, t) : api.post('/api/owner/appearance/themes', t));
+      const saved = await (id ? api.put(`/api/owner/appearance/styles/${id}`, s) : api.post('/api/owner/appearance/styles', s));
       editing = null;
-      if (!id) setLook(saved.id, [saved]);                 // a brand-new theme: use it here straight away
-    }, id ? 'Theme saved' : 'Theme created — now in use on this device');
+      if (!id && saved.family === family()) setStyle(`c:${saved.id}`, [saved]);   // a brand-new style in this family: use it straight away
+    }, id ? 'Style saved' : 'Style created');
   } else if (kind === 'shortcuts') {
     const shortcuts = $$('[data-sc]', f).map(r => ({
       id: r.dataset.id || undefined, label: r.querySelector('[name=sc_label]').value.trim(), url: r.querySelector('[name=sc_url]').value.trim(),

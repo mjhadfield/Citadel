@@ -1,7 +1,7 @@
 /* ==========================================================================
-   LCARS 25 — 25th-Century Command Bezel variant (Style menu → LCARS 25)
-   Applies on top of lcars.css when html[data-skin="lcars"][data-lcars-variant="bezel"]
-   is active (set by theme.js / theme-init.js for skin "lcars2").
+   LCARS 25 — 25th-Century Command Bezel theme (Theme menu → LCARS 25)
+   Applies on top of lcars.css when html[data-family="lcars"][data-theme="lcars25"]
+   is active (set by theme.js / theme-init.js for theme "lcars25").
 
    Desktop shell: sculpted top-left Command Core (Home), dual-tier bridge header
    with equal-sized GoXLR volume blocks and recessed telemetry trough, far-left
@@ -21,7 +21,7 @@
    ========================================================================== */
 
 @media (min-width: 761px) {
-  html[data-skin="lcars"][data-lcars-variant="bezel"] {
+  html[data-family="lcars"][data-theme="lcars25"] {
     --lcb-rail: 162px;
     --lcb-beam: 28px;
     --lcb-deck: 34px;
@@ -30,11 +30,11 @@
     --lcb-core-h: calc(var(--lcb-beam) + var(--lcb-gap) + var(--lcb-deck));
   }
 
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .shell {
+  html[data-family="lcars"][data-theme="lcars25"] .shell {
     grid-template-columns: var(--lcb-rail) 1fr;
   }
 
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .main {
+  html[data-family="lcars"][data-theme="lcars25"] .main {
     --main-pl: 8px;
     --main-pr: 14px;
     padding: var(--lcb-pad-top) var(--main-pr) 16px var(--main-pl);
@@ -47,7 +47,7 @@
      .top__right uses display: contents so #vol-group, #vol-bar, #look-group,
      #style-bar and .badge-role join the grid directly and keep .top as their
      offsetParent for flush dropdown placement (volume.js / app.js placeDrop). */
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .top {
+  html[data-family="lcars"][data-theme="lcars25"] .top {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto auto;
     grid-template-rows: var(--lcb-beam) var(--lcb-deck) auto;
@@ -61,7 +61,7 @@
 
   /* Structural fallback beam across Row 1 behind the readout (stays visible on
      non-Home pages and narrow screens where #readout is hidden). */
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .top::before {
+  html[data-family="lcars"][data-theme="lcars25"] .top::before {
     content: "";
     position: static;
     grid-column: 2;
@@ -78,7 +78,7 @@
   }
 
   /* Action deck bottom hairline with two short LCARS colour runs at the right */
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .top::after {
+  html[data-family="lcars"][data-theme="lcars25"] .top::after {
     content: "";
     position: absolute;
     left: 0;
@@ -96,16 +96,16 @@
       var(--lc-2) calc(100% - 76px));
   }
 
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .top__right {
+  html[data-family="lcars"][data-theme="lcars25"] .top__right {
     display: contents;
   }
 
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .top__settings {
+  html[data-family="lcars"][data-theme="lcars25"] .top__settings {
     display: none;
   }
 
   /* Row 1, Col 1: Equal-sized GoXLR volume blocks with bottom-up level fills */
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .vol-group {
+  html[data-family="lcars"][data-theme="lcars25"] .vol-group {
     grid-column: 1;
     grid-row: 1;
     display: inline-flex;
@@ -113,10 +113,10 @@
     gap: 4px;
     height: var(--lcb-beam);
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .vol-group[hidden] {
+  html[data-family="lcars"][data-theme="lcars25"] .vol-group[hidden] {
     display: none;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .vol-btn {
+  html[data-family="lcars"][data-theme="lcars25"] .vol-btn {
     width: 44px;
     height: var(--lcb-beam);
     border-radius: 4px;
@@ -128,49 +128,49 @@
     --vol-fill: color-mix(in srgb, var(--lc-c) 68%, transparent);
     color: var(--silver-hi);
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .vol-btn:first-child {
+  html[data-family="lcars"][data-theme="lcars25"] .vol-btn:first-child {
     border-radius: 5px 4px 4px 5px;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .vol-btn:hover {
+  html[data-family="lcars"][data-theme="lcars25"] .vol-btn:hover {
     background: color-mix(in srgb, var(--lc-c) 28%, var(--surface-2));
     box-shadow: inset 0 0 0 1px var(--lc-c);
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .vol-btn > .i {
+  html[data-family="lcars"][data-theme="lcars25"] .vol-btn > .i {
     width: 15px;
     height: 15px;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .vol-btn.is-muted {
+  html[data-family="lcars"][data-theme="lcars25"] .vol-btn.is-muted {
     color: var(--silver-dim);
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lc-c) 28%, transparent);
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .vol-btn.is-muted::after {
+  html[data-family="lcars"][data-theme="lcars25"] .vol-btn.is-muted::after {
     background: var(--lc-red);
     left: 11px;
     right: 11px;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"][data-theme="light"] .vol-btn {
+  html[data-family="lcars"][data-theme="lcars25"][data-mode="day"] .vol-btn {
     --vol-fill: color-mix(in srgb, var(--lc-c) 52%, transparent);
     color: var(--silver-hi);
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"][data-theme="light"] .vol-btn:not(.is-muted) > .i {
+  html[data-family="lcars"][data-theme="lcars25"][data-mode="day"] .vol-btn:not(.is-muted) > .i {
     color: var(--silver-hi);
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .vol-btn[aria-expanded="true"] {
+  html[data-family="lcars"][data-theme="lcars25"] .vol-btn[aria-expanded="true"] {
     border-radius: 5px 5px 0 0;
     background: var(--lc-2);
     color: var(--lc-on);
     box-shadow: none;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .volbar.bmbar {
+  html[data-family="lcars"][data-theme="lcars25"] .volbar.bmbar {
     z-index: 75;
     border-radius: 0 0 12px 12px;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .volbar__mute {
+  html[data-family="lcars"][data-theme="lcars25"] .volbar__mute {
     border-radius: 0 0 12px 12px;
   }
 
   /* Row 1, Col 2: Recessed Telemetry Trough */
-  html[data-skin="lcars"][data-lcars-variant="bezel"][data-page="home"] .top > .readout {
+  html[data-family="lcars"][data-theme="lcars25"][data-page="home"] .top > .readout {
     grid-column: 2;
     grid-row: 1;
     position: relative;
@@ -190,26 +190,26 @@
     border-top: 2px solid var(--lc-3);
     border-bottom: 1px solid color-mix(in srgb, var(--lc-3) 35%, transparent);
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .top > .readout:hover {
+  html[data-family="lcars"][data-theme="lcars25"] .top > .readout:hover {
     background: color-mix(in srgb, var(--lc-3) 14%, var(--surface-2));
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .readout div {
+  html[data-family="lcars"][data-theme="lcars25"] .readout div {
     display: flex;
     align-items: baseline;
     gap: 6px;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .readout dt {
+  html[data-family="lcars"][data-theme="lcars25"] .readout dt {
     font-size: 10px;
     letter-spacing: .12em;
     line-height: 1;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .readout dd {
+  html[data-family="lcars"][data-theme="lcars25"] .readout dd {
     font-size: 16px;
     line-height: 1;
   }
 
   /* Row 1, Col 3: Owner Device status block */
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .badge-role {
+  html[data-family="lcars"][data-theme="lcars25"] .badge-role {
     grid-column: 3;
     grid-row: 1;
     height: var(--lcb-beam);
@@ -224,7 +224,7 @@
   }
 
   /* Row 1, Col 4: Integrated Citadel rounded end-cap */
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .top__brand {
+  html[data-family="lcars"][data-theme="lcars25"] .top__brand {
     grid-column: 4;
     grid-row: 1;
     order: 0;
@@ -238,10 +238,10 @@
     align-items: center;
     gap: 0;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .top__brand .top__logo {
+  html[data-family="lcars"][data-theme="lcars25"] .top__brand .top__logo {
     display: none;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .top__brand .wordmark {
+  html[data-family="lcars"][data-theme="lcars25"] .top__brand .wordmark {
     font: 600 18.5px/1 var(--lc-font);
     letter-spacing: .22em;
     margin-right: -.22em;
@@ -252,7 +252,7 @@
   }
 
   /* Row 2, Col 1–2: Action deck left (Bookmarks or Music player) */
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .top__mid {
+  html[data-family="lcars"][data-theme="lcars25"] .top__mid {
     grid-column: 1 / 3;
     grid-row: 2;
     order: 0;
@@ -260,11 +260,11 @@
     align-items: center;
     gap: 8px;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .shortcuts {
+  html[data-family="lcars"][data-theme="lcars25"] .shortcuts {
     gap: 5px;
     padding: 0;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .sc {
+  html[data-family="lcars"][data-theme="lcars25"] .sc {
     height: 26px;
     border-radius: 4px 13px 13px 4px;
     padding: 0 12px 0 9px;
@@ -274,10 +274,10 @@
     background: color-mix(in srgb, var(--lc-c, var(--lc-2)) 12%, var(--surface-2));
     box-shadow: inset 3px 0 0 var(--lc-c, var(--lc-2));
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .sc:hover {
+  html[data-family="lcars"][data-theme="lcars25"] .sc:hover {
     background: color-mix(in srgb, var(--lc-c, var(--lc-2)) 24%, var(--surface-2));
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .sc--menu {
+  html[data-family="lcars"][data-theme="lcars25"] .sc--menu {
     border-radius: 13px 4px 4px 13px;
     padding: 0 12px;
     background: var(--lc-hd-frame);
@@ -285,51 +285,51 @@
     box-shadow: none;
     font-weight: 600;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .sc--menu .i,
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .sc--menu .sc__chev {
+  html[data-family="lcars"][data-theme="lcars25"] .sc--menu .i,
+  html[data-family="lcars"][data-theme="lcars25"] .sc--menu .sc__chev {
     color: var(--lc-on);
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .sc--menu:hover {
+  html[data-family="lcars"][data-theme="lcars25"] .sc--menu:hover {
     filter: brightness(1.1);
     background: var(--lc-hd-frame);
     color: var(--lc-on);
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .sc--menu[aria-expanded="true"] {
+  html[data-family="lcars"][data-theme="lcars25"] .sc--menu[aria-expanded="true"] {
     border-radius: 13px 13px 0 0;
     background: var(--lc-2);
     color: var(--lc-on);
     filter: none;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .sc--menu[aria-expanded="true"] .i,
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .sc--menu[aria-expanded="true"] .sc__chev {
+  html[data-family="lcars"][data-theme="lcars25"] .sc--menu[aria-expanded="true"] .i,
+  html[data-family="lcars"][data-theme="lcars25"] .sc--menu[aria-expanded="true"] .sc__chev {
     color: var(--lc-on);
   }
 
   /* Compact Spotify player bar in the 34px action deck on #listen */
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .mu-bar {
+  html[data-family="lcars"][data-theme="lcars25"] .mu-bar {
     height: 32px;
     border-radius: 16px;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .mu-bar .np .art {
+  html[data-family="lcars"][data-theme="lcars25"] .mu-bar .np .art {
     width: 24px;
     height: 24px;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .mu-bar .ctl__b .btn--play {
+  html[data-family="lcars"][data-theme="lcars25"] .mu-bar .ctl__b .btn--play {
     height: 24px;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .mu-bar .dev__btn {
+  html[data-family="lcars"][data-theme="lcars25"] .mu-bar .dev__btn {
     height: 24px;
   }
 
   /* Row 2, Col 3–4: Action deck right (Day/Night + Style pair only) */
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .look-group {
+  html[data-family="lcars"][data-theme="lcars25"] .look-group {
     grid-column: 3 / 5;
     grid-row: 2;
     justify-self: end;
     align-self: center;
     gap: 6px;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .look-btn {
+  html[data-family="lcars"][data-theme="lcars25"] .look-btn {
     height: 26px;
     padding: 0 11px;
     gap: 6px;
@@ -339,34 +339,34 @@
     background: color-mix(in srgb, var(--lc-6) 14%, var(--surface-2));
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lc-frame) 38%, transparent);
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .look-btn[data-theme-menu] {
+  html[data-family="lcars"][data-theme="lcars25"] .look-btn[data-theme-menu] {
     padding: 0 13px 0 11px;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .look-btn:hover {
+  html[data-family="lcars"][data-theme="lcars25"] .look-btn:hover {
     background: color-mix(in srgb, var(--lc-frame) 22%, var(--surface-2));
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .look-group.is-open {
+  html[data-family="lcars"][data-theme="lcars25"] .look-group.is-open {
     border-radius: 13px 13px 0 0;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .look-group.is-open > .look-btn:first-child {
+  html[data-family="lcars"][data-theme="lcars25"] .look-group.is-open > .look-btn:first-child {
     border-top-left-radius: 13px;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .look-group.is-open > .look-btn:last-child {
+  html[data-family="lcars"][data-theme="lcars25"] .look-group.is-open > .look-btn:last-child {
     border-top-right-radius: 13px;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .stylebar {
+  html[data-family="lcars"][data-theme="lcars25"] .stylebar {
     z-index: 75;
   }
 
   /* Row 3: Reminders strip (collapses to zero when empty) */
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .top > .alerts {
+  html[data-family="lcars"][data-theme="lcars25"] .top > .alerts {
     grid-column: 1 / -1;
     grid-row: 3;
     order: 0;
     margin: 2px 0 0;
     gap: 8px;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .top > .alerts:empty {
+  html[data-family="lcars"][data-theme="lcars25"] .top > .alerts:empty {
     display: none;
   }
 
@@ -374,7 +374,7 @@
      Sculpted top-left Command Core (Home), continuous 7px segmented far-left
      spine, and numbered right-capped nav pills that stay cleanly inside the
      rail when selected. */
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail {
+  html[data-family="lcars"][data-theme="lcars25"] .rail {
     position: sticky;
     top: 0;
     padding: var(--lcb-pad-top) 8px 14px 23px;
@@ -384,7 +384,7 @@
   }
 
   /* 7px segmented vertical spine down the far-left edge below Home */
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail::before {
+  html[data-family="lcars"][data-theme="lcars25"] .rail::before {
     content: "";
     position: absolute;
     left: 10px;
@@ -404,7 +404,7 @@
   }
 
   /* Top-left Command Core (Home) */
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view="home"] {
+  html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view="home"] {
     position: absolute;
     top: var(--lcb-pad-top);
     left: 10px;
@@ -426,37 +426,37 @@
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--silver-hi) 18%, transparent);
     transition: filter .16s var(--lc-ease), background-color .16s var(--lc-ease);
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view="home"]:hover {
+  html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view="home"]:hover {
     filter: brightness(1.12);
     color: var(--lc-on);
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view="home"][aria-current] {
+  html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view="home"][aria-current] {
     background: var(--lc-7);
     color: var(--lc-on);
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .28), 0 0 14px color-mix(in srgb, var(--lc-7) 30%, transparent);
   }
   /* Day: keep idle Home clearly distinct from active Home within the parchment + 3-colour rule */
-  html[data-skin="lcars"][data-lcars-variant="bezel"][data-theme="light"] .rail a[data-view="home"]:not([aria-current]) {
+  html[data-family="lcars"][data-theme="lcars25"][data-mode="day"] .rail a[data-view="home"]:not([aria-current]) {
     background: color-mix(in srgb, var(--lc-frame) 15%, var(--surface));
     color: var(--lc-frame);
     box-shadow: inset 0 0 0 1.5px var(--lc-frame);
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"][data-theme="light"] .rail a[data-view="home"][aria-current] {
+  html[data-family="lcars"][data-theme="lcars25"][data-mode="day"] .rail a[data-view="home"][aria-current] {
     background: var(--lc-frame);
     color: var(--lc-on);
     box-shadow: none;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view="home"] .i {
+  html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view="home"] .i {
     width: 21px;
     height: 21px;
     color: inherit;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view="home"] .rail__label {
+  html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view="home"] .rail__label {
     font: 600 15px/1 var(--lc-font);
     letter-spacing: .12em;
     text-transform: uppercase;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view="home"]::before {
+  html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view="home"]::before {
     content: "01 · CORE";
     position: absolute;
     top: 11px;
@@ -472,13 +472,13 @@
     opacity: .78;
     animation: none;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view="home"]::after {
+  html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view="home"]::after {
     content: none;
   }
 
   /* Rail nav pills: right-capped, numbered, strictly contained inside the rail */
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view]:not([data-view="home"]),
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a.rail__settings {
+  html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view]:not([data-view="home"]),
+  html[data-family="lcars"][data-theme="lcars25"] .rail a.rail__settings {
     width: 100%;
     min-width: 0;
     min-height: 32px;
@@ -499,22 +499,22 @@
     transition: background-color .16s var(--lc-ease), color .16s var(--lc-ease), box-shadow .16s var(--lc-ease), border-color .16s var(--lc-ease);
   }
   /* First page after Home aligns cleanly with the top of the viewport bezel (placed AFTER general rail rule so it wins) */
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view="home"] + a[data-view] {
+  html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view="home"] + a[data-view] {
     margin-top: calc(var(--lc-body-top, 84px) - var(--lcb-pad-top));
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view]:not([data-view="home"]):not([hidden]),
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a.rail__settings:not([hidden]) {
+  html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view]:not([data-view="home"]):not([hidden]),
+  html[data-family="lcars"][data-theme="lcars25"] .rail a.rail__settings:not([hidden]) {
     counter-increment: lcb-nav;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view]:not([data-view="home"]) .i,
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a.rail__settings .i {
+  html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view]:not([data-view="home"]) .i,
+  html[data-family="lcars"][data-theme="lcars25"] .rail a.rail__settings .i {
     width: 15px;
     height: 15px;
     color: var(--lc-c);
     flex: none;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view]:not([data-view="home"]) .rail__label,
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a.rail__settings .rail__label {
+  html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view]:not([data-view="home"]) .rail__label,
+  html[data-family="lcars"][data-theme="lcars25"] .rail a.rail__settings .rail__label {
     flex: 1;
     min-width: 0;
     text-align: left;
@@ -523,8 +523,8 @@
     text-overflow: ellipsis;
   }
   /* Sequential two-digit deck index inside each pill (stays accurate even when pages are reordered or hidden) */
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view]:not([data-view="home"])::after,
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a.rail__settings::after {
+  html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view]:not([data-view="home"])::after,
+  html[data-family="lcars"][data-theme="lcars25"] .rail a.rail__settings::after {
     content: counter(lcb-nav, decimal-leading-zero);
     position: static;
     inset: auto;
@@ -540,42 +540,42 @@
     color: var(--silver-dim);
     flex: none;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view]:not([data-view="home"])::before,
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a.rail__settings::before {
+  html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view]:not([data-view="home"])::before,
+  html[data-family="lcars"][data-theme="lcars25"] .rail a.rail__settings::before {
     content: none;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view]:not([data-view="home"]):hover,
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a.rail__settings:hover {
+  html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view]:not([data-view="home"]):hover,
+  html[data-family="lcars"][data-theme="lcars25"] .rail a.rail__settings:hover {
     background: color-mix(in srgb, var(--lc-c) 22%, var(--surface-2));
     color: var(--silver-hi);
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view]:not([data-view="home"])[aria-current],
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a.rail__settings[aria-current] {
+  html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view]:not([data-view="home"])[aria-current],
+  html[data-family="lcars"][data-theme="lcars25"] .rail a.rail__settings[aria-current] {
     background: var(--lc-c);
     color: var(--lc-on);
     border-left-color: transparent;
     font-weight: 600;
     box-shadow: inset 3px 0 0 rgba(255, 255, 255, .45), 0 0 12px color-mix(in srgb, var(--lc-c) 28%, transparent);
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"][data-theme="light"] .rail a[data-view]:not([data-view="home"])[aria-current],
-  html[data-skin="lcars"][data-lcars-variant="bezel"][data-theme="light"] .rail a.rail__settings[aria-current] {
+  html[data-family="lcars"][data-theme="lcars25"][data-mode="day"] .rail a[data-view]:not([data-view="home"])[aria-current],
+  html[data-family="lcars"][data-theme="lcars25"][data-mode="day"] .rail a.rail__settings[aria-current] {
     box-shadow: inset 3px 0 0 rgba(255, 255, 255, .32);
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view]:not([data-view="home"])[aria-current] .i,
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a.rail__settings[aria-current] .i,
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view]:not([data-view="home"])[aria-current]::after,
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a.rail__settings[aria-current]::after {
+  html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view]:not([data-view="home"])[aria-current] .i,
+  html[data-family="lcars"][data-theme="lcars25"] .rail a.rail__settings[aria-current] .i,
+  html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view]:not([data-view="home"])[aria-current]::after,
+  html[data-family="lcars"][data-theme="lcars25"] .rail a.rail__settings[aria-current]::after {
     color: var(--lc-on);
     opacity: .88;
   }
 
   /* Subtle OPS divider anchored at the foot of the spacer above Curate/Audio/Settings */
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail .spacer {
+  html[data-family="lcars"][data-theme="lcars25"] .rail .spacer {
     min-height: 22px;
     display: flex;
     align-items: flex-end;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail .spacer::after {
+  html[data-family="lcars"][data-theme="lcars25"] .rail .spacer::after {
     content: "OPS";
     width: 100%;
     padding: 0 2px 3px;
@@ -590,7 +590,7 @@
      vertical spine on the left (matching the far-left rail spine) paired with
      3px segmented top and bottom framing rails. Keeping ::after as the 3px top
      bar preserves motion.js trickle/segblink and lc-sweep alignment. */
-  html[data-skin="lcars"][data-lcars-variant="bezel"] {
+  html[data-family="lcars"][data-theme="lcars25"] {
     --lcb-segs-top: linear-gradient(90deg,
       var(--lc-hd-frame) 0 10%, transparent 10% calc(10% + 5px),
       color-mix(in srgb, var(--lc-frame) 42%, transparent) calc(10% + 5px) 58%, transparent 58% calc(58% + 5px),
@@ -602,7 +602,7 @@
       color-mix(in srgb, var(--lc-frame) 34%, transparent) 93px calc(100% - 102px), transparent calc(100% - 102px) calc(100% - 97px),
       var(--lc-hd-frame) calc(100% - 97px) 100%);
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"][data-theme="light"] {
+  html[data-family="lcars"][data-theme="lcars25"][data-mode="day"] {
     --lcb-segs-top: linear-gradient(90deg,
       var(--lc-frame) 0 10%, transparent 10% calc(10% + 5px),
       color-mix(in srgb, var(--lc-frame) 65%, transparent) calc(10% + 5px) 58%, transparent 58% calc(58% + 5px),
@@ -615,7 +615,7 @@
       var(--lc-3) calc(100% - 97px) 100%);
   }
 
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .view.is-active {
+  html[data-family="lcars"][data-theme="lcars25"] .view.is-active {
     border: 0;
     border-radius: 0;
     padding: 10px 0 10px 18px;
@@ -623,7 +623,7 @@
   }
 
   /* 7px segmented vertical spine down the left edge of the viewport */
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .view.is-active::before {
+  html[data-family="lcars"][data-theme="lcars25"] .view.is-active::before {
     content: "";
     position: absolute;
     left: 2px;
@@ -645,7 +645,7 @@
   }
 
   /* 3px segmented top framing rail (aligned with motion.js SEGS.body) */
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .view.is-active::after {
+  html[data-family="lcars"][data-theme="lcars25"] .view.is-active::after {
     content: "";
     position: absolute;
     left: 14px;
@@ -656,20 +656,20 @@
     pointer-events: none;
     background: var(--lcb-segs-top);
   }
-  html.lc-sweep[data-skin="lcars"][data-lcars-variant="bezel"] .view.is-active::after {
+  html.lc-sweep[data-family="lcars"][data-theme="lcars25"] .view.is-active::after {
     background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--silver-hi) 80%, transparent), transparent) -40% 0 / 30% 100% no-repeat, var(--lcb-segs-top);
     animation: lc-sweep .6s linear 1;
   }
 
   /* Embedded pages (.frame-shell) nest cleanly inside the segmented frame */
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .view.is-active:has(> .frame-shell) {
+  html[data-family="lcars"][data-theme="lcars25"] .view.is-active:has(> .frame-shell) {
     padding: 0;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .view.is-active:has(> .frame-shell)::after {
+  html[data-family="lcars"][data-theme="lcars25"] .view.is-active:has(> .frame-shell)::after {
     right: 0;
     border-radius: 1.5px;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] .frame-shell {
+  html[data-family="lcars"][data-theme="lcars25"] .frame-shell {
     inset: 6px 0 6px 14px;
     padding: 0;
     background: none;
@@ -681,11 +681,11 @@
 
   /* Tighter desk-screen bottom padding on 1440p one-screen layout */
   @media (min-width: 1800px) and (min-height: 860px) {
-    html[data-skin="lcars"][data-lcars-variant="bezel"] .rail {
+    html[data-family="lcars"][data-theme="lcars25"] .rail {
       position: relative;
       height: 100%;
     }
-    html[data-skin="lcars"][data-lcars-variant="bezel"] .main {
+    html[data-family="lcars"][data-theme="lcars25"] .main {
       padding-bottom: 14px;
     }
   }
@@ -697,7 +697,7 @@
    buttons with symmetrical 6px panels, flush segmented LCARS header bars,
    4px key-pad tiles, and symmetrical date/time/swatch/cover geometry.
    ========================================================================== */
-html[data-skin="lcars"][data-lcars-variant="bezel"] .card {
+html[data-family="lcars"][data-theme="lcars25"] .card {
   padding: 0;
   border-radius: 6px;
   background: none;
@@ -706,27 +706,27 @@ html[data-skin="lcars"][data-lcars-variant="bezel"] .card {
   overflow: hidden;
   transition: border-color .18s var(--lc-ease);
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] .card:hover {
+html[data-family="lcars"][data-theme="lcars25"] .card:hover {
   border-color: color-mix(in srgb, var(--lc-c) 64%, var(--edge));
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"][data-theme="light"] .card {
+html[data-family="lcars"][data-theme="lcars25"][data-mode="day"] .card {
   border-color: color-mix(in srgb, var(--lc-c) 40%, var(--edge));
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"][data-theme="light"] .card:hover {
+html[data-family="lcars"][data-theme="lcars25"][data-mode="day"] .card:hover {
   border-color: var(--lc-c);
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] .card__in {
+html[data-family="lcars"][data-theme="lcars25"] .card__in {
   border-radius: 5px;
   clip-path: none;
 }
 
 /* Non-Home cards (News, Music, Fleet, Audio) get a clean symmetrical top cap */
-html[data-skin="lcars"][data-lcars-variant="bezel"] .card:not(#grid > .card) {
+html[data-family="lcars"][data-theme="lcars25"] .card:not(#grid > .card) {
   border-top: 2px solid var(--lc-c);
 }
 
 /* Live data-change acknowledgement flashes symmetrically from the top edge */
-html[data-skin="lcars"][data-lcars-variant="bezel"] .mx-ack {
+html[data-family="lcars"][data-theme="lcars25"] .mx-ack {
   inset: 0 0 auto 0;
   width: auto;
   height: 52px;
@@ -734,7 +734,7 @@ html[data-skin="lcars"][data-lcars-variant="bezel"] .mx-ack {
 }
 
 /* Home tiles: flush segmented Tactical Deck header bar */
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .card__head {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card:not(.is-max) .card__head {
   padding: 0;
   gap: 3px;
   min-height: 28px;
@@ -744,7 +744,7 @@ html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .
   border-bottom: 1px solid color-mix(in srgb, var(--lc-c) 22%, var(--edge));
   flex-wrap: nowrap;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .card__head::before {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card:not(.is-max) .card__head::before {
   align-self: stretch;
   display: flex;
   align-items: center;
@@ -753,7 +753,7 @@ html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .
   border-radius: 0;
   font-size: 12px;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .card__head .hud {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card:not(.is-max) .card__head .hud {
   align-self: stretch;
   display: flex;
   align-items: center;
@@ -764,23 +764,23 @@ html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .
   white-space: nowrap;
   min-width: 0;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"][data-theme="light"] #grid > .card:not(.is-max) .card__head .hud {
+html[data-family="lcars"][data-theme="lcars25"][data-mode="day"] #grid > .card:not(.is-max) .card__head .hud {
   background: color-mix(in srgb, var(--lc-c) 11%, var(--surface-2));
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .card__tools {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card:not(.is-max) .card__tools {
   flex: 1;
   align-self: stretch;
   gap: 3px;
   min-width: 0;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .card__tools::before {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card:not(.is-max) .card__tools::before {
   height: auto;
   min-width: 8px;
   align-self: stretch;
   background: color-mix(in srgb, var(--lc-c) 7%, var(--surface-2));
   border-top: 2px solid color-mix(in srgb, var(--lc-c) 45%, transparent);
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .card__tools .meta {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card:not(.is-max) .card__tools .meta {
   align-self: stretch;
   display: flex;
   align-items: center;
@@ -793,10 +793,10 @@ html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .
   overflow: hidden;
   text-overflow: ellipsis;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .card__tools .meta:empty {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card:not(.is-max) .card__tools .meta:empty {
   display: none;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .card__tools .btn--icon {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card:not(.is-max) .card__tools .btn--icon {
   align-self: stretch;
   width: 28px;
   height: auto;
@@ -805,21 +805,21 @@ html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .
   background: color-mix(in srgb, var(--lc-c) 22%, var(--surface-2));
   color: var(--silver-hi);
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .card__tools .btn--icon:hover {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card:not(.is-max) .card__tools .btn--icon:hover {
   background: var(--lc-c);
   color: var(--lc-on);
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .card__body {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card:not(.is-max) .card__body {
   padding-top: 10px;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .card__body--flush {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card:not(.is-max) .card__body--flush {
   padding-top: 4px;
 }
 
 /* ---- Symmetrical inner controls (no half-rounded shapes) ---------------- */
 
 /* Remote Access & Launchpad tiles: symmetrical 4px Tactical Deck key-pads */
-html[data-skin="lcars"][data-lcars-variant="bezel"] .tile {
+html[data-family="lcars"][data-theme="lcars25"] .tile {
   height: 50px;
   padding: 0 10px 0 8px;
   gap: 9px;
@@ -828,15 +828,15 @@ html[data-skin="lcars"][data-lcars-variant="bezel"] .tile {
   border-top: 2px solid var(--lc-t, var(--lc-frame));
   background: color-mix(in srgb, var(--lc-t, var(--lc-frame)) 8%, var(--surface-2));
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] .a-launch .tile {
+html[data-family="lcars"][data-theme="lcars25"] .a-launch .tile {
   padding: 0 10px 0 8px;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] .tile:hover {
+html[data-family="lcars"][data-theme="lcars25"] .tile:hover {
   background: color-mix(in srgb, var(--lc-t, var(--lc-frame)) 18%, var(--surface-2));
   border-color: color-mix(in srgb, var(--lc-t, var(--lc-frame)) 54%, var(--edge));
   border-top-color: var(--lc-t, var(--lc-frame));
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] .tile > .i {
+html[data-family="lcars"][data-theme="lcars25"] .tile > .i {
   align-self: center;
   width: 30px;
   height: 30px;
@@ -845,69 +845,69 @@ html[data-skin="lcars"][data-lcars-variant="bezel"] .tile > .i {
   background: color-mix(in srgb, var(--lc-t, var(--lc-frame)) 22%, transparent);
   color: var(--lc-t, var(--lc-frame));
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] .tile--primary {
+html[data-family="lcars"][data-theme="lcars25"] .tile--primary {
   background: color-mix(in srgb, var(--lc-t, var(--lc-frame)) 16%, var(--surface-2));
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] .tile--pinned {
+html[data-family="lcars"][data-theme="lcars25"] .tile--pinned {
   box-shadow: none;
   border-color: color-mix(in srgb, var(--lc-t, var(--lc-frame)) 48%, var(--edge));
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"][data-theme="light"] .tile {
+html[data-family="lcars"][data-theme="lcars25"][data-mode="day"] .tile {
   background: color-mix(in srgb, var(--silver-dim) 9%, var(--surface-2));
   border-color: var(--edge);
   border-top: 2px solid var(--lc-t, var(--lc-frame));
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"][data-theme="light"] .tile:hover {
+html[data-family="lcars"][data-theme="lcars25"][data-mode="day"] .tile:hover {
   background: color-mix(in srgb, var(--silver-dim) 18%, var(--surface-2));
   border-color: var(--lc-t, var(--lc-frame));
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"][data-theme="light"] .tile > .i {
+html[data-family="lcars"][data-theme="lcars25"][data-mode="day"] .tile > .i {
   background: color-mix(in srgb, var(--silver-dim) 18%, transparent);
   color: var(--lc-t, var(--lc-frame));
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"][data-theme="light"] .tile--primary {
+html[data-family="lcars"][data-theme="lcars25"][data-mode="day"] .tile--primary {
   background: color-mix(in srgb, var(--silver-dim) 14%, var(--surface-2));
 }
 
 /* Next gig date blocks, Calendar time blocks, Bin swatches, Album covers */
-html[data-skin="lcars"][data-lcars-variant="bezel"] .subrow .mono {
+html[data-family="lcars"][data-theme="lcars25"] .subrow .mono {
   border-radius: 3px;
   justify-content: center;
   padding: 0 8px;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] .ev__t {
+html[data-family="lcars"][data-theme="lcars25"] .ev__t {
   border-radius: 3px;
   justify-content: center;
   padding: 0 8px;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] .bin__swatch {
+html[data-family="lcars"][data-theme="lcars25"] .bin__swatch {
   width: 10px;
   border-radius: 2px;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] .cover {
+html[data-family="lcars"][data-theme="lcars25"] .cover {
   border-radius: 4px;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] .chip {
+html[data-family="lcars"][data-theme="lcars25"] .chip {
   border-radius: 3px;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] .now__label::after,
-html[data-skin="lcars"][data-lcars-variant="bezel"] .mon-section .hud::after,
-html[data-skin="lcars"][data-lcars-variant="bezel"] .logwrap > .hud::after,
-html[data-skin="lcars"][data-lcars-variant="bezel"] .gigs__h::after {
+html[data-family="lcars"][data-theme="lcars25"] .now__label::after,
+html[data-family="lcars"][data-theme="lcars25"] .mon-section .hud::after,
+html[data-family="lcars"][data-theme="lcars25"] .logwrap > .hud::after,
+html[data-family="lcars"][data-theme="lcars25"] .gigs__h::after {
   border-radius: 2px;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] .feed--new::before,
-html[data-skin="lcars"][data-lcars-variant="bezel"] .feed--pinned::before {
+html[data-family="lcars"][data-theme="lcars25"] .feed--new::before,
+html[data-family="lcars"][data-theme="lcars25"] .feed--pinned::before {
   width: 4px;
   border-radius: 2px;
 }
 
 /* Services Start/Stop & action buttons: crisp symmetrical 4px */
-html[data-skin="lcars"][data-lcars-variant="bezel"] .proj__act .btn:not(.btn--icon),
-html[data-skin="lcars"][data-lcars-variant="bezel"] .pinbtn,
-html[data-skin="lcars"][data-lcars-variant="bezel"] .card .btn--icon,
-html[data-skin="lcars"][data-lcars-variant="bezel"] .preorder-date,
-html[data-skin="lcars"][data-lcars-variant="bezel"] .feed--preorder .preorder__row .btn:not(.btn--icon) {
+html[data-family="lcars"][data-theme="lcars25"] .proj__act .btn:not(.btn--icon),
+html[data-family="lcars"][data-theme="lcars25"] .pinbtn,
+html[data-family="lcars"][data-theme="lcars25"] .card .btn--icon,
+html[data-family="lcars"][data-theme="lcars25"] .preorder-date,
+html[data-family="lcars"][data-theme="lcars25"] .feed--preorder .preorder__row .btn:not(.btn--icon) {
   border-radius: 4px;
 }
 
@@ -917,7 +917,7 @@ html[data-skin="lcars"][data-lcars-variant="bezel"] .feed--preorder .preorder__r
    console window: full-width segmented top header beam, matching 7px segmented
    vertical spines on BOTH left and right edges, and a 5px segmented footer bar.
    ========================================================================== */
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max {
   padding: 0;
   border-radius: 8px;
   background: var(--surface);
@@ -927,11 +927,11 @@ html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max {
   overflow: hidden;
   animation: none;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"][data-theme="light"] #grid > .card.is-max {
+html[data-family="lcars"][data-theme="lcars25"][data-mode="day"] #grid > .card.is-max {
   border-color: color-mix(in srgb, var(--lc-c) 55%, var(--edge));
 }
 
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__in {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .card__in {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -949,8 +949,8 @@ html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__
 }
 
 /* Twin 7px segmented vertical spines framing left & right of the pop-out body */
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__in::before,
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__in::after {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .card__in::before,
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .card__in::after {
   content: "";
   display: block;
   position: absolute;
@@ -970,11 +970,11 @@ html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__
     transparent 76% calc(76% + 4px),
     var(--lc-frame) calc(76% + 4px) 100%);
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__in::before { left: 6px; right: auto; }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__in::after  { right: 6px; left: auto; }
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .card__in::before { left: 6px; right: auto; }
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .card__in::after  { right: 6px; left: auto; }
 
 /* Full-width segmented command header bar */
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__head {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .card__head {
   position: relative;
   left: auto;
   right: auto;
@@ -989,7 +989,7 @@ html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__
   color: var(--lc-on);
   flex-wrap: nowrap;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__head::before {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .card__head::before {
   align-self: stretch;
   display: flex;
   align-items: center;
@@ -1000,7 +1000,7 @@ html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__
   opacity: 1;
   font-size: 13px;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__head .hud {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .card__head .hud {
   align-self: stretch;
   display: flex;
   align-items: center;
@@ -1011,10 +1011,10 @@ html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__
   font-size: 20px;
   white-space: nowrap;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max.card--popout .card__head .hud {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max.card--popout .card__head .hud {
   padding-left: 16px;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__tools {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .card__tools {
   flex: 1;
   align-self: stretch;
   display: flex;
@@ -1023,7 +1023,7 @@ html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__
   margin-left: 4px;
   min-width: 0;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__tools::before {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .card__tools::before {
   flex: 1;
   min-width: 12px;
   height: auto;
@@ -1032,7 +1032,7 @@ html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__
   border-top: 2.5px solid var(--lc-c);
   background: color-mix(in srgb, var(--lc-c) 22%, var(--surface-2));
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .meta {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .meta {
   align-self: stretch;
   display: flex;
   align-items: center;
@@ -1044,10 +1044,10 @@ html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .meta {
   font-size: 13px;
   white-space: nowrap;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .meta:empty {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .meta:empty {
   display: none;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__tools .btn {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .card__tools .btn {
   align-self: stretch;
   width: 44px;
   height: auto;
@@ -1056,154 +1056,154 @@ html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__
   background: var(--lc-c);
   color: var(--lc-on);
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__tools .btn:last-child {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .card__tools .btn:last-child {
   border-radius: 0;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__tools .btn:hover {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .card__tools .btn:hover {
   filter: brightness(1.14);
   background: var(--lc-c);
   color: var(--lc-on);
 }
 
 /* Symmetrical body & filter bar spacing clear of both 7px side spines */
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .maxbar {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .maxbar {
   padding: 14px 26px 4px;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__body {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .card__body {
   padding: 12px 26px 16px;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__body--flush {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .card__body--flush {
   padding: 8px 20px 14px;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .cols {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .cols {
   padding: 0 6px 14px;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .rows--cols {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .rows--cols {
   padding: 4px 6px 14px;
   column-gap: 14px;
 }
 
 /* Symmetrical controls & rows inside pop-out windows */
-html[data-skin="lcars"][data-lcars-variant="bezel"] .fchip,
-html[data-skin="lcars"][data-lcars-variant="bezel"] .card .search,
-html[data-skin="lcars"][data-lcars-variant="bezel"] .fbtn {
+html[data-family="lcars"][data-theme="lcars25"] .fchip,
+html[data-family="lcars"][data-theme="lcars25"] .card .search,
+html[data-family="lcars"][data-theme="lcars25"] .fbtn {
   border-radius: 4px;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] .maxbar.is-fopen .fchips {
+html[data-family="lcars"][data-theme="lcars25"] .maxbar.is-fopen .fchips {
   border-radius: 6px;
   padding: 10px;
   border: 1px solid color-mix(in srgb, var(--lc-c, var(--lc-2)) 45%, var(--edge));
   border-top: 2.5px solid var(--lc-c, var(--lc-2));
   box-shadow: 0 16px 36px var(--vignette);
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .rows--cols > li {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .rows--cols > li {
   border-radius: 6px;
   border: 1px solid color-mix(in srgb, var(--lc-c) 20%, var(--edge));
   background: color-mix(in srgb, var(--lc-c) 6%, var(--surface-2));
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .rows--cols > li.note {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .rows--cols > li.note {
   border: 0;
   background: none;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .rows--cols > li::before {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .rows--cols > li::before {
   left: 0;
   top: 6px;
   bottom: 6px;
   border-radius: 2px;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] .gigline {
+html[data-family="lcars"][data-theme="lcars25"] .gigline {
   border-radius: 6px;
   padding: 6px 12px 6px 8px;
   border: 1px solid color-mix(in srgb, var(--lc-c) 22%, var(--edge));
   background: color-mix(in srgb, var(--lc-c) 7%, var(--surface-2));
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] .gigline__d {
+html[data-family="lcars"][data-theme="lcars25"] .gigline__d {
   align-self: center;
   height: 32px;
   border-radius: 4px;
   justify-content: center;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max.now .rows > li:not(.note) {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max.now .rows > li:not(.note) {
   border-radius: 6px;
   border: 1px solid color-mix(in srgb, var(--lc-c) 20%, var(--edge));
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max.now .bin {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max.now .bin {
   padding: 6px 16px 6px 8px;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max.now .bin__swatch {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max.now .bin__swatch {
   width: 12px;
   border-radius: 3px;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max.now .sched {
+html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max.now .sched {
   padding: 6px 14px 6px 8px;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] .sched__d {
+html[data-family="lcars"][data-theme="lcars25"] .sched__d {
   align-self: center;
   height: 32px;
   border-radius: 4px;
   justify-content: center;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] .sched__b i,
-html[data-skin="lcars"][data-lcars-variant="bezel"] .cal__legend i {
+html[data-family="lcars"][data-theme="lcars25"] .sched__b i,
+html[data-family="lcars"][data-theme="lcars25"] .cal__legend i {
   width: 12px;
   height: 12px;
   border-radius: 3px;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] .crow {
+html[data-family="lcars"][data-theme="lcars25"] .crow {
   border-radius: 6px;
   padding: 6px 14px 6px 8px;
   border: 1px solid color-mix(in srgb, var(--lc-c) 20%, var(--edge));
   background: color-mix(in srgb, var(--lc-c) 6%, var(--surface-2));
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] .crow__d {
+html[data-family="lcars"][data-theme="lcars25"] .crow__d {
   align-self: center;
   height: 32px;
   border-radius: 4px;
   justify-content: center;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] .cd__pop {
+html[data-family="lcars"][data-theme="lcars25"] .cd__pop {
   border-radius: 6px;
   padding: 12px 14px;
   border: 1px solid color-mix(in srgb, var(--lc-c) 45%, var(--edge));
   border-top: 2.5px solid var(--lc-c);
   box-shadow: 0 14px 34px var(--vignette);
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] .cd__pt {
+html[data-family="lcars"][data-theme="lcars25"] .cd__pt {
   border-radius: 3px;
   text-align: center;
 }
-html[data-skin="lcars"][data-lcars-variant="bezel"] .log {
+html[data-family="lcars"][data-theme="lcars25"] .log {
   border-radius: 6px;
   border: 1px solid var(--edge);
 }
 
 /* ---- Phone polish (never overflow horizontally) ------------------------- */
 @media (max-width: 760px) {
-  html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .card__head {
+  html[data-family="lcars"][data-theme="lcars25"] #grid > .card:not(.is-max) .card__head {
     min-height: 30px;
     height: 30px;
     overflow: hidden;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .card__head .hud {
+  html[data-family="lcars"][data-theme="lcars25"] #grid > .card:not(.is-max) .card__head .hud {
     font-size: 14.5px;
     padding: 0 8px;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .card__tools .meta {
+  html[data-family="lcars"][data-theme="lcars25"] #grid > .card:not(.is-max) .card__tools .meta {
     display: none;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__head {
+  html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .card__head {
     height: 34px;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__head::before {
+  html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .card__head::before {
     padding: 0 6px 0 12px;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__head .hud {
+  html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .card__head .hud {
     font-size: 16px;
     padding: 0 10px 0 2px;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .meta {
+  html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .meta {
     display: block;
     min-width: 0;
     flex: 0 1 auto;
@@ -1213,23 +1213,23 @@ html[data-skin="lcars"][data-lcars-variant="bezel"] .log {
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__tools .btn {
+  html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .card__tools .btn {
     width: 36px;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__in::before,
-  html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__in::after {
+  html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .card__in::before,
+  html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .card__in::after {
     top: 40px;
     width: 5px;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__in::before { left: 4px; }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__in::after  { right: 4px; }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .maxbar {
+  html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .card__in::before { left: 4px; }
+  html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .card__in::after  { right: 4px; }
+  html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .maxbar {
     padding: 12px 18px 4px;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__body {
+  html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .card__body {
     padding: 10px 18px 14px;
   }
-  html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__body--flush {
+  html[data-family="lcars"][data-theme="lcars25"] #grid > .card.is-max .card__body--flush {
     padding: 6px 14px 12px;
   }
 }

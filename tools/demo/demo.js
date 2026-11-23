@@ -27,16 +27,18 @@
 
   // ---- first visit: LCARS at Night (theme-init.js reads these next). The website's ?theme= is ignored on purpose.
   // DEFAULTS_V moves visitors of an older build (which followed the website's Day/Night) onto the new default once.
-  var DEFAULTS_V = '2';
+  var DEFAULTS_V = '3';
   try {
     if (localStorage.getItem('demo-defaults') !== DEFAULTS_V) {
-      localStorage.setItem('mode', 'night'); localStorage.setItem('look', 'lcars');
-      localStorage.removeItem('look-spec'); localStorage.removeItem('theme');
+      localStorage.setItem('mode', 'night'); localStorage.setItem('theme', 'lcars'); localStorage.setItem('style', 'standard');
+      localStorage.removeItem('style-spec'); localStorage.removeItem('look'); localStorage.removeItem('look-spec');
       localStorage.setItem('demo-defaults', DEFAULTS_V);
     }
   } catch (e) {
     // storage blocked: theme-init.js can't read anything either, so put LCARS on the page by hand
-    document.documentElement.dataset.skin = 'lcars';
+    document.documentElement.dataset.mode = 'night';
+    document.documentElement.dataset.theme = 'lcars';
+    document.documentElement.dataset.family = 'lcars';
   }
 
   // ---- the API, from saved files ------------------------------------------------------------------------------------

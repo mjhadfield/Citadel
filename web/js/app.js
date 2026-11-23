@@ -4,7 +4,7 @@ import { cards, ui, selectedSlug } from './cards.js';
 import { vinylUi } from './content-cards.js';
 import { Shell } from './shell.js';
 import { $, $$, esc, gcalUrl, hostUrl, ico, safeUrl, tickClock, tickUptimes, toast } from './util.js';
-import { THEMES, currentLook, currentSkin, currentTheme, look, mode, setLook, setMode, syncThemes } from './theme.js';
+import { THEMES, currentLook, currentSkin, currentTheme, family, mode, setMode, setStyle, setTheme, style, stylesForFamily, syncStyles, theme } from './theme.js';
 import * as music from './music.js';
 import * as news from './news.js';
 import * as stats from './stats.js';
@@ -545,7 +545,7 @@ function renderNav(nav) {
     if (!p.rail) railEnd.after(a); else if (p.movable) spacer.before(a);
   }
   const shown = nav.pages.filter(p => $(`.view[data-view="${p.id}"]`));
-  const icon = p => (p.id === 'home' && isLcars(currentSkin()) ? 'logo' : p.icon);    // as placeLcars does
+  const icon = p => (p.id === 'home' && document.documentElement.dataset.family === 'lcars' ? 'logo' : p.icon);    // as placeLcars does
   const link = p => `<a href="#${esc(p.id)}" data-view="${esc(p.id)}"><svg class="i"><use href="#i-${esc(icon(p))}"/></svg><span class="tabbar__label">${esc(p.label)}</span></a>`;
   const rest = shown.filter(p => !p.phone);
   more.innerHTML = rest.map(link).join('');
@@ -622,19 +622,30 @@ function syncLookButtons() {
     modeBtn.setAttribute('aria-label', `Switch to ${to}`); modeBtn.title = `Switch to ${to}`;
   }
 }
-function swatch(t) {
-  const h = t[mode()];
-  if (!h) return `<span class="tm__sw tm__sw--${esc(t.id)}"></span>`;                          // a built-in theme: CSS knows its colours
-  return `<span class="tm__sw tm__sw--${esc(t.skin)}" style="--sw-bg:${esc(h.panel)};--sw-ac:${esc(h.accent)}">${h.background?.file ? `<img src="/backgrounds/${esc(h.background.file)}" alt="">` : ''}</span>`;
+function themeSwatch(t) {
+  return `<span class="tm__sw tm__sw--${esc(t.id)}"></span>`;
 }
-// Style's panel hangs from the pair (Day/Night + Style, #look-group) and spans both. Open, the pair joins into one
+function styleSwatch(s, fam) {
+  const h = s[mode()];
+  if (s.id === 'standard') return `<span class="tm__sw tm__sw--${esc(fam)}"></span>`;
+  return `<span class="tm__sw tm__sw--${esc(fam)}" style="--sw-bg:${esc(h.panel)};--sw-ac:${esc(h.accent)}">${h.background?.file ? `<img src="/backgrounds/${esc(h.background.file)}" alt="">` : ''}</span>`;
+}
+// Theme's panel hangs from the pair (Day/Night + Theme, #look-group) and spans both. Open, the pair joins into one
 // cap over it (.look-group.is-open: the gap filled, only the outer top corners rounded).
 const styleBar = $('#style-bar'), lookGroup = $('#look-group');
 const placeStyles = () => placeDrop(styleBar, themeBtn);
 function renderStyles() {
-  const cur = look();
-  const tile = (t, i) => `<button class="bm" type="button" role="menuitemradio" aria-checked="${t.id === cur}" data-use-theme="${esc(t.id)}" style="--d:${80 + i * 22}ms">${swatch(t)}<span><b>${esc(t.name)}</b></span></button>`;
-  styleBar.innerHTML = `<div class="bmbar__list" role="menu" aria-label="Style">${[...THEMES, ...(state?.appearance?.themes || [])].map(tile).join('')}</div>`
+  const curTheme = theme(), curFam = family(), curStyle = style();
+  const builtins = stylesForFamily(curFam);
+  const customs = (state?.appearance?.styles || []).filter(s => s.family === curFam);
+  const themeTiles = THEMES.map((t, i) => `<button class="bm" type="button" role="menuitemradio" aria-checked="${t.id === curTheme}" data-use-theme="${esc(t.id)}" style="--d:${80 + i * 22}ms">${themeSwatch(t)}<span><b>${esc(t.name)}</b></span></button>`);
+  const styleItems = [
+    ...builtins.map(s => ({ ...s, key: s.id })),
+    ...customs.map(s => ({ ...s, key: `c:${s.id}` })),
+  ];
+  const baseI = THEMES.length;
+  const styleTiles = styleItems.map((s, i) => `<button class="bm" type="button" role="menuitemradio" aria-checked="${s.key === curStyle}" data-use-style="${esc(s.key)}" style="--d:${80 + (baseI + i) * 22}ms">${styleSwatch(s, curFam)}<span><b>${esc(s.name)}</b></span></button>`);
+  styleBar.innerHTML = `<div class="bmbar__list" role="menu" aria-label="Theme">${themeTiles.join('')}<div class="stylebar__sep" role="separator"></div>${styleTiles.join('')}</div>`
     + '<a class="bmbar__edit" href="/settings#appearance">Customise</a>';
 }
 /** Open/close the Style panel (no argument: toggle). It's drawn afresh on each open, so the lit theme is current. */
@@ -660,57 +671,64 @@ document.addEventListener('keydown', e => {
 // LCARS motion that CSS can't trigger by itself (lcars.css, Motion). Boot: html.lc-boot for a moment after the first
 // load in LCARS and whenever a device switches to LCARS. Page change: the rail button bumps and html.lc-sweep runs a
 // light along the body's bar.
-const isLcars = sk => sk === 'lcars' || sk === 'lcars2';
-let lastSkin = null, booted = false;
+let lastTheme = null, booted = false;
 function restartClass(el, cls, ms) {
   el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
   clearTimeout(el[`_${cls}`]); el[`_${cls}`] = setTimeout(() => el.classList.remove(cls), ms);
 }
 function bootLcars() {
-  if (isLcars(currentSkin())) restartClass(document.documentElement, 'lc-boot', 2200);
-  else if (currentSkin() === 'borg') restartClass(document.documentElement, 'brg-boot', 1400);
+  const fam = document.documentElement.dataset.family;
+  if (fam === 'lcars') restartClass(document.documentElement, 'lc-boot', 2200);
+  else if (fam === 'borg') restartClass(document.documentElement, 'brg-boot', 1400);
 }
 document.addEventListener('click', e => {
   const link = e.target.closest('.rail a[data-view]');
   if (!link) return;
-  if (isLcars(currentSkin())) {
+  const fam = document.documentElement.dataset.family;
+  if (fam === 'lcars') {
     restartClass(link, 'is-bump', 300);
     restartClass(document.documentElement, 'lc-sweep', 700);
-  } else if (currentSkin() === 'borg') {
+  } else if (fam === 'borg') {
     restartClass(document.documentElement, 'brg-pulse', 600);
   }
 });
 
 function placeLcars() {
-  const sk = currentSkin();
-  if (lastSkin !== null && sk !== lastSkin && (isLcars(sk) || sk === 'borg')) bootLcars();
-  lastSkin = sk;
+  const { theme: th, family: fam } = document.documentElement.dataset;
+  const lc = fam === 'lcars';
+  if (lastTheme !== null && th !== lastTheme && (lc || fam === 'borg')) bootLcars();
+  lastTheme = th;
   const top = $('.top'), strip = $('#alerts'), readout = $('#readout');
   // the reminders sit in the header in LCARS, and on phones in every theme (their drawer, see alertsDrawer)
-  if (isLcars(sk) || phone.matches) { if (strip.parentElement !== top) top.append(strip); }
+  if (lc || phone.matches) { if (strip.parentElement !== top) top.append(strip); }
   else if (strip.parentElement.id !== 'view-home') $('#view-home').prepend(strip);
-  if (isLcars(sk)) { if (readout.parentElement !== top) top.append(readout); }
+  if (lc) { if (readout.parentElement !== top) top.append(readout); }
   else if (readout.parentElement === top) $('#mu-bar').before(readout);
   // LCARS has no separate logo at the top of the rail: Home wears it instead (rail and phone tab bar alike)
   // (the rail and tab bar links only: the Home page section is [data-view="home"] too, and holds every card's icons)
-  $$('.rail [data-view="home"] use, .tabbar [data-view="home"] use').forEach(u => u.setAttribute('href', isLcars(sk) ? '#i-logo' : '#i-home'));
+  $$('.rail [data-view="home"] use, .tabbar [data-view="home"] use').forEach(u => u.setAttribute('href', lc ? '#i-logo' : '#i-home'));
   layoutRail();
 }
 
-// LCARS rail: Home sits level with the middle of the header (or top-aligned in LCARS 25), and the other pages start
-// where the page body does. The header's height moves (the reminders show on Home only, and wrap), so it's measured,
-// and re-measured whenever the header changes size. Positions are taken relative to the shell, which scrolls with the
-// header. Under the 1440p zoom the measured (zoomed) pixels are divided back down to the rail's own CSS pixels.
+// LCARS rail: Home sits level with the middle of the header (top-aligned by lcars25.css in LCARS 25), and the other
+// pages start where the page body does. The header's height moves (the reminders show on Home only, and wrap), so it's
+// measured, and re-measured whenever the header changes size. Positions are taken relative to the shell, which scrolls
+// with the header. Under the 1440p zoom the measured (zoomed) pixels are divided back down to the rail's own CSS pixels.
 const rail = $('.rail');
 function layoutRail() {
   const view = $('.view.is-active');
-  if (!isLcars(currentSkin()) || !rail.offsetParent || !view) { rail.style.removeProperty('--lc-home-top'); rail.style.removeProperty('--lc-body-top'); return; }
+  const { theme: th, family: fam } = document.documentElement.dataset;
+  if (fam !== 'lcars' || !rail.offsetParent || !view) { rail.style.removeProperty('--lc-home-top'); rail.style.removeProperty('--lc-body-top'); return; }
   const z = rail.getBoundingClientRect().width / parseFloat(getComputedStyle(rail).width) || 1;
   const s = $('.shell').getBoundingClientRect(), t = $('.top').getBoundingClientRect(), v = view.getBoundingClientRect();
-  // Home's layout height, not its on-screen box: switching to LCARS runs the boot animation, which grows the rail buttons
-  // from scaleY(0), so measured then its box is 0 tall and Home landed half its height too low
-  const homeH = parseFloat(getComputedStyle($('.rail [data-view="home"]')).height) * z;
-  rail.style.setProperty('--lc-home-top', `${Math.round((t.top - s.top + (t.height - homeH) / 2) / z)}px`);
+  if (th === 'lcars25') {
+    rail.style.removeProperty('--lc-home-top');
+  } else {
+    // Home's layout height, not its on-screen box: switching to LCARS runs the boot animation, which grows the rail buttons
+    // from scaleY(0), so measured then its box is 0 tall and Home landed half its height too low
+    const homeH = parseFloat(getComputedStyle($('.rail [data-view="home"]')).height) * z;
+    rail.style.setProperty('--lc-home-top', `${Math.round((t.top - s.top + (t.height - homeH) / 2) / z)}px`);
+  }
   rail.style.setProperty('--lc-body-top', `${Math.round((v.top - s.top) / z)}px`);
 }
 new ResizeObserver(() => layoutRail()).observe($('.top'));
@@ -743,7 +761,7 @@ async function load() {
     // the wallpaper picks up a hub restart's new code by reloading; other pages never reload under you
     if (wall && startedSeen && s.started !== startedSeen) { location.reload(); return; }
     startedSeen = s.started;
-    state = s; syncThemes(s.appearance?.themes); syncLookButtons(); renderAll();
+    state = s; syncStyles(s.appearance?.styles, s.appearance?.migrated_presets); syncLookButtons(); renderAll();
     // the first fill: the boot began at first paint (theme-init.js); let it finish, then take the class off
     if (!booted) { booted = true; setTimeout(() => document.documentElement.classList.remove('lc-boot', 'brg-boot'), 1800); }
   }).catch(e => console.error(e)).finally(() => { loading = null; });
@@ -803,8 +821,10 @@ bookForm.addEventListener('submit', async e => {
 document.addEventListener('click', async e => {
   if (e.target.closest('[data-mode-toggle]')) { setMode(mode() === 'day' ? 'night' : 'day'); return; }
   if (e.target.closest('[data-theme-menu]')) { bookmarks(false); styles(); return; }
-  const use = e.target.closest('[data-use-theme]');
-  if (use) { styles(false, true); setLook(use.dataset.useTheme, state?.appearance?.themes); return; }   // a new skin re-lays the header: no fold-away
+  const useTheme = e.target.closest('[data-use-theme]');
+  if (useTheme) { styles(false, true); setTheme(useTheme.dataset.useTheme, state?.appearance?.styles); return; }   // a new theme re-lays the header: no fold-away
+  const useStyle = e.target.closest('[data-use-style]');
+  if (useStyle) { styles(false, true); setStyle(useStyle.dataset.useStyle, state?.appearance?.styles); return; }
   if (isDropOpen(styleBar) && (e.target.closest('#style-bar .bmbar__edit') || !e.target.closest('#style-bar'))) styles(false);
   if (!e.target.closest('#alerts, [data-alerts-toggle]')) alertsDrawer(false);   // a tap outside the reminders drawer closes it
   if (e.target.closest('[data-alerts-toggle]')) { alertsDrawer(); return; }

@@ -87,8 +87,8 @@
 .art--sp { clip-path: none; border-radius: 4px; }      /* Spotify's artwork: never cropped, corners rounded 4px (its design guidelines) */
 /* Spotify's full logo, in white on dark themes and black on light (monochrome on coloured backgrounds), never under 70px wide */
 .sp-logo { display: block; height: 20px; width: auto; min-width: 70px; }
-.sp-logo--black, :root[data-theme="light"] .sp-logo--white { display: none; }
-:root[data-theme="light"] .sp-logo--black { display: block; }
+.sp-logo--black, :root[data-mode="day"] .sp-logo--white { display: none; }
+:root[data-mode="day"] .sp-logo--black { display: block; }
 .np__sp, .side__sp { display: inline-block; opacity: .9; }
 .np__sp:hover, .side__sp:hover { opacity: 1; }
 .np__sp { display: none; margin-top: 4px; }                /* on a phone it sits under the artist; wider, beside the heart */

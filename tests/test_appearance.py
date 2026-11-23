@@ -1,5 +1,6 @@
-"""Appearance: custom themes (a Day half and a Night half, built on Citadel or LCARS), their Advanced colour overrides,
-the presets, and background pictures."""
+"""Appearance: themes, families, built-in and custom styles (Day + Night halves, Advanced token overrides),
+legacy storage migration, JS/Python registry parity, and background pictures."""
+import json
 import os
 import re
 import time
@@ -18,7 +19,7 @@ JPG = b"\xff\xd8\xff\xe0" + b"\x01" * 64
 def _clean(client):
     with db.db() as con:
         con.execute("DELETE FROM widget_settings WHERE widget = 'appearance'")
-    db.put_settings(appearance.KEY, {"themes": [], "seeded_presets": list(appearance.PRESETS)})   # a client's startup won't add them again
+    db.put_settings(appearance.KEY, {"styles": []})
     folder = appearance.bg_dir()
     if folder.exists():
         for f in folder.iterdir():
@@ -31,43 +32,88 @@ def half(**kw):
             "background": {"file": "", "fit": "cover", "dim": 40, "glow": True}, **kw}
 
 
-def theme(day=None, night=None, **kw):
-    return {"name": "Midnight", "skin": "citadel", "day": day or half(accent="#B5541F", panel="#f8f0e2"), "night": night or half(), **kw}
+def style(day=None, night=None, **kw):
+    return {"name": "Midnight", "family": "citadel", "day": day or half(accent="#B5541F", panel="#f8f0e2"), "night": night or half(), **kw}
 
 
-def test_a_theme_is_cleaned_and_each_half_defaults_to_its_mode():
-    t = appearance.clean({"name": " Sunset ", "skin": "lcars"})
-    assert t["name"] == "Sunset" and t["skin"] == "lcars"
+def test_a_style_is_cleaned_and_each_half_defaults_to_its_family():
+    s = appearance.clean({"name": " Sunset ", "family": "lcars"})
+    assert s["name"] == "Sunset" and s["family"] == "lcars"
     for mode in ("day", "night"):
-        assert {k: t[mode][k] for k in ("accent", "secondary", "third", "panel")} == appearance.BASE["lcars"][mode]
-        assert t[mode]["panel_opacity"] == 100 and t[mode]["background"] == {"file": "", "fit": "cover", "dim": 40, "glow": True}
-        assert t[mode]["tokens"] == {}
+        assert {k: s[mode][k] for k in ("accent", "secondary", "third", "panel")} == appearance.BASE["lcars"][mode]
+        assert s[mode]["panel_opacity"] == 100 and s[mode]["background"] == {"file": "", "fit": "cover", "dim": 40, "glow": True}
+        assert s[mode]["tokens"] == {}
     assert appearance.clean({"name": "x"})["night"]["accent"] == appearance.BASE_ACCENT["night"]
-    assert appearance.clean({"name": "x"})["skin"] == "citadel"
-    assert appearance.clean(theme(night=half(panel_opacity=5, background={"dim": 400})))["night"]["panel_opacity"] == 30   # clamped, not refused
-    assert appearance.clean(theme())["night"]["accent"] == "#3b82f6"
-    b = appearance.clean({"name": "Unimatrix", "skin": "borg", "night": {"tokens": {"--brg-axis": "#E5B23A"}}})
-    assert b["skin"] == "borg" and b["night"]["accent"] == appearance.BASE["borg"]["night"]["accent"]
+    assert appearance.clean({"name": "x"})["family"] == "citadel"
+    assert appearance.clean(style(night=half(panel_opacity=5, background={"dim": 400})))["night"]["panel_opacity"] == 30
+    assert appearance.clean(style())["night"]["accent"] == "#3b82f6"
+    b = appearance.clean({"name": "Unimatrix", "family": "borg", "night": {"tokens": {"--brg-axis": "#E5B23A"}}})
+    assert b["family"] == "borg" and b["night"]["accent"] == appearance.BASE["borg"]["night"]["accent"]
     assert b["night"]["tokens"] == {"--brg-axis": "#e5b23a"}
+    # Legacy skin field (including lcars2 -> lcars) upgrades cleanly
     b2 = appearance.clean({"name": "Stargazer", "skin": "lcars2"})
-    assert b2["skin"] == "lcars2" and b2["night"]["accent"] == appearance.BASE["lcars2"]["night"]["accent"]
+    assert b2["family"] == "lcars" and "skin" not in b2
+    assert b2["night"]["accent"] == appearance.BASE["lcars"]["night"]["accent"]
 
 
-def test_a_theme_saved_before_the_day_night_split_is_read_as_citadel_with_its_old_mode_kept():
+def test_old_pre_day_night_theme_upgrades_to_citadel_style():
     old = {"id": "abc", "name": "Old", "base": "light", "accent": "#123456", "panel": "#abcdef", "panel_opacity": 70,
            "background": {"file": "", "fit": "tile", "dim": 20, "glow": False}}
-    t = appearance.clean(old)
-    assert t["skin"] == "citadel"
-    assert t["day"] == {"accent": "#123456", "panel": "#abcdef", "panel_opacity": 70, "background": {"file": "", "fit": "tile", "dim": 20, "glow": False},
+    s = appearance.clean(old)
+    assert s["family"] == "citadel"
+    assert s["day"] == {"accent": "#123456", "panel": "#abcdef", "panel_opacity": 70, "background": {"file": "", "fit": "tile", "dim": 20, "glow": False},
                         "secondary": appearance.BASE["citadel"]["day"]["secondary"], "third": appearance.BASE["citadel"]["day"]["third"], "tokens": {}}
-    assert t["night"]["accent"] == appearance.BASE_ACCENT["night"]
-    db.put_settings(appearance.KEY, {"themes": [old]})          # and straight out of storage, as every screen reads it
-    stored = appearance.themes()[0]
-    assert stored["id"] == "abc" and stored["day"]["accent"] == "#123456" and "base" not in stored
+    assert s["night"]["accent"] == appearance.BASE_ACCENT["night"]
+    db.put_settings(appearance.KEY, {"themes": [old]})
+    stored = appearance.styles()[0]
+    assert stored["id"] == "abc" and stored["family"] == "citadel" and stored["day"]["accent"] == "#123456" and "base" not in stored
+
+
+def test_old_setting_drops_unchanged_seeded_presets_and_keeps_edited_ones_as_custom():
+    com_builtin = next(x for x in appearance.BUILTIN_STYLES["lcars"] if x["id"] == "com")
+    sci_builtin = next(x for x in appearance.BUILTIN_STYLES["lcars"] if x["id"] == "sci")
+    edited_sci = {
+        "id": "sci111111111",
+        "name": "LCARS (SCI)",
+        "skin": "lcars",
+        "day": sci_builtin["day"],
+        "night": {**sci_builtin["night"], "accent": "#00ffaa"},
+    }
+    unchanged_com = {
+        "id": "com111111111",
+        "name": "LCARS (COM)",
+        "skin": "lcars",
+        "day": com_builtin["day"],
+        "night": com_builtin["night"],
+    }
+    lcars2_custom = {
+        "id": "usr222222222",
+        "name": "Stargazer",
+        "skin": "lcars2",
+        "day": half(),
+        "night": half(),
+    }
+    db.put_settings(appearance.KEY, {
+        "themes": [unchanged_com, edited_sci, lcars2_custom],
+        "seeded_presets": ["command", "eng", "ent", "sci"],
+    })
+    upgraded = appearance.styles()
+    assert [s["name"] for s in upgraded] == ["LCARS (SCI) (custom)", "Stargazer"]
+    assert all(s["family"] == "lcars" and "skin" not in s for s in upgraded)
+    assert appearance.migrated_presets() == {"com111111111": "com"}
+
+    # Persisting via migrate_storage writes the new shape and is idempotent
+    res = appearance.migrate_storage()
+    assert res == {"styles": 2, "dropped_presets": 1}
+    raw = db.get_settings(appearance.KEY)
+    assert "themes" not in raw and "seeded_presets" not in raw
+    assert [s["name"] for s in raw["styles"]] == ["LCARS (SCI) (custom)", "Stargazer"]
+    assert raw["migrated_presets"] == {"com111111111": "com"}
+    assert appearance.migrate_storage() == {}
 
 
 @pytest.mark.parametrize("bad", [
-    {"name": ""}, {"skin": "blue"}, {"night": half(accent="red")}, {"day": half(accent="#12345")}, {"night": half(panel="url(x)")},
+    {"name": ""}, {"family": "blue"}, {"family": "lcars25"}, {"night": half(accent="red")}, {"day": half(accent="#12345")}, {"night": half(panel="url(x)")},
     {"day": half(background={"fit": "stretch"})}, {"night": half(background={"file": "../hub.sqlite"})},
     {"day": half(background={"file": "0" * 32 + ".png"})},   # not uploaded
     {"night": half(panel_opacity="lots")}, {"day": "bright"},
@@ -75,66 +121,89 @@ def test_a_theme_saved_before_the_day_night_split_is_read_as_citadel_with_its_ol
     {"night": half(tokens=["--bg"])}, {"night": half(tokens={"--nope": "#000000"})}, {"day": half(tokens={"--bg": "red"})},
     {"night": half(tokens={"--bg": "#12345"})}, {"night": half(tokens={"--bg": 7})},
 ])
-def test_bad_themes_are_refused(bad):
+def test_bad_styles_are_refused(bad):
     with pytest.raises(appearance.AppearanceError):
-        appearance.clean(theme(**bad))
+        appearance.clean(style(**bad))
 
 
 def test_advanced_colours_are_kept_lower_cased_and_may_be_see_through():
-    t = appearance.clean(theme(night=half(secondary="#AA0000", tokens={"--bg": "#0A0606", "--edge": "#C9CED621"})))
-    assert t["night"]["secondary"] == "#aa0000"
-    assert t["night"]["tokens"] == {"--bg": "#0a0606", "--edge": "#c9ced621"}
+    s = appearance.clean(style(night=half(secondary="#AA0000", tokens={"--bg": "#0A0606", "--edge": "#C9CED621"})))
+    assert s["night"]["secondary"] == "#aa0000"
+    assert s["night"]["tokens"] == {"--bg": "#0a0606", "--edge": "#c9ced621"}
 
 
 def test_too_many_advanced_colours_are_refused():
     many = {f"--x{i}": "#000000" for i in range(len(appearance.TOKENS) + 1)}
     with pytest.raises(appearance.AppearanceError):
-        appearance.clean(theme(night=half(tokens=many)))
+        appearance.clean(style(night=half(tokens=many)))
 
 
-def test_the_token_list_matches_palette_js():
+def test_the_token_list_and_base_match_palette_js():
     js = (Path(__file__).parent.parent / "web/js/palette.js").read_text()
     block = js[js.index("export const TOKENS"):js.index("export const GROUPS")]
     assert tuple(re.findall(r"\['(--[a-z0-9-]+)'", block)) == appearance.TOKENS
+    # BASE keys match FAMILIES (no lcars2)
+    base_block = js[js.index("export const BASE"):js.index("// ---- colour maths")]
+    assert set(re.findall(r"^\s{2}([a-z0-9]+):", base_block, re.M)) == set(appearance.FAMILIES)
+    assert "lcars2" not in base_block
 
 
-def test_presets_are_seeded_once_and_a_deleted_one_stays_deleted():
-    db.put_settings(appearance.KEY, {"themes": []})
-    assert appearance.seed_presets() == ["LCARS (COM)", "LCARS (SCI)", "LCARS (ENG)", "LCARS (ENT)"]
-    cmd, *_ = appearance.themes()
-    assert cmd["skin"] == "lcars" and cmd["night"]["accent"] == "#e02b2b" and cmd["night"]["tokens"]["--lc-gig"] == "#a8141e"
-    assert appearance.seed_presets() == []
-    appearance.delete_theme(cmd["id"])
-    assert appearance.seed_presets() == [] and [t["name"] for t in appearance.themes()] == ["LCARS (SCI)", "LCARS (ENG)", "LCARS (ENT)"]
-    appearance.save_theme(theme())                       # saving keeps the seeded record
-    assert db.get_settings(appearance.KEY)["seeded_presets"] == ["command", "eng", "ent", "sci"]
+def test_themes_registry_matches_themes_js():
+    js = (Path(__file__).parent.parent / "web/js/themes.js").read_text()
+    # FAMILIES
+    fam_m = re.search(r"export const FAMILIES = \[([^\]]+)\]", js)
+    assert fam_m
+    assert tuple(re.findall(r"'([^']+)'", fam_m.group(1))) == appearance.FAMILIES
+    # THEMES
+    themes_block = js[js.index("export const THEMES"):js.index("const NO_PICTURE")]
+    js_themes = [
+        {"id": m.group(1), "name": m.group(2), "family": m.group(3)}
+        for m in re.finditer(r"\{\s*id:\s*'([^']+)',\s*name:\s*'([^']+)',\s*family:\s*'([^']+)'\s*\}", themes_block)
+    ]
+    assert tuple(js_themes) == appearance.THEMES
+    # BUILTIN_STYLES ids & names per family
+    bs_block = js[js.index("export const BUILTIN_STYLES"):js.index("const THEME_BY_ID")]
+    for fam in appearance.FAMILIES:
+        fam_m = re.search(rf"^\s{{2}}{fam}:\s*\[(.*?)^\s{{2}}\],", bs_block, re.M | re.S)
+        assert fam_m, f"missing {fam} in themes.js BUILTIN_STYLES"
+        ids = re.findall(r"id:\s*'([^']+)'", fam_m.group(1))
+        names = re.findall(r"name:\s*'([^']+)'", fam_m.group(1))
+        py_list = appearance.BUILTIN_STYLES[fam]
+        assert ids == [x["id"] for x in py_list]
+        assert names == [x["name"] for x in py_list]
+        # Every accent colour in BUILTIN_STYLES matches too
+        accents = re.findall(r"accent:\s*'([^']+)'", fam_m.group(1))
+        py_accents = [c for x in py_list for c in (x["night"]["accent"], x["day"]["accent"])]
+        assert accents == py_accents
 
 
-def test_every_preset_is_a_valid_theme():
-    for p in appearance.PRESETS.values():
-        appearance.clean(p)
+def test_every_builtin_style_is_valid():
+    for fam, items in appearance.BUILTIN_STYLES.items():
+        for item in items:
+            appearance.clean({**item, "family": fam})
 
 
 def test_create_edit_delete_through_the_api_and_every_screen_sees_them(owner_client):
-    r = owner_client.post(f"{BASE}/themes", json=theme())
+    r = owner_client.post(f"{BASE}/styles", json=style())
     assert r.status_code == 201, r.text
-    tid = r.json()["id"]
-    assert owner_client.get("/api/owner/state").json()["appearance"]["themes"][0]["name"] == "Midnight"
+    sid = r.json()["id"]
+    assert owner_client.get("/api/owner/state").json()["appearance"]["styles"][0]["name"] == "Midnight"
     cfg = owner_client.get("/api/owner/config").json()["appearance"]
-    assert cfg["themes"][0]["id"] == tid and cfg["skins"] == ["citadel", "lcars", "lcars2", "borg"] and set(cfg["base_accent"]) == {"day", "night"}
-    assert cfg["base"]["lcars"]["night"]["accent"] == "#a78bfa" and cfg["base"]["lcars2"]["night"]["accent"] == "#a78bfa" and cfg["base"]["borg"]["night"]["accent"] == "#2ee86c"
-    assert [p["id"] for p in cfg["presets"]] == ["command", "sci", "eng", "ent"]
-    assert owner_client.put(f"{BASE}/themes/{tid}", json=theme(name="Midnight 2", skin="lcars")).json()["skin"] == "lcars"
-    assert owner_client.put(f"{BASE}/themes/{tid}", json=theme(name="Stargazer", skin="lcars2")).json()["skin"] == "lcars2"
-    assert owner_client.put(f"{BASE}/themes/{tid}", json=theme(name="Unimatrix", skin="borg")).json()["skin"] == "borg"
-    assert owner_client.put(f"{BASE}/themes/{tid}", json=theme(night=half(accent="nope"))).status_code == 422
-    assert owner_client.put(f"{BASE}/themes/nope", json=theme()).status_code == 404
-    assert owner_client.delete(f"{BASE}/themes/{tid}").status_code == 200
-    assert owner_client.get("/api/owner/state").json()["appearance"]["themes"] == []
+    assert cfg["styles"][0]["id"] == sid and cfg["families"] == ["citadel", "lcars", "borg"] and set(cfg["base_accent"]) == {"day", "night"}
+    assert [t["id"] for t in cfg["themes"]] == ["citadel", "lcars", "lcars25", "borg"]
+    assert cfg["base"]["lcars"]["night"]["accent"] == "#a78bfa" and cfg["base"]["borg"]["night"]["accent"] == "#2ee86c"
+    assert "lcars2" not in cfg["base"]
+    assert [s["id"] for s in cfg["builtin_styles"]["lcars"]] == ["standard", "com", "sci", "eng", "ent"]
+    assert owner_client.put(f"{BASE}/styles/{sid}", json=style(name="Midnight 2", family="lcars")).json()["family"] == "lcars"
+    assert owner_client.put(f"{BASE}/styles/{sid}", json=style(name="Unimatrix", family="borg")).json()["family"] == "borg"
+    assert owner_client.put(f"{BASE}/styles/{sid}", json=style(night=half(accent="nope"))).status_code == 422
+    assert owner_client.put(f"{BASE}/styles/nope", json=style()).status_code == 404
+    assert owner_client.delete(f"{BASE}/styles/{sid}").status_code == 200
+    assert owner_client.get("/api/owner/state").json()["appearance"]["styles"] == []
 
 
-def test_guests_cannot_change_themes(guest_client):
-    assert guest_client.post(f"{BASE}/themes", json=theme(), headers={"X-Hub": "1"}).status_code == 403
+def test_guests_cannot_change_styles(guest_client):
+    assert guest_client.post(f"{BASE}/styles", json=style(), headers={"X-Hub": "1"}).status_code == 403
 
 
 def test_background_upload_checks_the_bytes_and_serves_owner_only_and_sandboxed(owner_client, guest_client):
@@ -142,7 +211,6 @@ def test_background_upload_checks_the_bytes_and_serves_owner_only_and_sandboxed(
     assert r.status_code == 201, r.text
     name = r.json()["file"]
     assert name.endswith(".jpg")
-    # an SVG (could carry script) or a page pretending to be a picture is refused, whatever it claims to be
     assert owner_client.post(f"{BASE}/backgrounds", content=b"<svg onload=alert(1)></svg>", headers={"Content-Type": "image/png"}).status_code == 422
     assert owner_client.post(f"{BASE}/backgrounds", content=b"<html></html>", headers={"Content-Type": "image/jpeg"}).status_code == 422
     assert owner_client.post(f"{BASE}/backgrounds", content=b"", headers={"Content-Type": "image/png"}).status_code == 422
@@ -151,10 +219,9 @@ def test_background_upload_checks_the_bytes_and_serves_owner_only_and_sandboxed(
     assert guest_client.get(f"/backgrounds/{name}").status_code == 403
     for bad in ("../hub.sqlite", "secret.key", name.upper(), f"{name}.html"):
         assert owner_client.get(f"/backgrounds/{bad}").status_code == 404
-    # and one half of a theme can now use it
-    t = owner_client.post(f"{BASE}/themes", json=theme(night=half(background={"file": name, "fit": "tile", "dim": 25, "glow": False}))).json()
-    assert t["night"]["background"] == {"file": name, "fit": "tile", "dim": 25, "glow": False}
-    assert t["day"]["background"]["file"] == ""
+    s = owner_client.post(f"{BASE}/styles", json=style(night=half(background={"file": name, "fit": "tile", "dim": 25, "glow": False}))).json()
+    assert s["night"]["background"] == {"file": name, "fit": "tile", "dim": 25, "glow": False}
+    assert s["day"]["background"]["file"] == ""
 
 
 def test_oversized_pictures_are_refused(owner_client, monkeypatch):
@@ -165,9 +232,9 @@ def test_oversized_pictures_are_refused(owner_client, monkeypatch):
 def test_unused_pictures_are_tidied_but_either_half_keeps_its_picture_and_a_fresh_upload_is_spared():
     day_pic, night_pic = appearance.store_background(PNG), appearance.store_background(PNG + b"\x02")
     fresh, old = appearance.store_background(JPG), appearance.store_background(PNG + b"\x01")
-    appearance.save_theme(theme(day=half(background={"file": day_pic}), night=half(background={"file": night_pic})))
+    appearance.save_style(style(day=half(background={"file": day_pic}), night=half(background={"file": night_pic})))
     week_ago = time.time() - 7 * 86400
     for n in (day_pic, night_pic, old):
         os.utime(appearance.bg_dir() / n, (week_ago, week_ago))
     appearance.tidy()
-    assert {f.name for f in appearance.bg_dir().iterdir()} == {day_pic, night_pic, fresh}   # only the old unused one went
+    assert {f.name for f in appearance.bg_dir().iterdir()} == {day_pic, night_pic, fresh}

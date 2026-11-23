@@ -367,7 +367,7 @@ async def owner_state(health: Health, device: dict[str, Any], attention: list[di
         "health": health.state,
         # owner only: a sync that keeps failing, or a service that's down, is a thing to know about
         "alerts": alert_settings.visible([*compute_alerts(widgets, at), *service_alerts(projects, links, health, monitor, at), *sync_alerts(widgets, at), *(machines.alerts(at) if machines else []), *(attention or [])]),
-        "appearance": {"themes": appearance.themes()},
+        "appearance": {"styles": appearance.styles(), "migrated_presets": appearance.migrated_presets()},
         "navigation": navigation.settings(device["id"]),
     }
 

@@ -84,8 +84,8 @@ async def lifespan(app: FastAPI):
     logbook.install()                                # from here on, warnings and errors land in the event log (Settings → Maintenance)
     if (added := seed.seed()) and any(added.values()):
         log.info("seeded %s", added)
-    if (themes_added := _appearance.seed_presets()):
-        log.info("added theme presets %s", themes_added)
+    if (upgraded := _appearance.migrate_storage()):
+        log.info("upgraded appearance storage %s", upgraded)
 
     if (purged := content.purge_junk()):
         log.info("removed %s placeholder artists/items (e.g. 'Various')", purged)

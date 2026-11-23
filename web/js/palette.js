@@ -30,17 +30,15 @@ export const TOKENS = [
 export const GROUPS = [['page', 'Page & panels'], ['accent', 'Accent'], ['text', 'Text'], ['lines', 'Lines'], ['status', 'Status'],
   ['charts', 'Charts'], ['lcars', 'LCARS', 'lcars'], ['lcars-hd', 'LCARS phone header', 'lcars'], ['borg', 'Borg', 'borg']];
 export const TOKEN_NAMES = TOKENS.map(t => t[0]);
-const SKIN_GROUPS = { lcars: new Set(['lcars', 'lcars-hd']), lcars2: new Set(['lcars', 'lcars-hd']), borg: new Set(['borg']) };
-const ALL_SKIN_GROUPS = new Set(['lcars', 'lcars-hd', 'borg']);
-export const tokensFor = skin => TOKENS.filter(t => !ALL_SKIN_GROUPS.has(t[2]) || SKIN_GROUPS[skin]?.has(t[2]));
+const FAMILY_GROUPS = { lcars: new Set(['lcars', 'lcars-hd']), borg: new Set(['borg']) };
+const ALL_FAMILY_GROUPS = new Set(['lcars', 'lcars-hd', 'borg']);
+export const tokensFor = family => TOKENS.filter(t => !ALL_FAMILY_GROUPS.has(t[2]) || FAMILY_GROUPS[family]?.has(t[2]));
 
-// The four Basic colours each built-in look starts from (also app/appearance.py BASE).
+// The four Basic colours each family starts from (also app/appearance.py BASE).
 export const BASE = {
   citadel: { night: { accent: '#8b5cf6', secondary: '#c084fc', third: '#67e8f9', panel: '#0e0b14' },
     day: { accent: '#b5541f', secondary: '#8a2e2e', third: '#3d5a73', panel: '#f8f0e2' } },
   lcars: { night: { accent: '#a78bfa', secondary: '#8577e0', third: '#d3a4ea', panel: '#0e0b14' },
-    day: { accent: '#b5541f', secondary: '#8a2e2e', third: '#3d5a73', panel: '#f8f0e2' } },
-  lcars2: { night: { accent: '#a78bfa', secondary: '#8577e0', third: '#d3a4ea', panel: '#0e0b14' },
     day: { accent: '#b5541f', secondary: '#8a2e2e', third: '#3d5a73', panel: '#f8f0e2' } },
   borg: { night: { accent: '#2ee86c', secondary: '#d8a328', third: '#26c6b8', panel: '#060e08' },
     day: { accent: '#167a3e', secondary: '#9c6d14', third: '#186b6e', panel: '#f3f7f4' } },
@@ -95,11 +93,11 @@ const DAY = { ink: ['#2a2015', '#4a3c2a', '#6b5c44', '#93876c'], ok: '#3d5a73', 
 const BORG_NIGHT = { ink: ['#e4f5e9', '#b8d4be', '#7aa084', '#4d6f57'], ok: '#2ee86c', warn: '#e5b23a', bad: '#f43f5e', heat: ['#d8a328', '#f59e0b', '#ff4b2b'] };
 const BORG_DAY = { ink: ['#112117', '#263d2e', '#476351', '#6f8a78'], ok: '#167a3e', warn: '#9c6d14', bad: '#a3262e', heat: ['#6e6b20', '#9c6d14', '#a3262e'] };
 
-/** One mode's Basic colours (missing ones from the built-in look) -> { token: hex }. */
-export function derive(h = {}, mode = 'night', skin = 'citadel') {
-  const dark = mode !== 'day', base = (BASE[skin] || BASE.citadel)[dark ? 'night' : 'day'];
+/** One mode's Basic colours (missing ones from the family's defaults) -> { token: hex }. */
+export function derive(h = {}, mode = 'night', family = 'citadel') {
+  const dark = mode !== 'day', base = (BASE[family] || BASE.citadel)[dark ? 'night' : 'day'];
   const P = h.accent || base.accent, S = h.secondary || base.secondary, T = h.third || base.third, N = h.panel || base.panel;
-  const o = h.panel_opacity ?? 100, K = skin === 'borg' ? (dark ? BORG_NIGHT : BORG_DAY) : (dark ? NIGHT : DAY);
+  const o = h.panel_opacity ?? 100, K = family === 'borg' ? (dark ? BORG_NIGHT : BORG_DAY) : (dark ? NIGHT : DAY);
   const see = c => alpha(c, o);
   const ink = K.ink.map(c => mix(c, dark ? 94 : 90, P));
   const v = {
@@ -117,7 +115,7 @@ export function derive(h = {}, mode = 'night', skin = 'citadel') {
   const series = dark ? [mix(P, 75, WHITE), ink[0], mix(S, 70, WHITE), mix(T, 80, WHITE), mix(mix(S, 50, T), 70, WHITE)]
     : [P, T, S, ink[2], ink[1]];
   series.forEach((c, i) => { v[`--series-${i + 1}`] = c; });
-  if (skin === 'lcars' || skin === 'lcars2') {
+  if (family === 'lcars') {
     const bg = v['--bg'];
     const lc = dark ? {
       // lighter and darker steps keep their colour (shade), rather than mixing in white or black, which washes them out
@@ -134,7 +132,7 @@ export function derive(h = {}, mode = 'night', skin = 'citadel') {
     lc['--lc-hd-4'] = lc['--lc-hd-frame'];
     Object.assign(v, lc);
   }
-  if (skin === 'borg') {
+  if (family === 'borg') {
     const bg = v['--bg'];
     Object.assign(v, {
       '--brg-node': P,
@@ -149,13 +147,13 @@ export function derive(h = {}, mode = 'night', skin = 'citadel') {
 
 const DAY_HEADER = { '--lc-hd-frame': '--lc-frame', '--lc-hd-1': '--lc-2', '--lc-hd-2': '--lc-4', '--lc-hd-3': '--lc-5', '--lc-hd-4': '--lc-hd-frame' };
 
-/** Every token for one mode: Basic's, then the Advanced overrides on top (only names this skin has). */
-export function resolve(h = {}, mode = 'night', skin = 'citadel') {
-  const v = derive(h, mode, skin), names = new Set(tokensFor(skin).map(t => t[0]));
+/** Every token for one mode: Basic's, then the Advanced overrides on top (only names this family has). */
+export function resolve(h = {}, mode = 'night', family = 'citadel') {
+  const v = derive(h, mode, family), names = new Set(tokensFor(family).map(t => t[0]));
   const own = Object.fromEntries(Object.entries(h.tokens || {}).filter(([k]) => names.has(k)));
   Object.assign(v, own);
   // By Day the phone header's blocks are the page's own bar colours, so they follow an override of those bars
-  if ((skin === 'lcars' || skin === 'lcars2') && mode === 'day') {
+  if (family === 'lcars' && mode === 'day') {
     Object.entries(DAY_HEADER).forEach(([k, src]) => { if (!(k in own)) v[k] = v[src]; });
   }
   return v;

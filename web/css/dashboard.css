@@ -176,13 +176,13 @@ html.has-bg .frame-shell iframe { background: transparent; }    /* a custom them
 html:root body .readout dd[data-heat="1"] { color: var(--heat-1); }
 html:root body .readout dd[data-heat="2"] { color: var(--heat-2); }
 html:root body .readout dd[data-heat="3"] { color: var(--heat-3); text-shadow: 0 0 10px color-mix(in srgb, var(--heat-3) 45%, transparent); }
-html[data-theme="light"] body .readout dd[data-heat="3"] { text-shadow: none; }      /* a glow only reads on a dark ground */
+html[data-mode="day"] body .readout dd[data-heat="3"] { text-shadow: none; }      /* a glow only reads on a dark ground */
 .readout:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 @media (min-width: 1800px) {
-  html:not([data-skin="lcars"])[data-page="home"] .readout { display: flex; gap: 22px; flex: none; margin: 0 4px 0 auto; padding: 0 12px; }
-  html:not([data-skin="lcars"]) .readout div { display: grid; gap: 3px; }
-  html:not([data-skin="lcars"]) .readout dt { font: 9.5px var(--font-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--silver-dim); }
-  html:not([data-skin="lcars"]) .readout dd { margin: 0; font: 15px/1 var(--font-mono); color: var(--silver-hi); font-variant-numeric: tabular-nums; }
+  html:not([data-family="lcars"])[data-page="home"] .readout { display: flex; gap: 22px; flex: none; margin: 0 4px 0 auto; padding: 0 12px; }
+  html:not([data-family="lcars"]) .readout div { display: grid; gap: 3px; }
+  html:not([data-family="lcars"]) .readout dt { font: 9.5px var(--font-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--silver-dim); }
+  html:not([data-family="lcars"]) .readout dd { margin: 0; font: 15px/1 var(--font-mono); color: var(--silver-hi); font-variant-numeric: tabular-nums; }
   .card--popout:not(.is-max) { display: none; }
 }
 
@@ -202,6 +202,8 @@ html[data-theme="light"] body .readout dd[data-heat="3"] { text-shadow: none; } 
 .stylebar .bm b { font-size: 13px; font-weight: 500; }
 .stylebar .bm[aria-checked="true"] { color: var(--silver-hi); border-color: var(--accent-soft); background: var(--accent-wash); }
 .stylebar .bm[aria-checked="true"] b { color: var(--accent-soft); }
+.stylebar__sep { height: 1px; margin: 2px 4px; background: var(--edge-strong); opacity: .65; }
+@media (max-width: 760px) { .stylebar__sep { grid-column: 1 / -1; } }
 @media (min-width: 761px) {
   .look-btn[data-theme-menu] { padding: 5px 16px 5px 14px; }
   .look-group.is-open { border-radius: var(--radius-sm) var(--radius-sm) 0 0;
@@ -233,7 +235,7 @@ html[data-theme="light"] body .readout dd[data-heat="3"] { text-shadow: none; } 
 .vol-btn.is-muted::after { content: ""; position: absolute; left: 7px; right: 7px; top: calc(50% - 1px); height: 2px; border-radius: 1px;
   background: currentColor; transform: rotate(-40deg); }
 .vol-btn[disabled] { cursor: default; }
-html[data-theme="light"] .vol-btn { --vol-fill: color-mix(in srgb, var(--accent) 55%, transparent); }
+html[data-mode="day"] .vol-btn { --vol-fill: color-mix(in srgb, var(--accent) 55%, transparent); }
 .volbar { display: flex; flex-direction: column; align-items: stretch; }
 .volbar[hidden] { display: none; }
 .volbar__pct { padding: 6px 0 4px; font: 11px/1 var(--font-mono); letter-spacing: .04em; text-align: center; color: var(--silver-hi); font-variant-numeric: tabular-nums; }
@@ -740,28 +742,28 @@ body.has-max::before { content: ""; position: fixed; inset: 0; z-index: 80; back
 
   /* Citadel's panel: the card's shell (edge gradient, then the fill 1px in), drawn behind the header so nothing in it,
      or hanging from it, is clipped */
-  html:not([data-skin="lcars"]) .top { --c: 12px; }
-  html:not([data-skin="lcars"]) .top::before, html:not([data-skin="lcars"]) .top::after {
+  html:not([data-family="lcars"]) .top { --c: 12px; }
+  html:not([data-family="lcars"]) .top::before, html:not([data-family="lcars"]) .top::after {
     content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
     clip-path: polygon(0 0, calc(100% - var(--c)) 0, 100% var(--c), 100% 100%, var(--c) 100%, 0 calc(100% - var(--c))); }
-  html:not([data-skin="lcars"]) .top::before { background: linear-gradient(135deg, color-mix(in srgb, var(--silver) 30%, transparent), color-mix(in srgb, var(--accent) 20%, transparent) 45%, color-mix(in srgb, var(--silver) 9%, transparent)); }
-  html:not([data-skin="lcars"]) .top::after { inset: 1px;
+  html:not([data-family="lcars"]) .top::before { background: linear-gradient(135deg, color-mix(in srgb, var(--silver) 30%, transparent), color-mix(in srgb, var(--accent) 20%, transparent) 45%, color-mix(in srgb, var(--silver) 9%, transparent)); }
+  html:not([data-family="lcars"]) .top::after { inset: 1px;
     clip-path: polygon(0 0, calc(100% - var(--c) + .4px) 0, 100% calc(var(--c) - .4px), 100% 100%, calc(var(--c) - .4px) 100%, 0 calc(100% - var(--c) + .4px));
     background: linear-gradient(90deg, var(--accent-hi), transparent) 16px 0 / 34px 2px no-repeat, linear-gradient(180deg, var(--surface-2), var(--surface) 90%); }
-  html:not([data-skin="lcars"]) .top__logo { filter: drop-shadow(0 0 10px color-mix(in srgb, var(--accent-hi) 50%, transparent)); }
-  html:not([data-skin="lcars"]) .top__brand { padding-left: 4px; }
+  html:not([data-family="lcars"]) .top__logo { filter: drop-shadow(0 0 10px color-mix(in srgb, var(--accent-hi) 50%, transparent)); }
+  html:not([data-family="lcars"]) .top__brand { padding-left: 4px; }
   /* the wordmark sits centred between the logo and the buttons (its trailing letter-spacing given back on the left) */
-  html:not([data-skin="lcars"]) .top__brand .wordmark { display: block; flex: 1 1 auto; min-width: 0; font-size: 15px; white-space: nowrap; text-align: center; padding-left: .34em; }
-  html:not([data-skin="lcars"]) .top .sc--menu, html:not([data-skin="lcars"]) .top .look-btn, html:not([data-skin="lcars"]) .top .top__settings {
+  html:not([data-family="lcars"]) .top__brand .wordmark { display: block; flex: 1 1 auto; min-width: 0; font-size: 15px; white-space: nowrap; text-align: center; padding-left: .34em; }
+  html:not([data-family="lcars"]) .top .sc--menu, html:not([data-family="lcars"]) .top .look-btn, html:not([data-family="lcars"]) .top .top__settings {
     position: relative; width: 46px; height: auto; padding: 0; justify-content: center; gap: 0;
     border: 0; border-left: 1px solid var(--edge); border-radius: 0; clip-path: none; background: none; color: var(--silver); }
-  html:not([data-skin="lcars"]) .top .top__settings { clip-path: polygon(0 0, calc(100% - var(--c) + 1px) 0, 100% calc(var(--c) - 1px), 100% 100%, 0 100%); }   /* its lit fill keeps the panel's cut */
-  html:not([data-skin="lcars"]) .top .sc--menu .i, html:not([data-skin="lcars"]) .top .look-btn .i, html:not([data-skin="lcars"]) .top .top__settings .i { width: 20px; height: 20px; color: inherit; }
-  html:not([data-skin="lcars"]) .top .sc--menu[aria-expanded="true"], html:not([data-skin="lcars"]) .top .look-btn[aria-expanded="true"],
-  html:not([data-skin="lcars"])[data-page="settings"] .top .top__settings { color: var(--accent-soft); background: var(--accent-wash); box-shadow: inset 0 -2px 0 var(--accent-hi); }
-  html:not([data-skin="lcars"]) .top .sc--menu:active, html:not([data-skin="lcars"]) .top .look-btn:active, html:not([data-skin="lcars"]) .top .top__settings:active { background: var(--accent-wash); }
+  html:not([data-family="lcars"]) .top .top__settings { clip-path: polygon(0 0, calc(100% - var(--c) + 1px) 0, 100% calc(var(--c) - 1px), 100% 100%, 0 100%); }   /* its lit fill keeps the panel's cut */
+  html:not([data-family="lcars"]) .top .sc--menu .i, html:not([data-family="lcars"]) .top .look-btn .i, html:not([data-family="lcars"]) .top .top__settings .i { width: 20px; height: 20px; color: inherit; }
+  html:not([data-family="lcars"]) .top .sc--menu[aria-expanded="true"], html:not([data-family="lcars"]) .top .look-btn[aria-expanded="true"],
+  html:not([data-family="lcars"])[data-page="settings"] .top .top__settings { color: var(--accent-soft); background: var(--accent-wash); box-shadow: inset 0 -2px 0 var(--accent-hi); }
+  html:not([data-family="lcars"]) .top .sc--menu:active, html:not([data-family="lcars"]) .top .look-btn:active, html:not([data-family="lcars"]) .top .top__settings:active { background: var(--accent-wash); }
 }
-@media (max-width: 379px) { html:not([data-skin="lcars"]) .top__brand .wordmark { display: none; } }
+@media (max-width: 379px) { html:not([data-family="lcars"]) .top__brand .wordmark { display: none; } }
 .empty { display: grid; justify-items: center; align-content: center; gap: 8px; height: 100%; min-height: 120px; padding: 16px; text-align: center; }
 .empty .i { width: 28px; height: 28px; color: var(--silver-dim); }
 .empty__title { font-weight: 600; color: var(--silver); }
@@ -912,21 +914,21 @@ body.has-max::before { content: ""; position: fixed; inset: 0; z-index: 80; back
 .tm__sw img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .75; }
 /* built-in theme swatches, in the mode this device is in (a custom theme's come from its own colours, inline) */
 .tm__sw--citadel { --sw-bg: #0e0b14; --sw-ac: #8b5cf6; }
-.tm__sw--lcars { --sw-bg: #050407; --sw-ac: #f2b45a; border-radius: 9px 0 0 9px; }
-.tm__sw--lcars::after { left: 0; right: auto; top: 0; bottom: 0; width: 5px; height: auto; background: #a78bfa; }
-.tm__sw--lcars2 { --sw-bg: #07060a; --sw-ac: #8577e0; border-radius: 7px 3px 3px 5px; border-color: color-mix(in srgb, var(--sw-ac) 60%, transparent);
+.tm__sw--lcars { --sw-bg: #050407; --sw-ac: #a78bfa; border-radius: 9px 0 0 9px; }
+.tm__sw--lcars::after { left: 0; right: auto; top: 0; bottom: 0; width: 6px; height: auto; background: var(--sw-ac); }
+.tm__sw--lcars25 { --sw-bg: #07060a; --sw-ac: #8577e0; border-radius: 7px 3px 3px 5px; border-color: color-mix(in srgb, var(--sw-ac) 60%, transparent);
   background: linear-gradient(180deg, var(--sw-ac) 0 4px, transparent 4px), var(--sw-bg); }
-.tm__sw--lcars2::after { left: 6px; right: auto; top: 5px; bottom: 3px; width: 4px; height: auto; border-radius: 2px; background: #f2b45a; }
+.tm__sw--lcars25::after { left: 6px; right: auto; top: 5px; bottom: 3px; width: 4px; height: auto; border-radius: 2px; background: #f2b45a; }
 .tm__sw--borg { --sw-bg: #050c07; --sw-ac: #2ee86c; border-color: color-mix(in srgb, var(--sw-ac) 70%, transparent);
   background: linear-gradient(90deg, transparent 34%, color-mix(in srgb, #d8a328 70%, transparent) 34% calc(34% + 1px), transparent 0), var(--sw-bg); }
 .tm__sw--borg::after { left: 50%; right: auto; top: 50%; bottom: auto; width: 9px; height: 9px; transform: translate(-50%, -50%); border-radius: 50%;
   background: radial-gradient(circle, var(--sw-ac) 0 1.8px, transparent 2.2px 3.2px, var(--sw-ac) 3.6px); }
-[data-theme="light"] .tm__sw--citadel { --sw-bg: #f8f0e2; --sw-ac: #b5541f; }
-[data-theme="light"] .tm__sw--lcars { --sw-bg: #f2e8d5; --sw-ac: #c25a17; }
-[data-theme="light"] .tm__sw--lcars::after { background: #b5541f; }
-[data-theme="light"] .tm__sw--lcars2 { --sw-bg: #f2e8d5; --sw-ac: #b5541f; }
-[data-theme="light"] .tm__sw--lcars2::after { background: #3d5a73; }
-[data-theme="light"] .tm__sw--borg { --sw-bg: #eef4f0; --sw-ac: #167a3e; }
+[data-mode="day"] .tm__sw--citadel { --sw-bg: #f8f0e2; --sw-ac: #b5541f; }
+[data-mode="day"] .tm__sw--lcars { --sw-bg: #f2e8d5; --sw-ac: #b5541f; }
+[data-mode="day"] .tm__sw--lcars::after { background: var(--sw-ac); }
+[data-mode="day"] .tm__sw--lcars25 { --sw-bg: #f2e8d5; --sw-ac: #b5541f; }
+[data-mode="day"] .tm__sw--lcars25::after { background: #3d5a73; }
+[data-mode="day"] .tm__sw--borg { --sw-bg: #eef4f0; --sw-ac: #167a3e; }
 
 /* ---- Gig radar → Booked: the quick form (field/input/check rules copied from settings.css, which isn't loaded here) ---- */
 .book { width: min(620px, calc(100vw - 32px)); padding: 22px 24px; color: var(--silver); background: var(--surface); border: 1px solid var(--edge-strong); }

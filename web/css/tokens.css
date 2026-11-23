@@ -68,7 +68,7 @@
 /* Light theme (Day) — parchment and three colours only: burnt orange (the accent), oxblood (Next gig's red, also
    "bad") and one cool counterpoint, slate blue (also "ok"/live). Inks are sepia browns. No green, and nothing pastel:
    the colours stay deep enough to read as ink on paper. Surfaces were ported from MusicDatabase's light theme. */
-:root[data-theme="light"] {
+:root[data-mode="day"] {
   /* surfaces — sun-bleached parchment, climbing toward clean paper as elevation rises */
   --bg:         #f2e8d5;
   --bg-2:       #f5ecdd;

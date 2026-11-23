@@ -291,7 +291,7 @@ function cssColour(token) {
 // The GoXLR has one scheme per theme, Night's, in Day too (Mike, 2026-11-23): read the tokens with the page switched to
 // Night for a moment (applySpec is synchronous, so nothing is painted in between); a custom theme's Night half applies.
 function themeLeds() {
-  const lc = document.documentElement.dataset.skin === 'lcars';
+  const lc = document.documentElement.dataset.family === 'lcars';
   const t = lc ? { frame: '--lc-1', soft: '--lc-2', alt: '--lc-3', warm: '--lc-5', attention: '--lc-7', alert: '--lc-red' }
     : { frame: '--accent', soft: '--accent-soft', alt: '--accent-hi', warm: '--silver', attention: '--warn', alert: '--bad' };
   const day = themeMode() === 'day';

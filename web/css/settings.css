@@ -217,7 +217,7 @@ select.input option { background: var(--surface-3); }
 /* LCARS's little picture: a rounded-left card with a lit edge */
 .tp--lcars .tp__card { border-radius: 10px 0 10px 10px; border-left: 3px solid var(--tp-accent); }
 .tp--lcars .tp__tick { width: 22%; height: 6px; border-radius: 3px; }
-.tp--lcars2 { box-shadow: inset 4px 0 0 var(--tp-accent), inset 0 4px 0 color-mix(in srgb, var(--tp-accent) 70%, transparent); }
+.tp--lcars25 { box-shadow: inset 4px 0 0 var(--tp-accent), inset 0 4px 0 color-mix(in srgb, var(--tp-accent) 70%, transparent); }
 /* Borg's little picture: orthogonal crosshair + concentric node ring on obsidian-emerald grid */
 .tp--borg { background-image:
   linear-gradient(90deg, transparent 22%, color-mix(in srgb, #d8a328 55%, transparent) 22% calc(22% + 1px), transparent 0),
@@ -251,9 +251,9 @@ select.input option { background: var(--surface-3); }
 .bgpick label.btn { cursor: pointer; }
 .bgpick .field__h { flex-basis: 100%; }
 /* Basic | Advanced: one form, two views; Advanced's skin-specific groups only for that skin */
-[data-form="theme"][data-view="basic"] .theme-adv, [data-form="theme"][data-view="advanced"] .theme-basic { display: none; }
-[data-form="theme"]:not([data-skin="lcars"]):not([data-skin="lcars2"]) .toks[data-only="lcars"],
-[data-form="theme"]:not([data-skin="borg"]) .toks[data-only="borg"] { display: none; }
+[data-form="style"][data-view="basic"] .theme-adv, [data-form="style"][data-view="advanced"] .theme-basic { display: none; }
+[data-form="style"]:not([data-family="lcars"]) .toks[data-only="lcars"],
+[data-form="style"]:not([data-family="borg"]) .toks[data-only="borg"] { display: none; }
 .theme-views { padding: 14px 0 0; align-items: center; }
 .theme-views .chip { cursor: pointer; }
 .theme-adv { display: grid; gap: 10px; margin-top: 16px; }

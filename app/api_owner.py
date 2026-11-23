@@ -288,9 +288,10 @@ async def get_config(request: Request):
         "devices": [{**d, "current": d["id"] == me} for d in auth.list_devices() if not d["revoked"]],
         "screens": state.tv_settings(), "tv_panels": list(schemas.TV_PANELS), "alerts": alerts.settings(), "navigation": navigation.for_settings(me),
         "icons": schemas.ICONS, "streams": {k: v["title"] for k, v in STREAMS.items()}, "colours": ["violet", "silver", "indigo"],
-        "appearance": {"themes": appearance.themes(), "skins": list(appearance.SKINS), "modes": list(appearance.MODES),
+        "appearance": {"styles": appearance.styles(), "migrated_presets": appearance.migrated_presets(),
+                       "themes": list(appearance.THEMES), "families": list(appearance.FAMILIES), "modes": list(appearance.MODES),
                        "base_panel": appearance.BASE_PANEL, "base_accent": appearance.BASE_ACCENT, "base": appearance.BASE,
-                       "presets": [{"id": k, **v} for k, v in appearance.PRESETS.items()],
+                       "builtin_styles": appearance.BUILTIN_STYLES,
                        "fits": list(appearance.FITS), "max_background_mb": appearance.MAX_BACKGROUND // 1_000_000},
     }
 
@@ -691,36 +692,36 @@ async def project_launchpad(slug: str, body: schemas.LaunchpadIn):
     return {"ok": True, "show_launchpad": body.show}
 
 
-# ---- appearance (custom themes, background pictures) ---------------------------------------------
+# ---- appearance (custom styles, background pictures) ---------------------------------------------
 
-@router.post("/appearance/themes", status_code=201)
-async def create_theme(body: dict[str, Any]):
+@router.post("/appearance/styles", status_code=201)
+async def create_style(body: dict[str, Any]):
     try:
-        theme = appearance.save_theme(body)
+        style = appearance.save_style(body)
     except appearance.AppearanceError as exc:
         raise HTTPException(422, str(exc).capitalize())
     notify.config()
-    return theme
+    return style
 
 
-@router.put("/appearance/themes/{theme_id}")
-async def update_theme(theme_id: str, body: dict[str, Any]):
+@router.put("/appearance/styles/{style_id}")
+async def update_style(style_id: str, body: dict[str, Any]):
     try:
-        theme = appearance.save_theme(body, theme_id)
+        style = appearance.save_style(body, style_id)
     except LookupError:
-        raise HTTPException(404, "no such theme")
+        raise HTTPException(404, "no such style")
     except appearance.AppearanceError as exc:
         raise HTTPException(422, str(exc).capitalize())
     notify.config()
-    return theme
+    return style
 
 
-@router.delete("/appearance/themes/{theme_id}")
-async def remove_theme(theme_id: str):
+@router.delete("/appearance/styles/{style_id}")
+async def remove_style(style_id: str):
     try:
-        appearance.delete_theme(theme_id)
+        appearance.delete_style(style_id)
     except LookupError:
-        raise HTTPException(404, "no such theme")
+        raise HTTPException(404, "no such style")
     notify.config()
     return {"ok": True}
 

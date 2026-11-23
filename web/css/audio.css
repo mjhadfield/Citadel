@@ -6,7 +6,7 @@
 
 #view-audio.is-active { display: block; }
 .ax { --ax-c: var(--accent); --ax-on: var(--bg); display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--gap); }   /* minmax: the tabs row scrolls, never widens the page */
-html[data-skin="lcars"] .ax .card { --ax-c: var(--lc-c); --ax-on: var(--lc-on); }
+html[data-family="lcars"] .ax .card { --ax-c: var(--lc-c); --ax-on: var(--lc-on); }
 .ax .card__body { padding: 12px 16px 16px; min-width: 0; }
 /* the fixed 1080p/1440p layout doesn't scroll the page (dashboard.css), so the page body scrolls under the header */
 @media (min-width: 1800px) and (min-height: 860px) {
@@ -210,50 +210,50 @@ html[data-skin="lcars"] .ax .card { --ax-c: var(--lc-c); --ax-on: var(--lc-on); 
 }
 
 /* ==== LCARS ==== */
-html[data-skin="lcars"] .ax-head h2 { font: 500 34px/1 var(--lc-font); letter-spacing: .08em; color: var(--lc-frame); }
-html[data-skin="lcars"] .ax-sub, html[data-skin="lcars"] .ax-pick, html[data-skin="lcars"] .ax-util { font: 400 14px var(--lc-font); letter-spacing: .1em; }
-html[data-skin="lcars"] .ax-save { height: 32px; border: 0; border-radius: 16px; padding: 0 14px; font: 500 15px/1 var(--lc-font); letter-spacing: .08em;
+html[data-family="lcars"] .ax-head h2 { font: 500 34px/1 var(--lc-font); letter-spacing: .08em; color: var(--lc-frame); }
+html[data-family="lcars"] .ax-sub, html[data-family="lcars"] .ax-pick, html[data-family="lcars"] .ax-util { font: 400 14px var(--lc-font); letter-spacing: .1em; }
+html[data-family="lcars"] .ax-save { height: 32px; border: 0; border-radius: 16px; padding: 0 14px; font: 500 15px/1 var(--lc-font); letter-spacing: .08em;
   background: color-mix(in srgb, var(--lc-frame) 14%, var(--surface)); }
-html[data-skin="lcars"] .ax-save.is-unsaved { color: var(--lc-on); background: var(--lc-7); }
-html[data-skin="lcars"] .ax-pick select { height: 32px; border-radius: 16px; padding-left: 14px; font: 500 15px var(--lc-font); letter-spacing: .06em; text-transform: uppercase; }
-html[data-skin="lcars"] .ax-lab { font: 500 15px/1 var(--lc-font); letter-spacing: .16em; color: var(--ax-c); }
-html[data-skin="lcars"] .ax-lab::before { content: none; }
-html[data-skin="lcars"] .ax-lab::after { content: ""; order: 1; flex: 1; min-width: 24px; height: 6px; border-radius: 0 3px 3px 0; background: color-mix(in srgb, var(--ax-c) 40%, transparent); }
-html[data-skin="lcars"] .ax-lab > :last-child:not(:first-child) { order: 2; margin-left: 0; }
-html[data-skin="lcars"] .ax-sw { height: 30px; border-radius: 15px; border-width: 0; padding: 0 14px 0 10px; font: 500 14px var(--lc-font); letter-spacing: .1em; background: color-mix(in srgb, var(--ax-c) 14%, var(--surface)); }
-html[data-skin="lcars"] .ax-sw[aria-pressed="true"] { color: var(--ax-on); background: var(--ax-c); }
-html[data-skin="lcars"] .ax-sw[aria-pressed="true"]::before { background: var(--ax-on); border-color: var(--ax-on); box-shadow: none; }
-html[data-skin="lcars"] .ax-strip { border: 0; border-left: 6px solid var(--ax-c); border-radius: 18px 4px 4px 18px; background: color-mix(in srgb, var(--ax-c) 8%, var(--surface)); }
-html[data-skin="lcars"] .ax-key { border-radius: 10px; font: 500 13px/1 var(--lc-font); letter-spacing: .06em; }
-html[data-skin="lcars"] .ax-name { font: 500 16px/1 var(--lc-font); letter-spacing: .1em; }
-html[data-skin="lcars"] .ax-pct { font: 400 20px/1 var(--lc-font); letter-spacing: .04em; }
-html[data-skin="lcars"] .ax-mtype { font: 400 12px var(--lc-font); letter-spacing: .1em; }
-html[data-skin="lcars"] .ax-sl__rail { border-radius: 2px; box-shadow: none; background: color-mix(in srgb, var(--ax-c) 14%, var(--well)); }
-html[data-skin="lcars"] .ax-sl__thumb { border-radius: 4px; background: var(--lc-7); }
-html[data-skin="lcars"] .ax-mute, html[data-skin="lcars"] .ax-cough { border: 0; border-radius: 15px; font: 500 14px var(--lc-font); letter-spacing: .12em; background: color-mix(in srgb, var(--ax-c) 18%, var(--surface)); }
-html[data-skin="lcars"] .ax-cough { border-radius: 18px 4px 4px 18px; }
-html[data-skin="lcars"] .ax-mute[aria-pressed="true"], html[data-skin="lcars"] .ax-cough[aria-pressed="true"] { color: var(--lc-on); background: var(--lc-red); }
-html[data-skin="lcars"] .ax-link { border-radius: 10px; }
-html[data-skin="lcars"] .ax-rt__h, html[data-skin="lcars"] .ax-rt__r { font: 500 14px/1.1 var(--lc-font); letter-spacing: .08em; }
-html[data-skin="lcars"] .ax-rt__h { font-size: 13px; }
-html[data-skin="lcars"] .ax-rc { border: 0; border-radius: 14px; background: color-mix(in srgb, var(--ax-c) 10%, var(--surface)); }
-html[data-skin="lcars"] .ax-rc:hover { background: color-mix(in srgb, var(--ax-c) 28%, var(--surface)); }
-html[data-skin="lcars"] .ax-rc[aria-pressed="true"] { background: var(--ax-c); }
-html[data-skin="lcars"] .ax-pre button { border: 0; border-radius: 17px 4px 4px 17px; font: 500 15px var(--lc-font); letter-spacing: .08em; text-transform: uppercase; background: color-mix(in srgb, var(--ax-c) 10%, var(--surface)); }
-html[data-skin="lcars"] .ax-pre button .ax-key { border-radius: 17px 0 0 17px; height: 34px; min-width: 34px; background: color-mix(in srgb, var(--ax-c) 30%, var(--surface)); color: var(--silver-hi); }
-html[data-skin="lcars"] .ax-pre button[aria-pressed="true"] { color: var(--ax-on); background: var(--ax-c); }
-html[data-skin="lcars"] .ax-pre button[aria-pressed="true"] .ax-key { background: var(--lc-7); color: var(--lc-on); }
-html[data-skin="lcars"] .ax-rows > span { font: 400 14px var(--lc-font); letter-spacing: .1em; }
-html[data-skin="lcars"] .ax-rows output, html[data-skin="lcars"] .ax-eq__b output { font: 400 16px var(--lc-font); }
-html[data-skin="lcars"] .ax-eq__b small { font: 400 13px var(--lc-font); letter-spacing: .04em; }
-html[data-skin="lcars"] .ax-meter { border-radius: 2px 6px 6px 2px; box-shadow: none; background: color-mix(in srgb, var(--ax-c) 12%, var(--well)); }
-html[data-skin="lcars"] .ax-meter i { background: repeating-linear-gradient(90deg, var(--ax-c) 0 9px, transparent 9px 12px); }
-html[data-skin="lcars"] .ax-pad { border: 0; border-left: 6px solid var(--ax-c); border-radius: 18px 4px 4px 18px; background: color-mix(in srgb, var(--ax-c) 8%, var(--surface)); }
-html[data-skin="lcars"] .ax-pad b { font: 500 17px var(--lc-font); letter-spacing: .1em; }
-html[data-skin="lcars"] .ax-pad small { font: 400 13px var(--lc-font); letter-spacing: .06em; }
-html[data-skin="lcars"] .ax-pad.is-playing { background: color-mix(in srgb, var(--ax-c) 26%, var(--surface)); }
-html[data-skin="lcars"] .ax-down { border: 0; border-left: 6px solid var(--warn); border-radius: 18px 4px 4px 18px; font: 500 17px var(--lc-font); letter-spacing: .08em; text-transform: uppercase; }
-html[data-skin="lcars"][data-theme="light"] .ax-sl__thumb { background: var(--silver-hi); }
+html[data-family="lcars"] .ax-save.is-unsaved { color: var(--lc-on); background: var(--lc-7); }
+html[data-family="lcars"] .ax-pick select { height: 32px; border-radius: 16px; padding-left: 14px; font: 500 15px var(--lc-font); letter-spacing: .06em; text-transform: uppercase; }
+html[data-family="lcars"] .ax-lab { font: 500 15px/1 var(--lc-font); letter-spacing: .16em; color: var(--ax-c); }
+html[data-family="lcars"] .ax-lab::before { content: none; }
+html[data-family="lcars"] .ax-lab::after { content: ""; order: 1; flex: 1; min-width: 24px; height: 6px; border-radius: 0 3px 3px 0; background: color-mix(in srgb, var(--ax-c) 40%, transparent); }
+html[data-family="lcars"] .ax-lab > :last-child:not(:first-child) { order: 2; margin-left: 0; }
+html[data-family="lcars"] .ax-sw { height: 30px; border-radius: 15px; border-width: 0; padding: 0 14px 0 10px; font: 500 14px var(--lc-font); letter-spacing: .1em; background: color-mix(in srgb, var(--ax-c) 14%, var(--surface)); }
+html[data-family="lcars"] .ax-sw[aria-pressed="true"] { color: var(--ax-on); background: var(--ax-c); }
+html[data-family="lcars"] .ax-sw[aria-pressed="true"]::before { background: var(--ax-on); border-color: var(--ax-on); box-shadow: none; }
+html[data-family="lcars"] .ax-strip { border: 0; border-left: 6px solid var(--ax-c); border-radius: 18px 4px 4px 18px; background: color-mix(in srgb, var(--ax-c) 8%, var(--surface)); }
+html[data-family="lcars"] .ax-key { border-radius: 10px; font: 500 13px/1 var(--lc-font); letter-spacing: .06em; }
+html[data-family="lcars"] .ax-name { font: 500 16px/1 var(--lc-font); letter-spacing: .1em; }
+html[data-family="lcars"] .ax-pct { font: 400 20px/1 var(--lc-font); letter-spacing: .04em; }
+html[data-family="lcars"] .ax-mtype { font: 400 12px var(--lc-font); letter-spacing: .1em; }
+html[data-family="lcars"] .ax-sl__rail { border-radius: 2px; box-shadow: none; background: color-mix(in srgb, var(--ax-c) 14%, var(--well)); }
+html[data-family="lcars"] .ax-sl__thumb { border-radius: 4px; background: var(--lc-7); }
+html[data-family="lcars"] .ax-mute, html[data-family="lcars"] .ax-cough { border: 0; border-radius: 15px; font: 500 14px var(--lc-font); letter-spacing: .12em; background: color-mix(in srgb, var(--ax-c) 18%, var(--surface)); }
+html[data-family="lcars"] .ax-cough { border-radius: 18px 4px 4px 18px; }
+html[data-family="lcars"] .ax-mute[aria-pressed="true"], html[data-family="lcars"] .ax-cough[aria-pressed="true"] { color: var(--lc-on); background: var(--lc-red); }
+html[data-family="lcars"] .ax-link { border-radius: 10px; }
+html[data-family="lcars"] .ax-rt__h, html[data-family="lcars"] .ax-rt__r { font: 500 14px/1.1 var(--lc-font); letter-spacing: .08em; }
+html[data-family="lcars"] .ax-rt__h { font-size: 13px; }
+html[data-family="lcars"] .ax-rc { border: 0; border-radius: 14px; background: color-mix(in srgb, var(--ax-c) 10%, var(--surface)); }
+html[data-family="lcars"] .ax-rc:hover { background: color-mix(in srgb, var(--ax-c) 28%, var(--surface)); }
+html[data-family="lcars"] .ax-rc[aria-pressed="true"] { background: var(--ax-c); }
+html[data-family="lcars"] .ax-pre button { border: 0; border-radius: 17px 4px 4px 17px; font: 500 15px var(--lc-font); letter-spacing: .08em; text-transform: uppercase; background: color-mix(in srgb, var(--ax-c) 10%, var(--surface)); }
+html[data-family="lcars"] .ax-pre button .ax-key { border-radius: 17px 0 0 17px; height: 34px; min-width: 34px; background: color-mix(in srgb, var(--ax-c) 30%, var(--surface)); color: var(--silver-hi); }
+html[data-family="lcars"] .ax-pre button[aria-pressed="true"] { color: var(--ax-on); background: var(--ax-c); }
+html[data-family="lcars"] .ax-pre button[aria-pressed="true"] .ax-key { background: var(--lc-7); color: var(--lc-on); }
+html[data-family="lcars"] .ax-rows > span { font: 400 14px var(--lc-font); letter-spacing: .1em; }
+html[data-family="lcars"] .ax-rows output, html[data-family="lcars"] .ax-eq__b output { font: 400 16px var(--lc-font); }
+html[data-family="lcars"] .ax-eq__b small { font: 400 13px var(--lc-font); letter-spacing: .04em; }
+html[data-family="lcars"] .ax-meter { border-radius: 2px 6px 6px 2px; box-shadow: none; background: color-mix(in srgb, var(--ax-c) 12%, var(--well)); }
+html[data-family="lcars"] .ax-meter i { background: repeating-linear-gradient(90deg, var(--ax-c) 0 9px, transparent 9px 12px); }
+html[data-family="lcars"] .ax-pad { border: 0; border-left: 6px solid var(--ax-c); border-radius: 18px 4px 4px 18px; background: color-mix(in srgb, var(--ax-c) 8%, var(--surface)); }
+html[data-family="lcars"] .ax-pad b { font: 500 17px var(--lc-font); letter-spacing: .1em; }
+html[data-family="lcars"] .ax-pad small { font: 400 13px var(--lc-font); letter-spacing: .06em; }
+html[data-family="lcars"] .ax-pad.is-playing { background: color-mix(in srgb, var(--ax-c) 26%, var(--surface)); }
+html[data-family="lcars"] .ax-down { border: 0; border-left: 6px solid var(--warn); border-radius: 18px 4px 4px 18px; font: 500 17px var(--lc-font); letter-spacing: .08em; text-transform: uppercase; }
+html[data-family="lcars"][data-mode="day"] .ax-sl__thumb { background: var(--silver-hi); }
 .ax-hr { display: inline-flex; align-items: center; gap: 10px; margin-left: auto; }
 
 /* ==== Lighting tab (session 4, Mike signed the mockup off 2026-11-23) ====
@@ -305,9 +305,9 @@ html[data-skin="lcars"][data-theme="light"] .ax-sl__thumb { background: var(--si
   .ax-cols > .ax-chips { grid-column: 2 / -1; margin-bottom: 4px; }
 }
 
-html[data-skin="lcars"] .ax-part__name { font: 500 22px/1.1 var(--lc-font); letter-spacing: .08em; text-transform: uppercase; color: var(--ax-c); }
-html[data-skin="lcars"] .ax-part__name small { font: 400 15px var(--lc-font); }
-html[data-skin="lcars"] .ax-cols > .ax-col__l, html[data-skin="lcars"] .ax-dev__hint { font: 400 14px var(--lc-font); letter-spacing: .1em; }
-html[data-skin="lcars"] .ax-col__sw { border: 0; border-radius: 14px 4px 4px 14px; }
-html[data-skin="lcars"] .ax-col__hex { border-radius: 4px; font: 400 16px var(--lc-font); letter-spacing: .08em; }
-html[data-skin="lcars"] .ax-dev svg text { font-family: var(--lc-font); }
+html[data-family="lcars"] .ax-part__name { font: 500 22px/1.1 var(--lc-font); letter-spacing: .08em; text-transform: uppercase; color: var(--ax-c); }
+html[data-family="lcars"] .ax-part__name small { font: 400 15px var(--lc-font); }
+html[data-family="lcars"] .ax-cols > .ax-col__l, html[data-family="lcars"] .ax-dev__hint { font: 400 14px var(--lc-font); letter-spacing: .1em; }
+html[data-family="lcars"] .ax-col__sw { border: 0; border-radius: 14px 4px 4px 14px; }
+html[data-family="lcars"] .ax-col__hex { border-radius: 4px; font: 400 16px var(--lc-font); letter-spacing: .08em; }
+html[data-family="lcars"] .ax-dev svg text { font-family: var(--lc-font); }
