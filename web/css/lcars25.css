@@ -1177,6 +1177,88 @@ html[data-family="lcars"][data-theme="lcars25"] .log {
   border: 1px solid var(--edge);
 }
 
+/* ---- Section tabs (.mtabs), segmented switches (.seg) & Audio (GoXLR) controls -------------
+   Match LCARS 25's symmetrical 4px Tactical Deck key-pad language instead of classic LCARS
+   full-pill buttons and curved 18px left-bracket strips. */
+html[data-family="lcars"][data-theme="lcars25"] .mtabs button {
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--lc-t) 28%, var(--edge));
+  border-top: 2px solid var(--lc-t);
+  padding: 0 13px 0 10px;
+}
+html[data-family="lcars"][data-theme="lcars25"] .mtabs button[aria-pressed="true"] {
+  border-color: var(--lc-t);
+}
+
+html[data-family="lcars"][data-theme="lcars25"] .seg {
+  gap: 4px;
+}
+html[data-family="lcars"][data-theme="lcars25"] .seg button,
+html[data-family="lcars"][data-theme="lcars25"] .seg button:first-child,
+html[data-family="lcars"][data-theme="lcars25"] .seg button:last-child {
+  border-radius: 4px;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--lc-frame) 26%, var(--edge));
+}
+html[data-family="lcars"][data-theme="lcars25"] .seg button[aria-pressed="true"] {
+  border-color: var(--lc-frame);
+}
+
+html[data-family="lcars"][data-theme="lcars25"] .ax-save,
+html[data-family="lcars"][data-theme="lcars25"] .ax-pick select,
+html[data-family="lcars"][data-theme="lcars25"] .ax-sw,
+html[data-family="lcars"][data-theme="lcars25"] .ax-mute,
+html[data-family="lcars"][data-theme="lcars25"] .ax-cough,
+html[data-family="lcars"][data-theme="lcars25"] .ax-link,
+html[data-family="lcars"][data-theme="lcars25"] .ax-rc,
+html[data-family="lcars"][data-theme="lcars25"] .ax-col__sw {
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--ax-c, var(--lc-frame)) 28%, var(--edge));
+}
+html[data-family="lcars"][data-theme="lcars25"] .ax-sw[aria-pressed="true"],
+html[data-family="lcars"][data-theme="lcars25"] .ax-rc[aria-pressed="true"] {
+  border-color: var(--ax-c);
+}
+html[data-family="lcars"][data-theme="lcars25"] .ax-mute[aria-pressed="true"],
+html[data-family="lcars"][data-theme="lcars25"] .ax-cough[aria-pressed="true"] {
+  border-color: var(--lc-red);
+}
+html[data-family="lcars"][data-theme="lcars25"] .ax-save.is-unsaved {
+  border-color: var(--lc-7);
+}
+html[data-family="lcars"][data-theme="lcars25"] .ax-lab::after {
+  height: 3px;
+  border-radius: 2px;
+}
+html[data-family="lcars"][data-theme="lcars25"] .ax-strip,
+html[data-family="lcars"][data-theme="lcars25"] .ax-pad {
+  border: 1px solid color-mix(in srgb, var(--ax-c) 24%, var(--edge));
+  border-top: 2px solid var(--ax-c);
+  border-radius: 4px;
+}
+html[data-family="lcars"][data-theme="lcars25"] .ax-down {
+  border: 1px solid color-mix(in srgb, var(--warn) 35%, var(--edge));
+  border-top: 2px solid var(--warn);
+  border-radius: 4px;
+}
+html[data-family="lcars"][data-theme="lcars25"] .ax-key {
+  border-radius: 3px;
+}
+html[data-family="lcars"][data-theme="lcars25"] .ax-pre button {
+  border: 1px solid color-mix(in srgb, var(--ax-c) 26%, var(--edge));
+  border-radius: 4px;
+  overflow: hidden;
+}
+html[data-family="lcars"][data-theme="lcars25"] .ax-pre button .ax-key {
+  border-radius: 0;
+}
+html[data-family="lcars"][data-theme="lcars25"] .ax-pre button[aria-pressed="true"] {
+  border-color: var(--ax-c);
+}
+html[data-family="lcars"][data-theme="lcars25"] .ax-meter {
+  border-radius: 2px;
+}
+
 /* ---- Phone polish (never overflow horizontally) ------------------------- */
 @media (max-width: 760px) {
   html[data-family="lcars"][data-theme="lcars25"] #grid > .card:not(.is-max) .card__head {
