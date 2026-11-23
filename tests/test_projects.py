@@ -62,7 +62,7 @@ def test_seeded_projects_and_links_exist(owner_client):
     assert spotify["lan_visible"] is False
     # {ip} is filled in server-side; {host} is left for the browser
     star = next(p for p in s["projects"] if p["slug"] == "star-epr")
-    assert "{ip}" not in star["url"] and star["url"].endswith(":5173/StarEPR/")
+    assert "{ip}" not in star["url"] and star["url"] == "http://{host}:8690/"   # StarLab LIMS (ports, Mike 2026-11-19)
 
 
 def test_unknown_project_is_404(owner_client):
