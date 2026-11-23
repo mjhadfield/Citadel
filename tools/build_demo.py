@@ -55,6 +55,7 @@ NOT_HERE = {
     "ai": ("spark", "Odysseus is an LLM container running locally"),
     "house": ("tool", "This is too sensitive to share online"),
     "labels": ("printer", "ZebraLab is my local thermal label designer and postage printer."),
+    "holodeck": ("gamepad", "Holodeck is my local retro games library and browser emulator."),
     "curate": ("tag", "Curate is Music Companion's private maintenance tool on my home network."),
 }
 # Behind each "not available" notice: a screenshot of the real page, blurred past reading. The originals are Mike's own

@@ -207,6 +207,7 @@ function tellFrames() {
   if (aiSrcSet && aiOrigin) aiFrame.contentWindow?.postMessage(look, aiOrigin);
   if (houseSrcSet && houseOrigin) houseFrame.contentWindow?.postMessage(look, houseOrigin);
   if (labelsSrcSet && labelsOrigin) labelsFrame.contentWindow?.postMessage(look, labelsOrigin);
+  if (holodeckSrcSet && holodeckOrigin) holodeckFrame.contentWindow?.postMessage(look, holodeckOrigin);
   if (curateSrcSet) curateFrame.contentWindow?.postMessage(look, maintenanceOrigin());
 }
 musicFrame.addEventListener('load', tellFrames);
@@ -279,6 +280,31 @@ function setLabelsSrc() {
   labelsSrcSet = true;
 }
 labelsFrame.addEventListener('load', tellFrames);
+
+// And for the Holodeck page (retro games emulator, a link). Follows Citadel's theme like Labels.
+// When Citadel itself is opened on loopback (127.0.0.1 / localhost on Gaming) and the link points at Gaming's
+// LAN address, rewrite the frame host to loopback too so browsers treat the iframe as a secure context and
+// allow the Gamepad API (controllers).
+const holodeckFrame = $('#holodeck-frame');
+let holodeckSrcSet = false, holodeckOrigin = null;
+function setHolodeckSrc() {
+  if (holodeckSrcSet) return;
+  const link = state.links.find(l => l.for_holodeck);
+  if (!link) return;
+  let url = link.url;
+  try {
+    const parsed = new URL(url);
+    if ((location.hostname === '127.0.0.1' || location.hostname === 'localhost') && state.ip && parsed.hostname === state.ip) {
+      parsed.hostname = location.hostname;
+      url = parsed.toString();
+    }
+    holodeckOrigin = parsed.origin;
+  } catch { holodeckOrigin = null; }
+  const sep = url.includes('?') ? '&' : '?';
+  holodeckFrame.src = `${url}${sep}citadel_theme=${currentTheme()}`;
+  holodeckSrcSet = true;
+}
+holodeckFrame.addEventListener('load', tellFrames);
 
 // And for the Casino page (Casino World, a link). A Godot game with its own look, so no theme hand-off.
 const casinoFrame = $('#casino-frame');
@@ -422,6 +448,7 @@ function renderAll() {
   setAiSrc();
   setHouseSrc();
   setLabelsSrc();
+  setHolodeckSrc();
   setCasinoSrc();
   setCurateSrc();
   renderNav(state.navigation);
@@ -444,11 +471,11 @@ async function pollMonitoring() {
 }
 
 // ---- view router (Home / News / Media / Companion / SQL DB / Music / Casino / Odysseus / House / Stats) --------------------------------------------------------------
-const VIEWS = ['home', 'news', 'media', 'music', 'sql', 'listen', 'casino', 'ai', 'house', 'labels', 'stats', 'curate', 'audio', 'settings'];
+const VIEWS = ['home', 'news', 'media', 'music', 'sql', 'listen', 'casino', 'ai', 'house', 'labels', 'holodeck', 'stats', 'curate', 'audio', 'settings'];
 // While an embedded page is showing, the phone keyboard shrinks the screen (interactive-widget=resizes-content) rather
 // than sliding over it, so the pinned page (dashboard.css, .main:has(...)) ends just above the keyboard and a chat box
 // at the bottom of it stays visible. Only on those pages: Home, News and Music keep the browser's default.
-const FRAME_VIEWS = ['media', 'music', 'sql', 'casino', 'ai', 'house', 'labels', 'curate', 'settings'];
+const FRAME_VIEWS = ['media', 'music', 'sql', 'casino', 'ai', 'house', 'labels', 'holodeck', 'curate', 'settings'];
 const viewportMeta = $('meta[name="viewport"]');
 const VIEWPORT = viewportMeta.content;
 // Settings opens inside the dashboard, framed like the embedded pages (it's Citadel's own page, same origin). It loads
