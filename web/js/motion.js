@@ -233,7 +233,14 @@ function pickBar() {
   const options = [[document.querySelector('.top'), 'head'], [document.querySelector('.view.is-active'), 'body']].filter(([h]) => h);
   if (!options.length) return {};
   const [host, which] = options[Math.floor(Math.random() * options.length)];
-  return { bar: overlay(host, which), segs: SEGS[which] };
+  const bar = overlay(host, which);
+  if (bar && which === 'head' && document.documentElement.dataset.theme === 'lcars25') {
+    // LCARS 25's header arm (lcars25.css --lcb-arm-segs): percentages, except its last run, a fixed --lcb-lip
+    const w = bar.offsetWidth, lip = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--lcb-lip')) || 64;
+    const p = Math.max(44, (w - lip - 5) / w * 100);
+    return { bar, segs: [[0, 5], [5, 40], [40, 43], [43, p], [p, 100]] };
+  }
+  return { bar, segs: SEGS[which] };
 }
 function segment(bar, [a, b], gap = 5) {
   const s = document.createElement('span');

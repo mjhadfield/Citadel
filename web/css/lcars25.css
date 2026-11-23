@@ -23,11 +23,33 @@
 @media (min-width: 761px) {
   html[data-family="lcars"][data-theme="lcars25"] {
     --lcb-rail: 162px;
-    --lcb-beam: 28px;
-    --lcb-deck: 34px;
+    --lcb-arm: 10px;        /* the thin bar the Home corner throws across the top */
+    --lcb-deck: 34px;       /* the page's own row under it */
     --lcb-gap: 6px;
     --lcb-pad-top: 10px;
-    --lcb-core-h: calc(var(--lcb-beam) + var(--lcb-gap) + var(--lcb-deck));
+    --lcb-core-h: 56px;     /* Home corner and Citadel corner share this height */
+    --lcb-r: 32px;          /* their outer radius */
+    --lcb-cap-w: 140px;
+    --lcb-fil: 16px;        /* the concave fillet under the arm at each corner */
+    --lcb-lip: 64px;        /* the arm's last run, flush into the Citadel corner */
+    --lcb-row-inset: 20px;  /* the row's space either side: Home corner → row, row → start of the arm's last run */
+    --lcb-elb: var(--lc-hd-frame);   /* the elbow (Home corner + the start of the arm); amber while on Home */
+    --lcb-arm-segs: linear-gradient(90deg,
+      var(--lcb-elb) 0 5%, transparent 5% calc(5% + 5px),
+      color-mix(in srgb, var(--lc-hd-frame) 45%, transparent) calc(5% + 5px) 40%, transparent 40% calc(40% + 5px),
+      var(--lc-3) calc(40% + 5px) 43%, transparent 43% calc(43% + 5px),
+      var(--lc-hd-2) calc(43% + 5px) calc(100% - var(--lcb-lip) - 5px), transparent calc(100% - var(--lcb-lip) - 5px) calc(100% - var(--lcb-lip)),
+      var(--lc-hd-frame) calc(100% - var(--lcb-lip)) 100%);
+  }
+  html[data-family="lcars"][data-theme="lcars25"][data-page="home"] { --lcb-elb: var(--lc-7); }
+  /* Day: solid colours only (parchment + three colours rule) */
+  html[data-family="lcars"][data-theme="lcars25"][data-mode="day"] {
+    --lcb-arm-segs: linear-gradient(90deg,
+      var(--lcb-elb) 0 5%, transparent 5% calc(5% + 5px),
+      var(--lc-frame) calc(5% + 5px) 40%, transparent 40% calc(40% + 5px),
+      var(--lc-3) calc(40% + 5px) 43%, transparent 43% calc(43% + 5px),
+      var(--lc-5) calc(43% + 5px) calc(100% - var(--lcb-lip) - 5px), transparent calc(100% - var(--lcb-lip) - 5px) calc(100% - var(--lcb-lip)),
+      var(--lc-frame) calc(100% - var(--lcb-lip)) 100%);
   }
 
   html[data-family="lcars"][data-theme="lcars25"] .shell {
@@ -40,60 +62,61 @@
     padding: var(--lcb-pad-top) var(--main-pr) 16px var(--main-pl);
   }
 
-  /* ---- Dual-tier bridge header (.top) -----------------------------------
-     Row 1 (28px): equal-sized volume blocks | recessed telemetry trough | Owner badge | Citadel end-cap
-     Row 2 (34px): Bookmarks (or Music player) on left | Day + Style on right
-     Row 3 (auto): Reminders strip when active
-     .top__right uses display: contents so #vol-group, #vol-bar, #look-group,
-     #style-bar and .badge-role join the grid directly and keep .top as their
-     offsetParent for flush dropdown placement (volume.js / app.js placeDrop). */
+  /* ---- Header: one elbow, one row (Mike chose concept B, 2026-11-23) ----------------------------------
+     The Home corner (rail) throws a thin arm (.top::after) across the top into the Citadel corner (.top__brand),
+     the Home corner mirrored: same height, same outer radius, a concave fillet under the arm at each end
+     (Home's is its own ::after, Citadel's is .top::before). Between them sits one row that is all the page's:
+       Home      bookmarks + the readout
+       Music     page name + the player
+       framed    page name + where it comes from + Reload / New tab + bookmarks
+       others    page name + bookmarks
+     The always-there controls (GoXLR volumes, Day/Night, Theme) live in the rail's corner console under Home
+     (app.js placeLcars moves #vol-group and #look-group into .rail__console). The reminders stay a row underneath.
+     .top__right is display: contents so .badge-role joins the grid and sits in the Citadel corner; drop-downs still
+     hang from their buttons, wherever those are (placeDrop / volume.js measure them). */
   html[data-family="lcars"][data-theme="lcars25"] .top {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto auto;
-    grid-template-rows: var(--lcb-beam) var(--lcb-deck) auto;
-    column-gap: 5px;
-    row-gap: var(--lcb-gap);
-    align-items: stretch;
-    padding: 0 0 4px;
-    margin: 0 0 8px;
+    grid-template-columns: auto minmax(0, 1fr) var(--lcb-cap-w);
+    grid-template-rows: var(--lcb-arm) calc(var(--lcb-core-h) - var(--lcb-arm)) auto;
+    column-gap: 10px;
+    row-gap: 0;
+    align-items: center;
+    padding: 0 0 0 calc(var(--lcb-row-inset) - var(--main-pl));   /* .top starts --main-pl after the Home corner */
+    margin: 0 0 6px;
     position: relative;
   }
 
-  /* Structural fallback beam across Row 1 behind the readout (stays visible on
-     non-Home pages and narrow screens where #readout is hidden). */
-  html[data-family="lcars"][data-theme="lcars25"] .top::before {
-    content: "";
-    position: static;
-    grid-column: 2;
-    grid-row: 1;
-    width: auto;
-    height: var(--lcb-beam);
-    border: 0;
-    border-radius: 3px;
-    pointer-events: none;
-    background: color-mix(in srgb, var(--surface-2) 78%, var(--bg));
-    border-top: 2px solid var(--lc-3);
-    border-bottom: 1px solid color-mix(in srgb, var(--lc-3) 32%, transparent);
-    z-index: 0;
-  }
-
-  /* Action deck bottom hairline with two short LCARS colour runs at the right */
+  /* The arm: segmented, the elbow's colour at the start and the Citadel corner's at the end, flush with both.
+     Its segment edges are motion.js SEGS.head25, so the ambient lights stay inside one segment. */
   html[data-family="lcars"][data-theme="lcars25"] .top::after {
     content: "";
     position: absolute;
-    left: 0;
-    right: 0;
-    top: calc(var(--lcb-core-h) + 2px);
+    left: calc(-1 * var(--main-pl) - 2px);   /* 2px under each corner: no hairline at the joins under the 1.2 zoom */
+    right: calc(var(--lcb-cap-w) - 2px);
+    top: 0;
     bottom: auto;
-    height: 2px;
-    border-radius: 1px;
+    width: auto;
+    height: var(--lcb-arm);
+    border: 0;
+    border-radius: 0;
     pointer-events: none;
-    background: linear-gradient(90deg,
-      color-mix(in srgb, var(--lc-frame) 48%, transparent) 0 calc(100% - 148px),
-      transparent calc(100% - 148px) calc(100% - 142px),
-      var(--lc-5) calc(100% - 142px) calc(100% - 82px),
-      transparent calc(100% - 82px) calc(100% - 76px),
-      var(--lc-2) calc(100% - 76px));
+    background: var(--lcb-arm-segs);
+  }
+
+  /* Concave fillet where the arm meets the Citadel corner */
+  html[data-family="lcars"][data-theme="lcars25"] .top::before {
+    content: "";
+    position: absolute;
+    left: auto;
+    right: calc(var(--lcb-cap-w) - 1px);
+    top: calc(var(--lcb-arm) - 1px);
+    bottom: auto;
+    width: var(--lcb-fil);
+    height: var(--lcb-fil);
+    border: 0;
+    border-radius: 0;
+    pointer-events: none;
+    background: radial-gradient(circle at 0% 100%, transparent calc(var(--lcb-fil) - .5px), var(--lc-hd-frame) var(--lcb-fil));
   }
 
   html[data-family="lcars"][data-theme="lcars25"] .top__right {
@@ -104,165 +127,96 @@
     display: none;
   }
 
-  /* Row 1, Col 1: Equal-sized GoXLR volume blocks with bottom-up level fills */
-  html[data-family="lcars"][data-theme="lcars25"] .vol-group {
-    grid-column: 1;
-    grid-row: 1;
-    display: inline-flex;
-    align-items: stretch;
-    gap: 4px;
-    height: var(--lcb-beam);
-  }
-  html[data-family="lcars"][data-theme="lcars25"] .vol-group[hidden] {
+  /* Before app.js has moved them into the rail, the console's controls stay out of the header row */
+  html[data-family="lcars"][data-theme="lcars25"] .top__right > .vol-group,
+  html[data-family="lcars"][data-theme="lcars25"] .top__right > .look-group {
     display: none;
   }
-  html[data-family="lcars"][data-theme="lcars25"] .vol-btn {
-    width: 44px;
-    height: var(--lcb-beam);
-    border-radius: 4px;
-    padding: 0;
-    clip-path: none;
-    border: 0;
-    background: color-mix(in srgb, var(--lc-c) 18%, var(--surface-2));
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lc-c) 48%, transparent);
-    --vol-fill: color-mix(in srgb, var(--lc-c) 68%, transparent);
-    color: var(--silver-hi);
-  }
-  html[data-family="lcars"][data-theme="lcars25"] .vol-btn:first-child {
-    border-radius: 5px 4px 4px 5px;
-  }
-  html[data-family="lcars"][data-theme="lcars25"] .vol-btn:hover {
-    background: color-mix(in srgb, var(--lc-c) 28%, var(--surface-2));
-    box-shadow: inset 0 0 0 1px var(--lc-c);
-  }
-  html[data-family="lcars"][data-theme="lcars25"] .vol-btn > .i {
-    width: 15px;
-    height: 15px;
-  }
-  html[data-family="lcars"][data-theme="lcars25"] .vol-btn.is-muted {
-    color: var(--silver-dim);
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lc-c) 28%, transparent);
-  }
-  html[data-family="lcars"][data-theme="lcars25"] .vol-btn.is-muted::after {
-    background: var(--lc-red);
-    left: 11px;
-    right: 11px;
-  }
-  html[data-family="lcars"][data-theme="lcars25"][data-mode="day"] .vol-btn {
-    --vol-fill: color-mix(in srgb, var(--lc-c) 52%, transparent);
-    color: var(--silver-hi);
-  }
-  html[data-family="lcars"][data-theme="lcars25"][data-mode="day"] .vol-btn:not(.is-muted) > .i {
-    color: var(--silver-hi);
-  }
-  html[data-family="lcars"][data-theme="lcars25"] .vol-btn[aria-expanded="true"] {
-    border-radius: 5px 5px 0 0;
-    background: var(--lc-2);
-    color: var(--lc-on);
-    box-shadow: none;
-  }
-  html[data-family="lcars"][data-theme="lcars25"] .volbar.bmbar {
-    z-index: 75;
-    border-radius: 0 0 12px 12px;
-  }
-  html[data-family="lcars"][data-theme="lcars25"] .volbar__mute {
-    border-radius: 0 0 12px 12px;
-  }
 
-  /* Row 1, Col 2: Recessed Telemetry Trough */
-  html[data-family="lcars"][data-theme="lcars25"][data-page="home"] .top > .readout {
-    grid-column: 2;
-    grid-row: 1;
-    position: relative;
-    top: auto;
-    left: auto;
-    transform: none;
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
-    height: var(--lcb-beam);
-    margin: 0;
-    padding: 0 16px;
-    border-radius: 3px;
-    background: color-mix(in srgb, var(--surface-2) 86%, var(--bg));
-    border-top: 2px solid var(--lc-3);
-    border-bottom: 1px solid color-mix(in srgb, var(--lc-3) 35%, transparent);
-  }
-  html[data-family="lcars"][data-theme="lcars25"] .top > .readout:hover {
-    background: color-mix(in srgb, var(--lc-3) 14%, var(--surface-2));
-  }
-  html[data-family="lcars"][data-theme="lcars25"] .readout div {
-    display: flex;
-    align-items: baseline;
-    gap: 6px;
-  }
-  html[data-family="lcars"][data-theme="lcars25"] .readout dt {
-    font-size: 10px;
-    letter-spacing: .12em;
-    line-height: 1;
-  }
-  html[data-family="lcars"][data-theme="lcars25"] .readout dd {
-    font-size: 16px;
-    line-height: 1;
-  }
-
-  /* Row 1, Col 3: Owner Device status block */
-  html[data-family="lcars"][data-theme="lcars25"] .badge-role {
-    grid-column: 3;
-    grid-row: 1;
-    height: var(--lcb-beam);
-    padding: 0 11px;
-    border-radius: 3px;
-    background: color-mix(in srgb, var(--lc-3) 12%, var(--surface-2));
-    border-top: 2px solid var(--lc-2);
-    font: 500 12px/1 var(--lc-font);
-    letter-spacing: .12em;
-    align-items: center;
-    white-space: nowrap;
-  }
-
-  /* Row 1, Col 4: Integrated Citadel rounded end-cap */
+  /* The Citadel corner: the Home corner mirrored */
   html[data-family="lcars"][data-theme="lcars25"] .top__brand {
-    grid-column: 4;
-    grid-row: 1;
+    grid-column: 3;
+    grid-row: 1 / 3;
+    align-self: start;
     order: 0;
     min-height: 0;
-    height: var(--lcb-beam);
-    padding: 0 16px 0 14px;
-    border-radius: 3px 14px 14px 3px;
+    height: var(--lcb-core-h);
+    box-sizing: border-box;
+    padding: 12px 18px 0 14px;
+    border-radius: 0 var(--lcb-r) 0 0;
     background: var(--lc-hd-frame);
     color: var(--lc-on);
-    display: inline-flex;
-    align-items: center;
+    display: flex;
+    align-items: flex-start;
     gap: 0;
   }
   html[data-family="lcars"][data-theme="lcars25"] .top__brand .top__logo {
     display: none;
   }
   html[data-family="lcars"][data-theme="lcars25"] .top__brand .wordmark {
-    font: 600 18.5px/1 var(--lc-font);
-    letter-spacing: .22em;
-    margin-right: -.22em;
+    font: 600 19px/1 var(--lc-font);
+    letter-spacing: .24em;
+    margin-right: -.24em;
+    text-transform: uppercase;
     color: var(--lc-on);
     background: none;
     -webkit-text-fill-color: currentColor;
     filter: none;
   }
+  /* Device + connection lamp, on the corner under the wordmark */
+  html[data-family="lcars"][data-theme="lcars25"] .badge-role {
+    grid-column: 3;
+    grid-row: 1 / 3;
+    align-self: end;
+    justify-self: stretch;
+    z-index: 1;
+    height: auto;
+    margin: 0 0 9px;
+    padding: 0 12px 0 14px;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    color: var(--lc-on);
+    font: 500 10.5px/1 var(--lc-font);
+    letter-spacing: .12em;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .badge-role .dot {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--lc-on) 55%, transparent);
+  }
 
-  /* Row 2, Col 1–2: Action deck left (Bookmarks or Music player) */
+  /* The page's row */
   html[data-family="lcars"][data-theme="lcars25"] .top__mid {
     grid-column: 1 / 3;
     grid-row: 2;
     order: 0;
     min-height: var(--lcb-deck);
+    align-self: center;
+    margin-top: var(--lcb-gap);   /* centred between the arm and the page's frame line (.top's bottom margin) */
     align-items: center;
     gap: 8px;
   }
+  /* Home: the bookmarks take what they need and the readout the rest (no size containment here, or the auto
+     column measures the bookmarks as nothing; the container query is only the Music page's player's) */
+  html[data-family="lcars"][data-theme="lcars25"]:not([data-page="home"]) .top__mid {
+    margin-right: calc(var(--lcb-lip) + var(--lcb-row-inset) - 10px);   /* same space before the arm's last run as after the Home corner (10px = column-gap) */
+  }
+  html[data-family="lcars"][data-theme="lcars25"][data-page="home"] .top__mid {
+    grid-column: 1;
+    container-type: normal;
+  }
   html[data-family="lcars"][data-theme="lcars25"] .shortcuts {
+    flex: none;
     gap: 5px;
     padding: 0;
+    order: 2;
+    overflow: visible;
+    mask-image: none;   /* sized to its contents here, so the scroll fade would only fade the last button */
   }
   html[data-family="lcars"][data-theme="lcars25"] .sc {
     height: 26px;
@@ -305,8 +259,93 @@
     color: var(--lc-on);
   }
 
-  /* Compact Spotify player bar in the 34px action deck on #listen */
+  /* Page name, source and frame actions (app.js renderTopCtx); Home shows its readout instead */
+  html[data-family="lcars"][data-theme="lcars25"] .top__ctx:not([hidden]) {
+    order: 1;
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  html[data-family="lcars"][data-theme="lcars25"][data-page="listen"] .top__ctx {
+    flex: none;
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .top__page {
+    flex: none;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 14px 0 12px;
+    border-radius: 4px 13px 13px 4px;
+    background: var(--lc-c, var(--lc-hd-frame));
+    color: var(--lc-on);
+    font: 600 14px/1 var(--lc-font);
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .top__src {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font: 500 12.5px/1 var(--lc-font);
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--silver-dim);
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .top__acts:not([hidden]) {
+    margin-left: auto;
+    flex: none;
+    display: inline-flex;
+    gap: 6px;
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .top__act {
+    height: 26px;
+    padding: 0 12px;
+    gap: 6px;
+    border: 0;
+    border-radius: 13px;
+    background: transparent;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lc-c, var(--lc-frame)) 55%, transparent);
+    color: var(--silver-hi);
+    font: 500 13px/1 var(--lc-font);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .top__act:hover {
+    background: color-mix(in srgb, var(--lc-c, var(--lc-frame)) 18%, var(--surface-2));
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .top__act .i {
+    width: 14px;
+    height: 14px;
+    color: var(--lc-c, var(--lc-frame));
+  }
+  /* The page name wears the page's rail colour */
+  html[data-family="lcars"][data-theme="lcars25"][data-page="news"] .top__ctx,
+  html[data-family="lcars"][data-theme="lcars25"][data-page="house"] .top__ctx,
+  html[data-family="lcars"][data-theme="lcars25"][data-page="audio"] .top__ctx { --lc-c: var(--lc-3); }
+  html[data-family="lcars"][data-theme="lcars25"][data-page="media"] .top__ctx,
+  html[data-family="lcars"][data-theme="lcars25"][data-page="casino"] .top__ctx { --lc-c: var(--lc-4); }
+  html[data-family="lcars"][data-theme="lcars25"][data-page="music"] .top__ctx,
+  html[data-family="lcars"][data-theme="lcars25"][data-page="holodeck"] .top__ctx,
+  html[data-family="lcars"][data-theme="lcars25"][data-page="settings"] .top__ctx { --lc-c: var(--lc-5); }
+  html[data-family="lcars"][data-theme="lcars25"][data-page="listen"] .top__ctx,
+  html[data-family="lcars"][data-theme="lcars25"][data-page="stats"] .top__ctx { --lc-c: var(--lc-1); }
+  html[data-family="lcars"][data-theme="lcars25"][data-page="ai"] .top__ctx { --lc-c: var(--lc-6); }
+  html[data-family="lcars"][data-theme="lcars25"][data-page="labels"] .top__ctx,
+  html[data-family="lcars"][data-theme="lcars25"][data-page="curate"] .top__ctx { --lc-c: var(--lc-2); }
+  /* Narrower screens: framed pages keep only the Bookmarks button, so the row never overflows */
+  @media (max-width: 1500px) {
+    html[data-family="lcars"][data-theme="lcars25"]:not([data-page="home"]) .shortcuts > .sc:not(.sc--menu) {
+      display: none;
+    }
+  }
+
+  /* Compact Spotify player in the row on #listen */
   html[data-family="lcars"][data-theme="lcars25"] .mu-bar {
+    order: 1;
     height: 32px;
     border-radius: 16px;
   }
@@ -321,53 +360,190 @@
     height: 24px;
   }
 
-  /* Row 2, Col 3–4: Action deck right (Day/Night + Style pair only) */
-  html[data-family="lcars"][data-theme="lcars25"] .look-group {
-    grid-column: 3 / 5;
+  /* The readout (Home): a recessed trough filling the rest of the row */
+  html[data-family="lcars"][data-theme="lcars25"][data-page="home"] .top > .readout {
+    grid-column: 2;
     grid-row: 2;
-    justify-self: end;
     align-self: center;
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    height: 28px;
+    margin: var(--lcb-gap) calc(var(--lcb-lip) + var(--lcb-row-inset) - 10px) 0 0;   /* centred like .top__mid */
+    padding: 0 16px;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--surface-2) 86%, var(--bg));
+    border-top: 2px solid var(--lc-3);
+    border-bottom: 1px solid color-mix(in srgb, var(--lc-3) 35%, transparent);
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .top > .readout:hover {
+    background: color-mix(in srgb, var(--lc-3) 14%, var(--surface-2));
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .readout div {
+    display: flex;
+    align-items: baseline;
     gap: 6px;
+    white-space: nowrap;
   }
-  html[data-family="lcars"][data-theme="lcars25"] .look-btn {
-    height: 26px;
-    padding: 0 11px;
-    gap: 6px;
-    font: 500 13px/1 var(--lc-font);
-    letter-spacing: .08em;
-    color: var(--silver-hi);
-    background: color-mix(in srgb, var(--lc-6) 14%, var(--surface-2));
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lc-frame) 38%, transparent);
+  /* It shares the row with the bookmarks, so narrower screens show the first readings only (temperatures first) */
+  @media (max-width: 1700px) {
+    html[data-family="lcars"][data-theme="lcars25"] .readout div:nth-child(n+5) { display: none; }
   }
-  html[data-family="lcars"][data-theme="lcars25"] .look-btn[data-theme-menu] {
-    padding: 0 13px 0 11px;
+  @media (max-width: 1320px) {
+    html[data-family="lcars"][data-theme="lcars25"] .readout div:nth-child(n+3) { display: none; }
   }
-  html[data-family="lcars"][data-theme="lcars25"] .look-btn:hover {
-    background: color-mix(in srgb, var(--lc-frame) 22%, var(--surface-2));
+  html[data-family="lcars"][data-theme="lcars25"] .readout dt {
+    font-size: 12px;
+    letter-spacing: .1em;
+    line-height: 1;
   }
-  html[data-family="lcars"][data-theme="lcars25"] .look-group.is-open {
-    border-radius: 13px 13px 0 0;
-  }
-  html[data-family="lcars"][data-theme="lcars25"] .look-group.is-open > .look-btn:first-child {
-    border-top-left-radius: 13px;
-  }
-  html[data-family="lcars"][data-theme="lcars25"] .look-group.is-open > .look-btn:last-child {
-    border-top-right-radius: 13px;
-  }
-  html[data-family="lcars"][data-theme="lcars25"] .stylebar {
-    z-index: 75;
+  html[data-family="lcars"][data-theme="lcars25"] .readout dd {
+    font-size: 17px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;   /* digits keep their width, so the readings don't shift as they change */
   }
 
-  /* Row 3: Reminders strip (collapses to zero when empty) */
+  /* Reminders: a row under the header's (collapses to nothing when empty) */
   html[data-family="lcars"][data-theme="lcars25"] .top > .alerts {
     grid-column: 1 / -1;
     grid-row: 3;
     order: 0;
-    margin: 2px 0 0;
+    margin: 8px 0 0;
     gap: 8px;
   }
   html[data-family="lcars"][data-theme="lcars25"] .top > .alerts:empty {
     display: none;
+  }
+
+  /* ---- Corner console (rail, under Home): GoXLR volumes, then Day/Night + Theme -------------------------
+     Solid blocks flush with the rail's left edge, right-capped like the rail pills. */
+  html[data-family="lcars"][data-theme="lcars25"] .rail__console:not(:empty) {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: calc(var(--lcb-core-h) + var(--lcb-gap)) -8px 6px -13px;
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .rail__console .vol-group {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 4px;
+    height: 30px;
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .rail__console .vol-group[hidden] {
+    display: none;
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .rail__console .vol-btn {
+    --vol-fill: rgba(0, 0, 0, .24);
+    width: auto;
+    height: 30px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    clip-path: none;
+    background: var(--lc-hd-2);
+    box-shadow: none;
+    color: var(--lc-on);
+  }
+  html[data-family="lcars"][data-theme="lcars25"][data-mode="day"] .rail__console .vol-btn {
+    --vol-fill: rgba(0, 0, 0, .18);
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .rail__console .vol-btn:last-child {
+    border-radius: 0 15px 15px 0;
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .rail__console .vol-btn:hover {
+    background: var(--lc-hd-2);
+    filter: brightness(1.12);
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .rail__console .vol-btn > .i,
+  html[data-family="lcars"][data-theme="lcars25"] .rail__console .vol-btn:not(.is-muted) > .i {
+    width: 15px;
+    height: 15px;
+    color: var(--lc-on);
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .rail__console .vol-btn.is-muted > .i {
+    opacity: .7;
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .rail__console .vol-btn.is-muted::after {
+    background: var(--lc-red);
+    left: 22%;
+    right: 22%;
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .rail__console .vol-btn[aria-expanded="true"] {
+    border-radius: 0;
+    background: var(--lc-2);
+    filter: none;
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .rail__console .vol-btn:last-child[aria-expanded="true"] {
+    border-radius: 0 15px 0 0;
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .volbar.bmbar {
+    z-index: 75;
+    border-radius: 0 0 12px 12px;
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .volbar__mute {
+    border-radius: 0 0 12px 12px;
+  }
+
+  html[data-family="lcars"][data-theme="lcars25"] .rail__console .look-group {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 4px;
+    height: 30px;
+    border-radius: 0;
+    background: none;
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .rail__console .look-btn {
+    height: 30px;
+    min-width: 0;
+    padding: 0 6px;
+    gap: 5px;
+    justify-content: center;
+    border: 0;
+    border-radius: 0;
+    background: var(--lc-4);
+    box-shadow: none;
+    color: var(--lc-on);
+    font: 600 12.5px/1 var(--lc-font);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .rail__console .look-btn[data-theme-menu] {
+    padding: 0 6px;
+    border-radius: 0 15px 15px 0;
+    background: var(--lc-3);
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .rail__console .look-btn .i {
+    width: 14px;
+    height: 14px;
+    color: var(--lc-on);
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .rail__console .look-btn__chev {
+    display: none;
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .rail__console .look-btn:hover {
+    filter: brightness(1.12);
+    color: var(--lc-on);
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .rail__console .look-group.is-open > .look-btn {
+    background: var(--lc-2);
+    color: var(--lc-on);
+    filter: none;
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .rail__console .look-group.is-open > .look-btn:first-child {
+    border-radius: 0;
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .rail__console .look-group.is-open > .look-btn:last-child {
+    border-radius: 0 15px 0 0;
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .stylebar {
+    z-index: 75;
   }
 
   /* ---- Left Console Spine (.rail) ---------------------------------------
@@ -403,27 +579,29 @@
       var(--lc-hd-3) calc(82% + 4px) 100%);
   }
 
-  /* Top-left Command Core (Home) */
+  /* Top-left Command Core (Home): the elbow's corner. Square on the right, where it runs into the header's arm
+     (.top::after) through the fillet on its ::after; amber while on Home (--lcb-elb), and the arm's first run with it. */
   html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view="home"] {
     position: absolute;
     top: var(--lcb-pad-top);
     left: 10px;
-    right: 8px;
+    right: 0;
     width: auto;
     height: var(--lcb-core-h);
     min-height: var(--lcb-core-h);
     margin: 0;
-    padding: 9px 11px;
+    padding: 9px 11px 9px 20px;   /* clear of the 32px curve */
     border: 0;
-    border-radius: 22px 4px 4px 6px;
+    border-radius: var(--lcb-r) 0 0 0;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     align-items: flex-start;
     gap: 0;
-    background: linear-gradient(150deg, var(--lc-hd-frame), color-mix(in srgb, var(--lc-hd-frame) 78%, var(--surface)));
+    background: var(--lcb-elb);
     color: var(--lc-on);
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--silver-hi) 18%, transparent);
+    box-shadow: none;
+    overflow: visible;
     transition: filter .16s var(--lc-ease), background-color .16s var(--lc-ease);
   }
   html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view="home"]:hover {
@@ -431,20 +609,20 @@
     color: var(--lc-on);
   }
   html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view="home"][aria-current] {
-    background: var(--lc-7);
-    color: var(--lc-on);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .28), 0 0 14px color-mix(in srgb, var(--lc-7) 30%, transparent);
-  }
-  /* Day: keep idle Home clearly distinct from active Home within the parchment + 3-colour rule */
-  html[data-family="lcars"][data-theme="lcars25"][data-mode="day"] .rail a[data-view="home"]:not([aria-current]) {
-    background: color-mix(in srgb, var(--lc-frame) 15%, var(--surface));
-    color: var(--lc-frame);
-    box-shadow: inset 0 0 0 1.5px var(--lc-frame);
-  }
-  html[data-family="lcars"][data-theme="lcars25"][data-mode="day"] .rail a[data-view="home"][aria-current] {
-    background: var(--lc-frame);
+    background: var(--lcb-elb);
     color: var(--lc-on);
     box-shadow: none;
+  }
+  /* Day: the frame orange and the "you are here" orange are close, so active Home also gets a parchment foot line */
+  html[data-family="lcars"][data-theme="lcars25"][data-mode="day"] .rail a[data-view="home"]:not([aria-current]) {
+    background: var(--lcb-elb);
+    color: var(--lc-on);
+    box-shadow: none;
+  }
+  html[data-family="lcars"][data-theme="lcars25"][data-mode="day"] .rail a[data-view="home"][aria-current] {
+    background: var(--lcb-elb);
+    color: var(--lc-on);
+    box-shadow: inset 0 -4px 0 var(--lc-on);
   }
   html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view="home"] .i {
     width: 21px;
@@ -473,17 +651,33 @@
     animation: none;
   }
   html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view="home"]::after {
-    content: none;
+    content: "";
+    position: absolute;
+    left: calc(100% - 1px);   /* 1px under the corner and the arm: no seam */
+    right: auto;
+    top: calc(var(--lcb-arm) - 1px);
+    bottom: auto;
+    width: var(--lcb-fil);
+    height: var(--lcb-fil);
+    border: 0;
+    border-radius: 0;
+    opacity: 1;
+    transform: none;
+    animation: none;
+    pointer-events: none;
+    background: radial-gradient(circle at 100% 100%, transparent calc(var(--lcb-fil) - .5px), var(--lcb-elb) var(--lcb-fil));
   }
 
-  /* Rail nav pills: right-capped, numbered, strictly contained inside the rail */
+  /* Rail nav pills: right-capped, numbered, an even 8px from the rail spine on the left and the page spine on the right */
   html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view]:not([data-view="home"]),
   html[data-family="lcars"][data-theme="lcars25"] .rail a.rail__settings {
-    width: 100%;
+    /* An even 8px from the rail's spine (ends 17px) and the page's spine (starts --lcb-rail + --main-pl + 2px = 172px):
+       pills run 25px → 164px, i.e. 2px in from the rail's padding on the left and 8px past it on the right */
+    width: calc(100% + 8px);
     min-width: 0;
     min-height: 32px;
     height: 32px;
-    margin: 0;
+    margin: 0 0 0 2px;
     padding: 0 9px 0 7px;
     display: flex;
     flex-direction: row;

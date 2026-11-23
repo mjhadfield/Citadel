@@ -500,6 +500,33 @@ function openSettings() {
   w.location.reload();
 }
 
+// LCARS 25's header row (lcars25.css; hidden in the other themes): the page's number and name as the rail shows them,
+// and on a framed app where it comes from (the frame's title, when it says more than the page's name) with Reload and
+// Open in new tab. Home has its bookmarks and readout there instead. Reload sets the frame's address again (the apps are
+// on other origins, so their own location can't be reached), which takes it back to the page Citadel opened.
+function renderTopCtx() {
+  const v = document.documentElement.dataset.page, ctx = $('#top-ctx');
+  const view = $(`.view[data-view="${v}"]`), frame = view?.querySelector('.frame-shell iframe');
+  ctx.hidden = !view || v === 'home';
+  if (ctx.hidden) return;
+  const links = $$('.rail a[data-view]').filter(a => !a.hidden), i = links.findIndex(a => a.dataset.view === v);
+  const label = $(`.rail a[data-view="${v}"] .rail__label`)?.textContent || view.getAttribute('aria-label') || v;
+  $('#top-page').textContent = i >= 0 ? `${String(i + 1).padStart(2, '0')} · ${label}` : label;
+  const own = frame && v !== 'settings';
+  $('#top-src').textContent = own && frame.title.toLowerCase() !== label.toLowerCase() ? frame.title : '';
+  $('#top-acts').hidden = !own;
+}
+const activeFrame = () => $('.view.is-active .frame-shell iframe');
+document.addEventListener('click', e => {
+  if (e.target.closest('[data-frame-reload]')) {
+    const f = activeFrame(), src = f?.getAttribute('src');
+    if (src) f.src = src;
+  } else if (e.target.closest('[data-frame-open]')) {
+    const src = activeFrame()?.getAttribute('src');
+    if (src) open(safeUrl(new URL(src, location.href).href), '_blank', 'noopener');
+  }
+});
+
 function route() {
   const v = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'home';
   if (v === 'settings' && lastView !== 'settings') openSettings();
@@ -511,6 +538,7 @@ function route() {
   slideDir = null;
   moreSheet(false);
   markCurrent();
+  renderTopCtx();
   music.onView(v);                                  // the Music page (music.js) only polls Spotify while it's on screen
   news.onView(v);                                   // the News page (news.js) loads its own stories when shown
   stats.onView(v);                                  // the Fleet page (stats.js): machine history from the collector on NZXT
@@ -557,6 +585,7 @@ function renderNav(nav) {
     + (rest.length ? `<button type="button" class="tabbar__more" data-more aria-expanded="false" aria-controls="more-sheet"><svg class="i"><use href="#i-grid"/></svg><span class="tabbar__label">More</span></button>` : '');
   moreSheet(false);
   markCurrent();
+  renderTopCtx();
   if (booted) requestAnimationFrame(layoutRail);       // the first page under Home may have changed (LCARS lines it up)
 }
 
@@ -711,8 +740,16 @@ function placeLcars() {
   // LCARS has no separate logo at the top of the rail: Home wears it instead (rail and phone tab bar alike)
   // (the rail and tab bar links only: the Home page section is [data-view="home"] too, and holds every card's icons)
   $$('.rail [data-view="home"] use, .tabbar [data-view="home"] use').forEach(u => u.setAttribute('href', lc ? '#i-logo' : '#i-home'));
+  // LCARS 25 on desktop keeps the GoXLR volumes, Day/Night and Theme in a console under Home (lcars25.css), so the
+  // header's row is all the page's. Same elements, just moved: their listeners and drop-downs go with them (the
+  // drop-downs measure the button wherever it is). Everywhere else they go back into the header, in their old places.
+  const vols = $('#vol-group'), look = $('#look-group');
+  if (th === 'lcars25' && !phone.matches) {
+    if (vols.parentElement !== railConsole) { railConsole.append(vols, look); $('.rail a[data-view="home"]').after(railConsole); }
+  } else if (vols.parentElement === railConsole) { $('#vol-bar').before(vols); $('#style-bar').before(look); }
   layoutRail();
 }
+const railConsole = Object.assign(document.createElement('div'), { className: 'rail__console' });
 
 // LCARS rail: Home sits level with the middle of the header (top-aligned by lcars25.css in LCARS 25), and the other
 // pages start where the page body does. The header's height moves (the reminders show on Home only, and wrap), so it's
@@ -733,9 +770,13 @@ function layoutRail() {
     const homeH = parseFloat(getComputedStyle($('.rail [data-view="home"]')).height) * z;
     rail.style.setProperty('--lc-home-top', `${Math.round((t.top - s.top + (t.height - homeH) / 2) / z)}px`);
   }
-  rail.style.setProperty('--lc-body-top', `${Math.round((v.top - s.top) / z)}px`);
+  // LCARS 25: the pages (and the spine beside them) start under the corner console, not level with the page body
+  const c = th === 'lcars25' && railConsole.isConnected && railConsole.childElementCount ? railConsole.getBoundingClientRect() : null;
+  rail.style.setProperty('--lc-body-top', `${Math.round(((c ? c.bottom + 4 : v.top) - s.top) / z)}px`);
 }
-new ResizeObserver(() => layoutRail()).observe($('.top'));
+const railRO = new ResizeObserver(() => layoutRail());
+railRO.observe($('.top'));
+railRO.observe(railConsole);   // LCARS 25: the GoXLR volumes arrive after first paint and add a row to the console
 addEventListener('resize', layoutRail);
 addEventListener('resize', () => { placeBookmarks(); placeStyles(); });
 addEventListener('hashchange', () => requestAnimationFrame(layoutRail));

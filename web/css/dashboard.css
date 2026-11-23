@@ -94,6 +94,7 @@ html.has-bg .frame-shell iframe { background: transparent; }    /* a custom them
 /* ---- The header's middle slot: the shortcut row on most pages; the Music page puts its player here instead (music.css).
    A size container, so what's in it can drop parts as it narrows. */
 .top__mid { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; container: topmid / inline-size; }
+.top__ctx, .rail__console { display: none; }   /* LCARS 25 only (lcars25.css): the page's name + frame actions, and the rail's corner console */
 
 /* ---- Shortcut row (Settings → Widgets → Shortcuts) ------------------------ */
 .shortcuts { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; justify-content: flex-start; gap: 8px;
