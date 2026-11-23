@@ -279,7 +279,7 @@ function remote(s) {
   return { meta: `${list.filter(r => r.up).length} / ${list.length} on`, body: `<div class="tiles">${tiles}</div>` };
 }
 
-// ---- System -----------------------------------------------------------------------------------------------
+// ---- Storage (card id kept as "system": the widget still feeds uptime to Monitoring) ---------------------
 
 /** Every status check on the dashboard: web projects (their port) and links with a status address. */
 export function serviceChecks(s) {
@@ -299,17 +299,10 @@ function system(s) {
   const w = s.widgets.system;
   if (!w.data?.disks) return { meta: '', body: empty('chip', 'Reading host…', w.error || '') };
   const d = w.data;
-  const checks = serviceChecks(s);
   const disks = d.disks.map(k => bar(k.name, k.mount, `${bytes(k.used)} / ${bytes(k.size)}`, k.percent, k.percent >= 85)).join('');
-  const mem = d.mem, memPct = mem.used / mem.total * 100;
   return {
     meta: `${esc(d.host)} · ${esc(s.ip)}${staleChip(w)}`,
-    body: `${disks}
-      ${d.cpu_percent != null ? `<div class="more" hidden>${bar('cpu', '', `${d.cpu_percent}%`, d.cpu_percent)}</div>` : ''}
-      <div class="more" hidden>${bar('memory', '', `${bytes(mem.used)} / ${bytes(mem.total)}`, memPct)}</div>
-      <dl class="kv"><dt>uptime</dt><dd>${esc(duration(d.uptime_s))}</dd><dt>load</dt><dd>${d.load.map(x => x.toFixed(2)).join(' · ')}</dd>
-        <dt>services</dt><dd>${checks.filter(c => c.ok).length} / ${checks.length} up</dd></dl>
-      <ul class="svcs">${checks.map(c => `<li class="svc more" hidden><span class="dot ${c.ok ? 'dot--ok' : ''}"></span><span>${esc(c.name)}</span><span class="mono dim">${esc(c.detail)}</span></li>`).join('')}</ul>`,
+    body: disks,
   };
 }
 
@@ -457,7 +450,8 @@ export const cards = [
   { id: 'projects', area: 'proj', label: 'Services', flush: true, render: projects,
     filters: [{ label: 'All', value: 'all' }, { label: 'Running', value: 'running' }, { label: 'Stopped', value: 'stopped' }] },
   { id: 'launchpad', area: 'launch', label: 'Launchpad', render: launchpad, search: true },
-  { id: 'system', area: 'sys', label: 'System', render: system },
+  // Disk usage only (id kept as "system": the widget still feeds uptime to Monitoring and Settings)
+  { id: 'system', area: 'sys', label: 'Storage', render: system },
   // No tile of its own on wide screens: the header readout opens it (dashboard.css .card--popout). Last, so it doesn't
   // take a number from the tiles.
   { id: 'monitoring', area: 'mon', cls: 'card--popout', label: 'Monitoring', render: monitoring },
