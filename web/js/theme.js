@@ -13,7 +13,7 @@
 // Non-Standard styles (built-in COM/SCI/ENG/ENT and custom styles) cache their resolved vars in `style-spec` so
 // theme-init.js applies them before first paint.
 
-import { TOKEN_NAMES, resolve } from './palette.js';
+import { TOKEN_NAMES, resolve, tokensFor } from './palette.js';
 import { THEMES, FAMILIES, FAMILY_LABEL, BUILTIN_STYLES, normTheme, normFamily, themeById, familyOf, builtinStyle, stylesForFamily } from './themes.js';
 
 export { THEMES, FAMILIES, FAMILY_LABEL, BUILTIN_STYLES, normTheme, normFamily, themeById, familyOf, builtinStyle, stylesForFamily };
@@ -224,8 +224,38 @@ export function syncStyles(customs, migratedPresets = {}) {
 
 const SHARED_TOKENS = TOKEN_NAMES.filter(k => !k.startsWith('--lc-') && !k.startsWith('--brg-') && !k.startsWith('--series-'));
 
-/** What an embedded page needs right now (v1 payload kept intact during Phases 1–2; Phase 3 introduces contract v2). */
+/** Contract v2 payload for framed apps using the Citadel Theme Kit (docs/features/embedded-theming.md).
+ * Always includes every resolved shared + active-family colour token (including built-in styles),
+ * and never includes --bg-image or its siblings. */
 export function currentLook() {
+  const m = mode();
+  const t = theme();
+  const fam = family();
+  const st = style();
+  const h = storedSpec()?.[m];
+  const allowedNames = tokensFor(fam).map(x => x[0]);
+  let vars;
+  if (h) {
+    vars = Object.fromEntries(allowedNames.filter(k => k in h.vars && !BG_VARS.includes(k)).map(k => [k, h.vars[k]]));
+  } else {
+    const cs = getComputedStyle(document.documentElement);
+    vars = Object.fromEntries(allowedNames.map(k => [k, cs.getPropertyValue(k).trim()]).filter(([, v]) => v));
+  }
+  return {
+    type: 'citadel-theme',
+    v: 2,
+    mode: m,
+    theme: t,
+    family: fam,
+    style: st,
+    vars,
+    bg: !!h?.bg,
+    glow: h ? h.glow : true,
+  };
+}
+
+/** Legacy contract v1 payload (kept permanently for Odysseus, and for unmigrated kit apps during Phase 3 -> 4). */
+export function currentLookV1() {
   const sk = currentSkin();
   const h = storedSpec()?.[mode()];
   let vars = null;

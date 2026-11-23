@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Citadel Theme Kit — Demo</title>
+<link rel="stylesheet" href="./kit-tokens.css">
+<script src="./kit-init.js" data-storage-prefix="ck-demo"></script>
+<link rel="stylesheet" href="./kit.css">
+<link rel="stylesheet" href="./demo.css">
+</head>
+<body class="ck-app">
+  <header class="ck-header">
+    <span class="ck-brand">Theme Kit</span>
+    <nav class="ck-tabs" role="tablist" aria-label="Demo tabs">
+      <button type="button" class="ck-tab is-active" role="tab" aria-selected="true">Overview</button>
+      <button type="button" class="ck-tab" role="tab" aria-selected="false">Catalog</button>
+      <button type="button" class="ck-tab" role="tab" aria-selected="false">Diagnostics</button>
+    </nav>
+    <span class="ck-header__spacer"></span>
+    <div class="ck-header__actions">
+      <span class="ck-chip ck-chip--ok" id="state-chip">night · citadel</span>
+      <button type="button" class="ck-btn ck-btn--quiet" id="toggle-mode">Day / Night</button>
+      <button type="button" class="ck-btn ck-btn--primary" id="open-dlg">Open dialog</button>
+    </div>
+  </header>
+
+  <div class="demo-shell">
+    <nav class="ck-rail" aria-label="Sections">
+      <button type="button" class="ck-rail__item is-active" aria-current="page"><span>Overview</span><span class="ck-chip">01</span></button>
+      <button type="button" class="ck-rail__item"><span>Library</span><span class="ck-chip">142</span></button>
+      <button type="button" class="ck-rail__item"><span>Queue</span><span class="ck-chip ck-chip--warn">3</span></button>
+      <button type="button" class="ck-rail__item"><span>System</span><span class="ck-chip ck-chip--ok">OK</span></button>
+    </nav>
+
+    <main class="demo-main">
+      <div class="demo-grid">
+        <section class="ck-panel">
+          <div class="ck-panel__head">
+            <h2 class="ck-panel__title">Buttons &amp; Chips</h2>
+            <span class="ck-chip ck-chip--ok">Online</span>
+          </div>
+          <div class="ck-panel__body">
+            <div class="demo-row demo-row--spaced">
+              <button type="button" class="ck-btn ck-btn--primary">Primary action</button>
+              <button type="button" class="ck-btn">Secondary</button>
+              <button type="button" class="ck-btn ck-btn--quiet">Quiet</button>
+              <button type="button" class="ck-btn ck-btn--danger">Delete</button>
+            </div>
+            <div class="demo-row">
+              <span class="ck-chip">Default</span>
+              <span class="ck-chip ck-chip--ok">Ready</span>
+              <span class="ck-chip ck-chip--warn">Attention</span>
+              <span class="ck-chip ck-chip--bad">Error</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="ck-panel">
+          <div class="ck-panel__head">
+            <h2 class="ck-panel__title">Form Controls</h2>
+          </div>
+          <div class="ck-panel__body">
+            <div class="demo-fields">
+              <label>Search<input class="ck-input" type="search" placeholder="Filter records…"></label>
+              <label>Category<select class="ck-select"><option>All items</option><option>Favourites</option><option>Recent</option></select></label>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section class="ck-panel">
+        <div class="ck-panel__head">
+          <h2 class="ck-panel__title">Tabular Data</h2>
+          <span class="ck-chip">3 rows</span>
+        </div>
+        <div class="ck-panel__body demo-table-wrap">
+          <table class="ck-table">
+            <thead><tr><th>App</th><th>Port</th><th>Status</th><th>Contract</th></tr></thead>
+            <tbody>
+              <tr><td>Holodeck</td><td>8720</td><td><span class="ck-chip ck-chip--ok">Ready</span></td><td>v2</td></tr>
+              <tr><td>ZebraLab</td><td>8710</td><td><span class="ck-chip ck-chip--ok">Ready</span></td><td>v2</td></tr>
+              <tr><td>Home Improvements</td><td>8670</td><td><span class="ck-chip ck-chip--warn">Pending</span></td><td>v2</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog class="ck-dialog" id="demo-dlg">
+    <div class="ck-dialog__head">
+      <h3 class="ck-dialog__title">Confirm action</h3>
+      <button type="button" class="ck-btn ck-btn--quiet" data-close>Close</button>
+    </div>
+    <div class="ck-dialog__body">
+      <p class="demo-copy">Every framed app inherits Citadel's active theme, family, style and Day/Night mode automatically.</p>
+    </div>
+    <div class="ck-dialog__foot">
+      <button type="button" class="ck-btn" data-close>Cancel</button>
+      <button type="button" class="ck-btn ck-btn--primary" data-close>Confirm</button>
+    </div>
+  </dialog>
+
+  <script type="module" src="./demo.js"></script>
+</body>
+</html>

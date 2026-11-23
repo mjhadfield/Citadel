@@ -4,7 +4,7 @@ import { cards, ui, selectedSlug } from './cards.js';
 import { vinylUi } from './content-cards.js';
 import { Shell } from './shell.js';
 import { $, $$, esc, gcalUrl, hostUrl, ico, safeUrl, tickClock, tickUptimes, toast } from './util.js';
-import { THEMES, currentLook, currentSkin, currentTheme, family, mode, setMode, setStyle, setTheme, style, stylesForFamily, syncStyles, theme } from './theme.js';
+import { THEMES, currentLook, currentLookV1, currentSkin, currentTheme, family, mode, setMode, setStyle, setTheme, style, stylesForFamily, syncStyles, theme } from './theme.js';
 import * as music from './music.js';
 import * as news from './news.js';
 import * as stats from './stats.js';
@@ -197,18 +197,24 @@ function maintenanceOrigin() {
   try { return proj ? new URL(hostUrl(proj.url.replace('{host}', state.ip || location.hostname))).origin : null; } catch { return null; }
 }
 function tellFrames() {
-  const look = currentLook();
+  const v2 = currentLook();
+  const v1 = currentLookV1();
+  const postBoth = (frame, origin) => {
+    if (!origin) return;
+    frame.contentWindow?.postMessage(v2, origin);
+    frame.contentWindow?.postMessage(v1, origin);
+  };
   if (musicSrcSet) {
-    musicFrame.contentWindow?.postMessage(look, MUSIC_ORIGIN);
-    const maint = maintenanceOrigin();
-    if (maint) musicFrame.contentWindow?.postMessage(look, maint);
+    postBoth(musicFrame, MUSIC_ORIGIN);
+    postBoth(musicFrame, maintenanceOrigin());
   }
-  if (sqlSrcSet && sqlOrigin) sqlFrame.contentWindow?.postMessage(look, sqlOrigin);
-  if (aiSrcSet && aiOrigin) aiFrame.contentWindow?.postMessage(look, aiOrigin);
-  if (houseSrcSet && houseOrigin) houseFrame.contentWindow?.postMessage(look, houseOrigin);
-  if (labelsSrcSet && labelsOrigin) labelsFrame.contentWindow?.postMessage(look, labelsOrigin);
-  if (holodeckSrcSet && holodeckOrigin) holodeckFrame.contentWindow?.postMessage(look, holodeckOrigin);
-  if (curateSrcSet) curateFrame.contentWindow?.postMessage(look, maintenanceOrigin());
+  if (sqlSrcSet) postBoth(sqlFrame, sqlOrigin);
+  // Odysseus stays on contract v1 permanently (Mike, 2026-11-23).
+  if (aiSrcSet && aiOrigin) aiFrame.contentWindow?.postMessage(v1, aiOrigin);
+  if (houseSrcSet) postBoth(houseFrame, houseOrigin);
+  if (labelsSrcSet) postBoth(labelsFrame, labelsOrigin);
+  if (holodeckSrcSet) postBoth(holodeckFrame, holodeckOrigin);
+  if (curateSrcSet) postBoth(curateFrame, maintenanceOrigin());
 }
 musicFrame.addEventListener('load', tellFrames);
 

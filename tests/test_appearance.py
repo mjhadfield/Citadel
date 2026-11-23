@@ -238,3 +238,55 @@ def test_unused_pictures_are_tidied_but_either_half_keeps_its_picture_and_a_fres
         os.utime(appearance.bg_dir() / n, (week_ago, week_ago))
     appearance.tidy()
     assert {f.name for f in appearance.bg_dir().iterdir()} == {day_pic, night_pic, fresh}
+
+
+def _css_vars_in_block(css_text: str, selector: str) -> dict[str, str]:
+    m = re.search(rf"^{re.escape(selector)}\s*\{{(.*?)^\}}", css_text, re.M | re.S)
+    assert m, f"selector {selector!r} not found"
+    body = re.sub(r"/\*.*?\*/", "", m.group(1), flags=re.S)
+    return {k: v.strip() for k, v in re.findall(r"(--[a-z0-9-]+)\s*:\s*([^;]+);", body)}
+
+
+def test_kit_tokens_matches_citadel_palettes():
+    root = Path(__file__).parent.parent / "web"
+    kit_css = (root / "kit/kit-tokens.css").read_text()
+    checks = [
+        ("css/tokens.css", ":root"),
+        ("css/tokens.css", ':root[data-mode="day"]'),
+        ("css/lcars.css", 'html[data-family="lcars"]'),
+        ("css/lcars.css", 'html[data-family="lcars"][data-mode="day"]'),
+        ("css/borg.css", 'html[data-family="borg"]'),
+        ("css/borg.css", 'html[data-family="borg"][data-mode="day"]'),
+    ]
+    for rel, sel in checks:
+        src_vars = _css_vars_in_block((root / rel).read_text(), sel)
+        kit_vars = _css_vars_in_block(kit_css, sel)
+        for token in appearance.TOKENS:
+            if token in src_vars:
+                assert kit_vars.get(token) == src_vars[token], f"{rel} {sel} {token}: kit={kit_vars.get(token)!r} != src={src_vars[token]!r}"
+
+
+def test_sync_kit_copies_and_checks_without_touching_outside(tmp_path):
+    import sys
+    tools_dir = str(Path(__file__).parent.parent / "tools")
+    if tools_dir not in sys.path:
+        sys.path.insert(0, tools_dir)
+    import sync_kit
+
+    app_web = tmp_path / "web"
+    keep_file = app_web / "keep.txt"
+    keep_file.parent.mkdir(parents=True)
+    keep_file.write_text("untouched")
+    vendor = app_web / "vendor" / "citadel-kit"
+
+    assert sync_kit.main(["--check", "--target-dir", f"holodeck={vendor}", "holodeck"]) == 1
+    assert sync_kit.main(["--target-dir", f"holodeck={vendor}", "holodeck"]) == 0
+    assert (vendor / "kit.css").is_file() and (vendor / "kit.js").is_file() and not (vendor / "demo.html").exists()
+    assert sync_kit.main(["--check", "--target-dir", f"holodeck={vendor}", "holodeck"]) == 0
+    assert keep_file.read_text() == "untouched"
+
+    # A stale file inside vendor is cleaned up; outside files are untouched
+    (vendor / "stale.txt").write_text("old")
+    assert sync_kit.main(["--check", "--target-dir", f"holodeck={vendor}", "holodeck"]) == 1
+    assert sync_kit.main(["--target-dir", f"holodeck={vendor}", "holodeck"]) == 0
+    assert not (vendor / "stale.txt").exists() and keep_file.read_text() == "untouched"
