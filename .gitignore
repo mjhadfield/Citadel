@@ -9,4 +9,5 @@ __pycache__/
 # local notes (old full README, OpenAI review, CLAUDE.md) - never published
 /AGENTS.md
 /CLAUDE.md
+/GEMINI.md
 /docs/
