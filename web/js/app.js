@@ -131,6 +131,18 @@ async function restoreAlert(key) {
   await load();
 }
 
+// On a desktop wallpaper (?wall: an always-behind Brave window whose KWin rule forbids fullscreen) framed pages may
+// not ask for fullscreen. Brave would blow the frame up to fill the window, never get KWin's go-ahead, and stay stuck
+// there until a reload (Jellyfin's fullscreen button did this, 2026-11-23). The permission has to go before any
+// frame loads, which holds because every frame's src is set later by script.
+if (new URLSearchParams(location.search).has('wall')) {
+  for (const f of document.querySelectorAll('iframe')) {
+    f.removeAttribute('allowfullscreen');
+    const allow = (f.getAttribute('allow') || '').split(';').map(s => s.trim()).filter(s => s && s !== 'fullscreen');
+    f.setAttribute('allow', [...allow, "fullscreen 'none'"].join('; '));
+  }
+}
+
 // The Media page's iframe is created once in the HTML and its src is set exactly once, here — never
 // reassigned on later state refreshes, so navigating away and back never reloads (and never loses the
 // session/playback state of) whatever's embedded there.
