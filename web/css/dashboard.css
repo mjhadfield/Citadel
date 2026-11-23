@@ -35,7 +35,7 @@
 /* ---- Views (Home / News / Media / Companion / future sections) ----------------------- */
 .view { display: none; }
 .view.is-active { display: block; }
-#view-media, #view-music, #view-sql, #view-ai, #view-house, #view-casino, #view-curate, #view-settings { position: relative; }
+#view-media, #view-music, #view-sql, #view-ai, #view-house, #view-labels, #view-casino, #view-curate, #view-settings { position: relative; }
 /* Same chamfered, hairline-gradient-border shell as .card (components.css) — an iframe can't carry
    ::before/::after itself, so the shell is a real wrapper element around it instead. This only reaches
    the iframe's own border/frame; whatever renders *inside* it (Jellyfin's or Companion's own UI, incl.
@@ -81,7 +81,7 @@ html.has-bg .frame-shell iframe { background: transparent; }    /* a custom them
     position: fixed; inset: 0 0 calc(63px + env(safe-area-inset-bottom)) 0;
     display: flex; flex-direction: column; padding: 14px 16px 16px;
   }
-  #view-media.is-active, #view-music.is-active, #view-sql.is-active, #view-ai.is-active, #view-house.is-active, #view-casino.is-active, #view-curate.is-active, #view-settings.is-active { flex: 1; height: auto; min-height: 0; }
+  #view-media.is-active, #view-music.is-active, #view-sql.is-active, #view-ai.is-active, #view-house.is-active, #view-labels.is-active, #view-casino.is-active, #view-curate.is-active, #view-settings.is-active { flex: 1; height: auto; min-height: 0; }
 }
 
 /* z-index: the header's middle slot is a size container (its own stacking layer), so the bookmarks panel it drops can

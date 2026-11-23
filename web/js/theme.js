@@ -113,13 +113,21 @@ export function syncThemes(customs = []) {
   if (fresh !== store.get(SPEC_KEY) || !t) setLook(t ? id : 'citadel', customs);
 }
 
-/** What an embedded page (Music Companion, Music DB Explorer, Odysseus, Home Improvements) needs to look the same:
- * the mode as dark/light, a custom theme's colours for that mode (they use the same variable names; skin-specific
- * tokens stay here), and whether Citadel is drawing a background picture behind them — if so they make their own
- * page backdrop see-through and the picture shows through the frame. */
+const SHARED_TOKENS = TOKEN_NAMES.filter(k => !k.startsWith('--lc-') && !k.startsWith('--brg-') && !k.startsWith('--series-'));
+
+/** What an embedded page (Music Companion, Music DB Explorer, Odysseus, Home Improvements, ZebraLab) needs to look the
+ * same: the mode as dark/light, a custom theme's colours for that mode — or built-in Borg's computed palette, since
+ * borg.css overrides the shared tokens away from Citadel's default purple/parchment — and whether Citadel is drawing
+ * a background picture behind them. */
 export function currentLook() {
   const h = storedSpec()?.[mode()];
-  const vars = h ? Object.fromEntries(Object.entries(h.vars).filter(([k]) => !BG_VARS.includes(k) && !k.startsWith('--lc-') && !k.startsWith('--brg-') && !k.startsWith('--series-'))) : null;
+  let vars = null;
+  if (h) {
+    vars = Object.fromEntries(Object.entries(h.vars).filter(([k]) => !BG_VARS.includes(k) && !k.startsWith('--lc-') && !k.startsWith('--brg-') && !k.startsWith('--series-')));
+  } else if (currentSkin() === 'borg') {
+    const cs = getComputedStyle(document.documentElement);
+    vars = Object.fromEntries(SHARED_TOKENS.map(k => [k, cs.getPropertyValue(k).trim()]).filter(([, v]) => v));
+  }
   return { type: 'citadel-theme', theme: currentTheme(), vars, bg: !!h?.bg, glow: h ? h.glow : true };
 }
 
