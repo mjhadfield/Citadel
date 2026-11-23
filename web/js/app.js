@@ -194,6 +194,7 @@ function tellFrames() {
   if (sqlSrcSet && sqlOrigin) sqlFrame.contentWindow?.postMessage(look, sqlOrigin);
   if (aiSrcSet && aiOrigin) aiFrame.contentWindow?.postMessage(look, aiOrigin);
   if (houseSrcSet && houseOrigin) houseFrame.contentWindow?.postMessage(look, houseOrigin);
+  if (labelsSrcSet && labelsOrigin) labelsFrame.contentWindow?.postMessage(look, labelsOrigin);
   if (curateSrcSet) curateFrame.contentWindow?.postMessage(look, maintenanceOrigin());
 }
 musicFrame.addEventListener('load', tellFrames);
@@ -252,6 +253,20 @@ function setHouseSrc() {
   houseSrcSet = true;
 }
 houseFrame.addEventListener('load', tellFrames);
+
+// And for the Labels page (ZebraLab, a link). Follows Citadel's theme like House (custom colours included).
+const labelsFrame = $('#labels-frame');
+let labelsSrcSet = false, labelsOrigin = null;
+function setLabelsSrc() {
+  if (labelsSrcSet) return;
+  const link = state.links.find(l => l.for_labels);
+  if (!link) return;
+  const sep = link.url.includes('?') ? '&' : '?';
+  labelsFrame.src = `${link.url}${sep}citadel_theme=${currentTheme()}`;
+  try { labelsOrigin = new URL(link.url).origin; } catch { labelsOrigin = null; }
+  labelsSrcSet = true;
+}
+labelsFrame.addEventListener('load', tellFrames);
 
 // And for the Casino page (Casino World, a link). A Godot game with its own look, so no theme hand-off.
 const casinoFrame = $('#casino-frame');
@@ -394,6 +409,7 @@ function renderAll() {
   setSqlSrc();
   setAiSrc();
   setHouseSrc();
+  setLabelsSrc();
   setCasinoSrc();
   setCurateSrc();
   renderNav(state.navigation);
@@ -416,11 +432,11 @@ async function pollMonitoring() {
 }
 
 // ---- view router (Home / News / Media / Companion / SQL DB / Music / Casino / Odysseus / House / Stats) --------------------------------------------------------------
-const VIEWS = ['home', 'news', 'media', 'music', 'sql', 'listen', 'casino', 'ai', 'house', 'stats', 'curate', 'audio', 'settings'];
+const VIEWS = ['home', 'news', 'media', 'music', 'sql', 'listen', 'casino', 'ai', 'house', 'labels', 'stats', 'curate', 'audio', 'settings'];
 // While an embedded page is showing, the phone keyboard shrinks the screen (interactive-widget=resizes-content) rather
 // than sliding over it, so the pinned page (dashboard.css, .main:has(...)) ends just above the keyboard and a chat box
 // at the bottom of it stays visible. Only on those pages: Home, News and Music keep the browser's default.
-const FRAME_VIEWS = ['media', 'music', 'sql', 'casino', 'ai', 'house', 'curate', 'settings'];
+const FRAME_VIEWS = ['media', 'music', 'sql', 'casino', 'ai', 'house', 'labels', 'curate', 'settings'];
 const viewportMeta = $('meta[name="viewport"]');
 const VIEWPORT = viewportMeta.content;
 // Settings opens inside the dashboard, framed like the embedded pages (it's Citadel's own page, same origin). It loads

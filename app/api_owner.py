@@ -260,7 +260,7 @@ def _link_cfg(r: sqlite3.Row) -> dict[str, Any]:
             "health_url": r["health_url"] or "", "is_primary": bool(r["is_primary"]), "show_guest": bool(r["show_guest"]), "tier": r["tier"],
             "pinned": r["pin_order"] is not None, "for_media": bool(r["for_media"]), "for_music": bool(r["for_music"]), "for_sql": bool(r["for_sql"]),
             "for_ai": bool(r["for_ai"]), "for_house": bool(r["for_house"]),
-            "for_casino": bool(r["for_casino"])}
+            "for_casino": bool(r["for_casino"]), "for_labels": bool(r["for_labels"])}
 
 
 def _project_cfg(r: sqlite3.Row) -> dict[str, Any]:
@@ -399,6 +399,15 @@ def _apply_for_casino(con: sqlite3.Connection, link_id: Any, for_casino: bool) -
     con.execute("UPDATE links SET for_casino = 1 WHERE id = ?", (link_id,))
 
 
+def _apply_for_labels(con: sqlite3.Connection, link_id: Any, for_labels: bool) -> None:
+    """Same idea as _apply_for_house, for the Labels page's iframe (ZebraLab)."""
+    if not for_labels:
+        con.execute("UPDATE links SET for_labels = 0 WHERE id = ?", (link_id,))
+        return
+    con.execute("UPDATE links SET for_labels = 0 WHERE id != ?", (link_id,))
+    con.execute("UPDATE links SET for_labels = 1 WHERE id = ?", (link_id,))
+
+
 def _apply_page(con: sqlite3.Connection, slug: str, column: str, on: bool | None) -> None:
     """A project as the Companion (for_music) or SQL DB (for_sql) page's source. One source per page across links
     and projects together, so choosing a project here takes the job from whichever link or project had it."""
@@ -425,6 +434,7 @@ async def create_link(body: schemas.LinkIn, request: Request):
         _apply_for_ai(con, cur.lastrowid, body.for_ai)
         _apply_for_house(con, cur.lastrowid, body.for_house)
         _apply_for_casino(con, cur.lastrowid, body.for_casino)
+        _apply_for_labels(con, cur.lastrowid, body.for_labels)
     notify.config()
     asyncio.create_task(request.app.state.health.sweep_now())
     return {"id": cur.lastrowid}
@@ -450,6 +460,7 @@ async def update_link(link_id: int, body: schemas.LinkIn, request: Request):
             _apply_for_ai(con, link_id, body.for_ai)
             _apply_for_house(con, link_id, body.for_house)
             _apply_for_casino(con, link_id, body.for_casino)
+            _apply_for_labels(con, link_id, body.for_labels)
     if not n:
         raise HTTPException(404, "no such link")
     notify.config()

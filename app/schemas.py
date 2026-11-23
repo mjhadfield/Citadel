@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field, field_validator
 
 # Must match the symbols in web/js/icons.js.
 ICONS = ["globe", "film", "router", "disc", "bolt", "play", "term", "chip", "server", "cards", "heart",
-         "news", "cal", "grid", "home", "bin", "star", "radar", "alert", "pin", "wave", "spark", "tool", "spade"]
+         "news", "cal", "grid", "home", "bin", "star", "radar", "alert", "pin", "wave", "spark", "tool", "spade", "printer"]
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,40}$")
 ENV_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,60}$")
 
@@ -42,6 +42,7 @@ class LinkIn(BaseModel):
     for_ai: bool = False                # same idea, for the Odysseus page — independent of the other three
     for_house: bool = False             # same idea, for the House page (Home Improvements)
     for_casino: bool = False            # same idea, for the Casino page (Casino World)
+    for_labels: bool = False            # same idea, for the Labels page (ZebraLab)
 
     @field_validator("url")
     @classmethod

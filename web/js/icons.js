@@ -69,6 +69,7 @@ const paths = {
   thumbup:  '<path d="M7 11v9H4v-9zM7 11l4-8a2 2 0 0 1 2.6 1.4L13 9h5.5a2 2 0 0 1 2 2.3l-1.2 7A2 2 0 0 1 17.3 20H7"/>',
   thumbdown:'<path d="M7 13V4H4v9zM7 13l4 8a2 2 0 0 0 2.6-1.4L13 15h5.5a2 2 0 0 0 2-2.3l-1.2-7A2 2 0 0 0 17.3 4H7"/>',
   bag:    '<path d="M6 8h12l1 12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2zM9 8V6a3 3 0 0 1 6 0v2"/>',
+  printer:'<path d="M6 9V4h12v5M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z"/>',
 };
 
 const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
