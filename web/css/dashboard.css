@@ -27,6 +27,20 @@
 .rail a[data-view] .i, .rail a.rail__settings .i { width: 24px; height: 24px; }
 .rail__label { line-height: 1.2; }
 .rail .spacer { flex: 1; }
+/* Desktop rail groups (Settings → Navigation, app.js renderNav): a small heading over each group's pages, and Ops over
+   Curate / Audio / Settings at the foot (drawn by the spacer, so it stays put however tall the gap is). Mike, 2026-11-23. */
+.rail .spacer { display: flex; flex-direction: column; justify-content: flex-end; align-self: stretch; min-height: 22px; }
+.rail__group, .rail .spacer::after {
+  --grp-c: var(--silver-dim);
+  align-self: stretch; margin: 10px 10px 0; padding: 0 0 4px;
+  border-bottom: 1px solid color-mix(in srgb, var(--grp-c) 45%, var(--edge));
+  font: 700 8.5px/1 var(--font-mono); letter-spacing: .12em; text-transform: uppercase; text-align: center;
+  color: var(--grp-c); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rail .spacer::after { content: "Ops"; margin: 0 10px; }
+/* The three default groups wear their department colours (tokens.css); groups added in Settings stay grey like Ops */
+.rail__group[data-group="command"] { --grp-c: var(--grp-command); }
+.rail__group[data-group="science"] { --grp-c: var(--grp-science); }
+.rail__group[data-group="engineering"] { --grp-c: var(--grp-engineering); }
 
 /* ---- Main --------------------------------------------------------------- */
 /* --main-pl / --main-pr are the side paddings, kept as variables so an embedded page's frame can reach past them */

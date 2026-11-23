@@ -230,12 +230,20 @@ class NavPageIn(BaseModel):
     label: str = Field("", max_length=16)
     phone: bool = True
     rail: bool = True
+    group: str | None = Field(None, max_length=20)      # "" = no group; None = keep its default
+
+
+class NavGroupIn(BaseModel):
+    id: str = Field(pattern=r"^[a-z0-9-]{1,20}$")
+    label: str = Field(min_length=1, max_length=16)
 
 
 class NavigationIn(BaseModel):
-    """Settings → Navigation: every page in its new order, with its name ("" = the default), whether phones get a tab and
-    whether the desktop rail shows it. `device` saves it as this device's own set instead of every device's."""
+    """Settings → Navigation: every page in its new order, with its name ("" = the default), whether phones get a tab,
+    whether the desktop rail shows it and its rail group; and the rail's groups in order (None = leave them as they are).
+    `device` saves it as this device's own set instead of every device's."""
     pages: list[NavPageIn] = Field(max_length=30)
+    groups: list[NavGroupIn] | None = Field(None, max_length=8)
     device: bool = False
 
     @field_validator("pages")

@@ -41,6 +41,12 @@
   --ok:   #34d399;
   --warn: #f5b454;
   --bad:  #f43f5e;
+
+  /* desktop rail group headings (Settings → Navigation): red Command, blue Science, gold Engineering, every theme
+     (Mike, 2026-11-23) */
+  --grp-command:     #f2666b;
+  --grp-science:     #6ea8f2;
+  --grp-engineering: #e8b64c;
   /* heat: the header readout's numbers as load/temperature climbs (level 0 keeps the readout's own colour) */
   --heat-1: #f3d899;   /* pale gold */
   --heat-2: #f5a742;   /* amber */
@@ -98,6 +104,11 @@
   --ok:   #3d5a73;   /* slate blue: the one cool accent */
   --warn: #b0601c;   /* burnt orange, a shade more amber than the accent */
   --bad:  #8a2e2e;   /* oxblood (Next gig's red) */
+
+  /* rail group headings: the Day palette's own red, blue and "gold" (toasted orange, LCARS Day's --lc-2) */
+  --grp-command:     #8a2e2e;
+  --grp-science:     #3d5a73;
+  --grp-engineering: #a8652f;
   --heat-1: #8c6a45;   /* warm sepia: still readable on cream */
   --heat-2: #b5541f;   /* burnt orange */
   --heat-3: #a3302a;   /* red */

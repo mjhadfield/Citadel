@@ -693,7 +693,7 @@
     transition: background-color .16s var(--lc-ease), color .16s var(--lc-ease), box-shadow .16s var(--lc-ease), border-color .16s var(--lc-ease);
   }
   /* First page after Home aligns cleanly with the top of the viewport bezel (placed AFTER general rail rule so it wins) */
-  html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view="home"] + a[data-view] {
+  html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view="home"] + :is(a[data-view], .rail__group) {
     margin-top: calc(var(--lc-body-top, 84px) - var(--lcb-pad-top));
   }
   html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view]:not([data-view="home"]):not([hidden]),
@@ -769,11 +769,23 @@
     display: flex;
     align-items: flex-end;
   }
+  /* Group headings (Settings → Navigation): the same divider as OPS, over each group's pills */
+  html[data-family="lcars"][data-theme="lcars25"] .rail .rail__group {
+    flex: none;
+    margin: 8px 0 0 2px;
+    padding: 0 2px 3px;
+    width: calc(100% + 8px);
+    text-align: left;
+    font: 700 9.5px/1 var(--lc-font);
+    letter-spacing: .16em;
+  }
   html[data-family="lcars"][data-theme="lcars25"] .rail .spacer::after {
     content: "OPS";
+    margin: 0;
+    text-align: left;
     width: 100%;
     padding: 0 2px 3px;
-    font: 500 9.5px/1 var(--lc-font);
+    font: 700 9.5px/1 var(--lc-font);
     letter-spacing: .16em;
     color: var(--silver-dim);
     border-bottom: 1px solid var(--edge);

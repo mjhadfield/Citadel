@@ -182,7 +182,7 @@ html[data-family="lcars"] .rail__logo { display: none; }
   html[data-family="lcars"] .rail { padding-top: 0; }
   html[data-family="lcars"] .rail a[data-view="home"] { position: absolute; top: var(--lc-home-top, 40px); left: 0; right: 0; margin: 0 auto; }
   html[data-family="lcars"] .rail a[data-view="home"] .i { width: 26px; height: 26px; }
-  html[data-family="lcars"] .rail a[data-view="home"] + a { margin-top: var(--lc-body-top, 160px); }     /* the first page after Home, whichever (Settings → Navigation orders them) */
+  html[data-family="lcars"] .rail a[data-view="home"] + :is(a, .rail__group) { margin-top: var(--lc-body-top, 160px); }     /* the first page (or group heading) after Home, whichever (Settings → Navigation orders them) */
 }
 
 /* phones: the bottom tab bar keeps its layout; the current page gets its colour */

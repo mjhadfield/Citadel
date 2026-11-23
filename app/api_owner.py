@@ -107,7 +107,8 @@ async def get_navigation(request: Request):
 @router.put("/navigation")
 async def put_navigation(body: schemas.NavigationIn, request: Request):
     me = auth.current_device(request)["id"]
-    navigation.save([p.model_dump() for p in body.pages], me if body.device else None)
+    groups = None if body.groups is None else [g.model_dump() for g in body.groups]
+    navigation.save([p.model_dump() for p in body.pages], me if body.device else None, groups)
     notify.config()
     return navigation.for_settings(me)
 

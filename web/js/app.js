@@ -576,6 +576,13 @@ function renderNav(nav) {
     // way of LCARS lining up whichever page follows Home (lcars.css) and of the boot animation's one-after-another.
     if (!p.rail) railEnd.after(a); else if (p.movable) spacer.before(a);
   }
+  // Desktop rail groups (Settings → Navigation): a small heading before each group's first page on the rail. The pages
+  // come already sorted into their groups; ones with no group sit above the first heading. Phones have no rail.
+  $$('.rail .rail__group').forEach(h => h.remove());
+  for (const g of nav.groups || []) {
+    const first = nav.pages.find(p => p.rail && p.group === g.id);
+    if (first) $(`.rail a[data-view="${first.id}"]`)?.insertAdjacentHTML('beforebegin', `<span class="rail__group" data-group="${esc(g.id)}">${esc(g.label)}</span>`);
+  }
   const shown = nav.pages.filter(p => $(`.view[data-view="${p.id}"]`));
   const icon = p => (p.id === 'home' && document.documentElement.dataset.family === 'lcars' ? 'logo' : p.icon);    // as placeLcars does
   const link = p => `<a href="#${esc(p.id)}" data-view="${esc(p.id)}"><svg class="i"><use href="#i-${esc(icon(p))}"/></svg><span class="tabbar__label">${esc(p.label)}</span></a>`;
@@ -746,7 +753,12 @@ function placeLcars() {
   const vols = $('#vol-group'), look = $('#look-group');
   if (th === 'lcars25' && !phone.matches) {
     if (vols.parentElement !== railConsole) { railConsole.append(vols, look); $('.rail a[data-view="home"]').after(railConsole); }
-  } else if (vols.parentElement === railConsole) { $('#vol-bar').before(vols); $('#style-bar').before(look); }
+  } else if (vols.parentElement === railConsole) {
+    $('#vol-bar').before(vols); $('#style-bar').before(look);
+    // and the empty console off the rail: left after Home, it took the place of "the first item after Home" that the
+    // LCARS rail pushes down to the page body, so after a switch from LCARS 25 the pages rode up under Home (2026-11-23)
+    railConsole.remove();
+  }
   layoutRail();
 }
 const railConsole = Object.assign(document.createElement('div'), { className: 'rail__console' });

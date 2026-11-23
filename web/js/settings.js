@@ -816,29 +816,53 @@ function appearanceTab() {
 }
 
 // ---- Navigation: page names, which pages a phone has tabs for (the rest go under More), which the desktop rail shows,
-// and the order. Every device shares one set unless a device saves its own. Home stays first, with a phone tab and on
-// the rail; Settings stays on the rail; Curate and Settings keep their place at the foot of the rail. ------------------
+// the order, and the desktop rail's groups (each page sits under one, or none). Every device shares one set unless a
+// device saves its own. Home stays first, with a phone tab and on the rail; Settings stays on the rail; Curate, Audio
+// and Settings keep their place at the foot of the rail (Ops). Up and down move a page within its group; its Group
+// choice moves it to another, on save. ------------------------------------------------------------------------------
 let navScope = null;                    // 'shared' | 'device': which set the tab is editing
-const navRow = p => `<div class="nav-row" data-nav data-id="${esc(p.id)}"${p.movable ? ' data-movable' : ''}>
+const navSet = () => { const n = cfg.navigation; return navScope === 'device' ? (n.device || n.shared) : n.shared; };
+const navRow = (p, groups) => `<div class="nav-row" data-nav data-id="${esc(p.id)}"${p.movable ? ' data-movable' : ''}>
   <span class="sc-row__preview">${ico(p.icon)}</span>
   ${input('nav_label', p.label, `maxlength="${cfg.navigation.max_label}" placeholder="${esc(p.default)}" aria-label="Name"`)}
+  ${p.movable && groups.length ? select('nav_group', [['', 'No group'], ...groups.map(g => [g.id, g.label])], p.group).replace('<select', '<select aria-label="Group"') : '<span></span>'}
   <span class="nav-row__checks">
     <label class="check"><input type="checkbox" name="nav_phone"${p.phone ? ' checked' : ''}${p.id === 'home' ? ' disabled' : ''}><span>On phones</span></label>
     <label class="check"><input type="checkbox" name="nav_rail"${p.rail ? ' checked' : ''}${p.id === 'home' || p.id === 'settings' ? ' disabled' : ''}><span>On desktop</span></label>
   </span>
   <span class="sc-row__tools">${p.movable ? act('nav-up', ico('up'), 'aria-label="Move up" title="Move up"', 'btn--icon') + act('nav-down', ico('down'), 'aria-label="Move down" title="Move down"', 'btn--icon') : ''}</span></div>`;
 
+const navGroupRow = (g = { id: `g${Date.now().toString(36)}`, label: '' }) => `<div class="nav-row nav-row--group" data-navgroup data-id="${esc(g.id)}">
+  <span class="sc-row__preview">${ico('list')}</span>
+  ${input('ng_label', g.label, `maxlength="${cfg.navigation.max_label}" required aria-label="Group name"`)}
+  <span class="sc-row__tools">${act('ng-up', ico('up'), 'aria-label="Move up" title="Move up"', 'btn--icon')}${act('ng-down', ico('down'), 'aria-label="Move down" title="Move down"', 'btn--icon')}${act('ng-drop', 'Remove', '', 'btn--danger')}</span></div>`;
+// The page list under the same headings as the rail: pages with no group straight under Home, then each group, then Ops
+function navRows({ pages, groups }) {
+  const names = Object.fromEntries(groups.map(g => [g.id, g.label]));
+  let last = '';
+  return pages.map(p => {
+    const g = p.movable ? p.group : p.id === 'home' ? '' : 'ops';
+    const head = g && g !== last ? `<div class="nav-head">${esc(names[g] || 'Ops')}</div>` : '';
+    last = g;
+    return head + navRow(p, groups);
+  }).join('');
+}
+
 function navigationTab() {
   const n = cfg.navigation, inUse = n.device ? 'device' : 'shared';
   navScope ??= inUse;
-  const pages = navScope === 'device' ? (n.device || n.shared) : n.shared;
+  const set = navSet();
   const scopes = [['shared', 'Every device', 'users'], ['device', 'This device', 'phone']].map(([k, label, icon]) =>
     `<button type="button" class="btn${k === navScope ? ' btn--go' : ''}" data-do="nav-scope" data-scope="${k}" aria-pressed="${k === navScope}">${ico(icon)}${label}${k === inUse ? '<span class="chip chip--new">In use here</span>' : ''}</button>`).join('');
   return card('Pages', '',
     `<div class="bar-actions modepick">${scopes}</div>
     <form class="form" data-form="navigation" style="padding:0 18px 12px">
-      <div id="navs">${pages.map(navRow).join('')}</div>
-      <div class="form-actions">${navScope === 'device' && n.device ? act('nav-forget', 'Use every device’s') : ''}${act('nav-reset', 'Reset')}<button class="btn btn--solid" type="submit">Save</button></div></form>`);
+      <div id="navs">${navRows(set)}</div>
+      <div class="form-actions">${navScope === 'device' && n.device ? act('nav-forget', 'Use every device’s') : ''}${act('nav-reset', 'Reset')}<button class="btn btn--solid" type="submit">Save</button></div></form>`)
+  + card('Desktop groups', '',
+    `<form class="form" data-form="navgroups" style="padding:0 18px 12px">
+      <div id="navgroups">${set.groups.map(g => navGroupRow(g)).join('')}</div>
+      <div class="form-actions">${act('ng-add', `${ico('plus')}Add group`, set.groups.length >= n.max_groups ? 'disabled' : '', 'btn--go')}<button class="btn btn--solid" type="submit">Save</button></div></form>`);
 }
 
 // ---- About -----------------------------------------------------------------------------------------------------
@@ -1072,8 +1096,12 @@ panel.addEventListener('click', e => {
     case 'nav-up': { const r = b.closest('[data-nav]'), o = r.previousElementSibling; if (o?.hasAttribute('data-movable')) o.before(r); b.focus(); break; }
     case 'nav-down': { const r = b.closest('[data-nav]'), o = r.nextElementSibling; if (o?.hasAttribute('data-movable')) o.after(r); b.focus(); break; }
     case 'nav-scope': navScope = d.scope; render(); break;
+    case 'ng-up': { const r = b.closest('[data-navgroup]'); r.previousElementSibling?.before(r); b.focus(); break; }
+    case 'ng-down': { const r = b.closest('[data-navgroup]'); r.nextElementSibling?.after(r); b.focus(); break; }
+    case 'ng-drop': b.closest('[data-navgroup]').remove(); $('[data-do="ng-add"]').disabled = false; break;
+    case 'ng-add': $('#navgroups').insertAdjacentHTML('beforeend', navGroupRow()); $('#navgroups [data-navgroup]:last-child [name=ng_label]')?.focus(); b.disabled = $$('#navgroups [data-navgroup]').length >= cfg.navigation.max_groups; break;
     case 'nav-forget': run(async () => { await api.del('/api/owner/navigation/device'); navScope = 'shared'; }, 'This device uses every device’s again'); break;
-    case 'nav-reset': if (confirm(`Put every page back to its own name, place and tabs${navScope === 'device' ? ' on this device' : ' for every device'}?`)) run(() => api.put('/api/owner/navigation', { pages: [], device: navScope === 'device' }), 'Navigation reset'); break;
+    case 'nav-reset': if (confirm(`Put every page back to its own name, place, tabs and group, and the groups back to Command, Science and Engineering${navScope === 'device' ? ' on this device' : ' for every device'}?`)) run(() => api.put('/api/owner/navigation', { pages: [], device: navScope === 'device' }), 'Navigation reset'); break;
     case 'sc-up': { const r = b.closest('[data-sc]'); if (r.previousElementSibling) r.previousElementSibling.before(r); break; }
     case 'sc-down': { const r = b.closest('[data-sc]'); if (r.nextElementSibling) r.nextElementSibling.after(r); break; }
     case 'sc-import': {
@@ -1109,9 +1137,16 @@ panel.addEventListener('submit', e => {
     const id = f.dataset.id;
     run(async () => { await (id ? api.put(`/api/owner/links/${id}`, body) : api.post('/api/owner/links', body)); editing = null; }, 'Link saved');
   } else if (kind === 'navigation') {
-    const pages = $$('[data-nav]', f).map(r => ({ id: r.dataset.id, label: $('[name=nav_label]', r).value.trim(), phone: $('[name=nav_phone]', r).checked, rail: $('[name=nav_rail]', r).checked }));
+    const pages = $$('[data-nav]', f).map(r => ({ id: r.dataset.id, label: $('[name=nav_label]', r).value.trim(), phone: $('[name=nav_phone]', r).checked, rail: $('[name=nav_rail]', r).checked,
+      ...($('[name=nav_group]', r) ? { group: $('[name=nav_group]', r).value } : {}) }));
     const device = navScope === 'device';
     run(() => api.put('/api/owner/navigation', { pages, device }), device ? 'Saved for this device' : 'Saved for every device');
+  } else if (kind === 'navgroups') {
+    // The groups alone: the pages go back as they're saved (a removed group's pages fall to no group)
+    const groups = $$('[data-navgroup]', f).map(r => ({ id: r.dataset.id, label: $('[name=ng_label]', r).value.trim() }));
+    const pages = navSet().pages.map(({ id, label, default: d, phone, rail, group }) => ({ id, label: label === d ? '' : label, phone, rail, group }));
+    const device = navScope === 'device';
+    run(() => api.put('/api/owner/navigation', { pages, groups, device }), device ? 'Groups saved for this device' : 'Groups saved for every device');
   } else if (kind === 'project') {
     let env;
     try { env = parseEnv(val(f, 'env')); } catch (err) { toast(err.message); return; }

@@ -1,5 +1,5 @@
-"""Settings → Navigation: page names, phone tabs, desktop rail and order. One set for every device, or a device's own;
-the owner state carries whichever this device uses."""
+"""Settings → Navigation: page names, phone tabs, desktop rail, order and the rail's groups. One set for every device, or
+a device's own; the owner state carries whichever this device uses."""
 import pytest
 
 from app import auth, db, navigation
@@ -22,8 +22,17 @@ def by_id(pages):
     return {p["id"]: p for p in pages}
 
 
-def put(c, pages, device=False):
-    return c.put(f"{BASE}/navigation", json={"pages": pages, "device": device})
+def put(c, pages, device=False, groups=None):
+    body = {"pages": pages, "device": device, **({"groups": groups} if groups is not None else {})}
+    r = c.put(f"{BASE}/navigation", json=body)
+    if r.status_code == 200:          # the tests read the page lists; groups are checked through cfg()
+        j = r.json()
+        return type("R", (), {"status_code": 200, "json": lambda self=None: {"shared": j["shared"]["pages"], "device": j["device"] and j["device"]["pages"]}})()
+    return r
+
+
+def cfg(c):
+    return c.get(f"{BASE}/navigation").json()
 
 
 def state_nav(c):
@@ -33,12 +42,12 @@ def state_nav(c):
 def test_defaults_match_the_built_in_rail(owner_client):
     nav = owner_client.get(f"{BASE}/navigation").json()
     assert nav["device"] is None
-    assert ids(nav["shared"]) == [p[0] for p in navigation.PAGES]
-    pages = by_id(nav["shared"])
+    assert ids(nav["shared"]["pages"]) == [p[0] for p in navigation.PAGES]
+    pages = by_id(nav["shared"]["pages"])
     assert pages["music"]["label"] == "Companion" and pages["music"]["icon"] == "disc"
     assert pages["home"]["phone"] and pages["house"]["phone"]
     assert not pages["curate"]["phone"] and not pages["audio"]["phone"] and not pages["settings"]["phone"]
-    assert all(p["rail"] for p in nav["shared"])
+    assert all(p["rail"] for p in nav["shared"]["pages"])
     assert state_nav(owner_client)["own"] is False
 
 
@@ -46,10 +55,12 @@ def test_rename_hide_and_reorder_show_in_config_and_state(owner_client):
     pages = [{"id": "home", "label": "", "phone": True}, {"id": "house", "label": "Repairs", "phone": True},
              {"id": "news", "label": "", "phone": True}, {"id": "casino", "label": "", "phone": False, "rail": False}]
     assert put(owner_client, pages).status_code == 200
-    for got in (owner_client.get(f"{BASE}/config").json()["navigation"]["shared"], state_nav(owner_client)["pages"]):
+    for got in (owner_client.get(f"{BASE}/config").json()["navigation"]["shared"]["pages"], state_nav(owner_client)["pages"]):
         order = ids(got)
-        # Home first, the moved pages in their new order, pages left out after them, Curate + Audio + Settings last
-        assert order[:3] == ["home", "house", "news"] and order[-3:] == ["curate", "audio", "settings"]
+        # Home first, then the groups (Command, Science, Engineering), each in the saved order with pages left out after
+        # them; Curate + Audio + Settings last
+        assert order[:4] == ["home", "news", "stats", "music"] and order[-3:] == ["curate", "audio", "settings"]
+        assert order.index("casino") < order.index("house")
         assert set(order) == {p[0] for p in navigation.PAGES}
         pages_ = by_id(got)
         assert pages_["house"]["label"] == "Repairs" and pages_["house"]["default"] == "House"
@@ -71,8 +82,8 @@ def test_a_device_can_have_its_own_set(owner_client):
     put(owner_client, [{"id": "house", "label": "Repairs", "phone": True}])
     put(owner_client, [{"id": "media", "label": "Films", "phone": False}], device=True)
     nav = owner_client.get(f"{BASE}/navigation").json()
-    assert by_id(nav["shared"])["house"]["label"] == "Repairs" and by_id(nav["shared"])["media"]["label"] == "Media"
-    assert by_id(nav["device"])["media"]["label"] == "Films" and by_id(nav["device"])["house"]["label"] == "House"
+    assert by_id(nav["shared"]["pages"])["house"]["label"] == "Repairs" and by_id(nav["shared"]["pages"])["media"]["label"] == "Media"
+    assert by_id(nav["device"]["pages"])["media"]["label"] == "Films" and by_id(nav["device"]["pages"])["house"]["label"] == "House"
     st = state_nav(owner_client)
     assert st["own"] is True and by_id(st["pages"])["media"]["phone"] is False
     # and back to every device's
@@ -120,3 +131,69 @@ def test_reset_with_an_empty_list(owner_client):
 
 def test_guests_cannot_change_it(guest_client):
     assert guest_client.put(f"{BASE}/navigation", json={"pages": []}).status_code in (401, 403)
+
+
+# ---- desktop rail groups (Mike, 2026-11-23) ----------------------------------------------------------------------------
+
+def test_default_groups(owner_client):
+    nav = cfg(owner_client)["shared"]
+    assert [g["label"] for g in nav["groups"]] == ["Command", "Science", "Engineering"]
+    groups = {p["id"]: p["group"] for p in nav["pages"]}
+    assert [i for i in ids(nav["pages"]) if groups[i] == "command"] == ["stats", "news", "music"]       # Fleet, News, Companion
+    assert [i for i in ids(nav["pages"]) if groups[i] == "science"] == ["listen", "media", "casino", "holodeck"]
+    assert [i for i in ids(nav["pages"]) if groups[i] == "engineering"] == ["labels", "house", "ai"]
+    assert groups["home"] == groups["curate"] == groups["settings"] == ""
+    assert state_nav(owner_client)["groups"] == nav["groups"]
+
+
+def test_a_set_saved_before_groups_keeps_its_order_within_the_default_groups(owner_client):
+    db.put_settings(navigation.KEY, {"pages": [{"id": i, "label": "", "phone": True, "rail": True} for i in
+                                               ["news", "media", "music", "listen", "casino", "ai", "house", "stats", "labels", "holodeck"]]})
+    order = ids(state_nav(owner_client)["pages"])
+    assert order == ["home", "news", "music", "stats", "media", "listen", "casino", "holodeck", "ai", "house", "labels",
+                     "curate", "audio", "settings"]
+
+
+def test_moving_a_page_to_another_group_and_ungrouping(owner_client):
+    put(owner_client, [{"id": "house", "label": "", "phone": True, "group": "command"},
+                       {"id": "media", "label": "", "phone": True, "group": ""}])
+    nav = cfg(owner_client)["shared"]
+    order, pages = ids(nav["pages"]), by_id(nav["pages"])
+    assert order[:2] == ["home", "media"] and pages["media"]["group"] == ""      # no group: straight under Home
+    assert pages["house"]["group"] == "command" and order.index("house") < order.index("listen")
+
+
+def test_rename_reorder_add_and_drop_groups(owner_client):
+    put(owner_client, [{"id": "ai", "label": "", "phone": True, "group": "lab"}],
+        groups=[{"id": "engineering", "label": "Eng"}, {"id": "lab", "label": "Lab"}])
+    nav = cfg(owner_client)["shared"]
+    assert nav["groups"] == [{"id": "engineering", "label": "Eng"}, {"id": "lab", "label": "Lab"}]
+    pages = by_id(nav["pages"])
+    assert pages["ai"]["group"] == "lab" and pages["news"]["group"] == ""          # Command was dropped
+    order = ids(nav["pages"])
+    assert order.index("news") < order.index("labels") < order.index("ai")
+    # saving the pages alone keeps the groups
+    put(owner_client, [{"id": "news", "label": "Headlines", "phone": True}])
+    assert [g["id"] for g in cfg(owner_client)["shared"]["groups"]] == ["engineering", "lab"]
+    # and Reset brings the defaults back
+    put(owner_client, [])
+    assert [g["id"] for g in cfg(owner_client)["shared"]["groups"]] == ["command", "science", "engineering"]
+
+
+def test_no_groups_at_all(owner_client):
+    put(owner_client, [], groups=[])
+    nav = cfg(owner_client)["shared"]
+    assert nav["groups"] == [] and all(p["group"] == "" for p in nav["pages"])
+
+
+def test_a_devices_own_groups(owner_client):
+    put(owner_client, [], device=True, groups=[{"id": "all", "label": "All"}])
+    nav = cfg(owner_client)
+    assert [g["id"] for g in nav["device"]["groups"]] == ["all"]
+    assert [g["id"] for g in nav["shared"]["groups"]] == ["command", "science", "engineering"]
+
+
+def test_bad_groups_are_refused(owner_client):
+    assert put(owner_client, [], groups=[{"id": "Bad Id", "label": "x"}]).status_code == 422
+    assert put(owner_client, [], groups=[{"id": "ok", "label": ""}]).status_code == 422
+    assert put(owner_client, [], groups=[{"id": f"g{i}", "label": "x"} for i in range(9)]).status_code == 422
