@@ -610,26 +610,34 @@ function restartClass(el, cls, ms) {
   el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
   clearTimeout(el[`_${cls}`]); el[`_${cls}`] = setTimeout(() => el.classList.remove(cls), ms);
 }
-function bootLcars() { if (currentSkin() === 'lcars') restartClass(document.documentElement, 'lc-boot', 2200); }
+function bootLcars() {
+  if (currentSkin() === 'lcars') restartClass(document.documentElement, 'lc-boot', 2200);
+  else if (currentSkin() === 'borg') restartClass(document.documentElement, 'brg-boot', 1400);
+}
 document.addEventListener('click', e => {
   const link = e.target.closest('.rail a[data-view]');
-  if (!link || currentSkin() !== 'lcars') return;
-  restartClass(link, 'is-bump', 300);
-  restartClass(document.documentElement, 'lc-sweep', 700);
+  if (!link) return;
+  if (currentSkin() === 'lcars') {
+    restartClass(link, 'is-bump', 300);
+    restartClass(document.documentElement, 'lc-sweep', 700);
+  } else if (currentSkin() === 'borg') {
+    restartClass(document.documentElement, 'brg-pulse', 600);
+  }
 });
 
 function placeLcars() {
-  if (currentSkin() === 'lcars' && lastSkin === 'citadel') bootLcars();     // switched to LCARS just now
-  lastSkin = currentSkin();
+  const sk = currentSkin();
+  if (lastSkin !== null && sk !== lastSkin && (sk === 'lcars' || sk === 'borg')) bootLcars();
+  lastSkin = sk;
   const top = $('.top'), strip = $('#alerts'), readout = $('#readout');
-  // the reminders sit in the header in LCARS, and on phones in both themes (their drawer, see alertsDrawer)
-  if (currentSkin() === 'lcars' || phone.matches) { if (strip.parentElement !== top) top.append(strip); }
+  // the reminders sit in the header in LCARS, and on phones in every theme (their drawer, see alertsDrawer)
+  if (sk === 'lcars' || phone.matches) { if (strip.parentElement !== top) top.append(strip); }
   else if (strip.parentElement.id !== 'view-home') $('#view-home').prepend(strip);
-  if (currentSkin() === 'lcars') { if (readout.parentElement !== top) top.append(readout); }
+  if (sk === 'lcars') { if (readout.parentElement !== top) top.append(readout); }
   else if (readout.parentElement === top) $('#mu-bar').before(readout);
   // LCARS has no separate logo at the top of the rail: Home wears it instead (rail and phone tab bar alike)
   // (the rail and tab bar links only: the Home page section is [data-view="home"] too, and holds every card's icons)
-  $$('.rail [data-view="home"] use, .tabbar [data-view="home"] use').forEach(u => u.setAttribute('href', currentSkin() === 'lcars' ? '#i-logo' : '#i-home'));
+  $$('.rail [data-view="home"] use, .tabbar [data-view="home"] use').forEach(u => u.setAttribute('href', sk === 'lcars' ? '#i-logo' : '#i-home'));
   layoutRail();
 }
 
@@ -681,7 +689,7 @@ async function load() {
     startedSeen = s.started;
     state = s; syncThemes(s.appearance?.themes); syncLookButtons(); renderAll();
     // the first fill: the boot began at first paint (theme-init.js); let it finish, then take the class off
-    if (!booted) { booted = true; setTimeout(() => document.documentElement.classList.remove('lc-boot'), 1800); }
+    if (!booted) { booted = true; setTimeout(() => document.documentElement.classList.remove('lc-boot', 'brg-boot'), 1800); }
   }).catch(e => console.error(e)).finally(() => { loading = null; });
   return loading;
 }

@@ -24,12 +24,15 @@ export const TOKENS = [
   ['--lc-diary', 'Calendar', 'lcars'], ['--lc-on', 'Text on a block', 'lcars'],
   ['--lc-hd-frame', 'Elbow', 'lcars-hd'], ['--lc-hd-1', 'Bookmarks', 'lcars-hd'], ['--lc-hd-2', 'Day/Night', 'lcars-hd'],
   ['--lc-hd-3', 'Style', 'lcars-hd'], ['--lc-hd-4', 'Settings', 'lcars-hd'],
+  ['--brg-node', 'Concentric node', 'borg'], ['--brg-axis', 'Crosshair axis', 'borg'],
+  ['--brg-cyan', 'Neural conduit', 'borg'], ['--brg-sub', 'Glyph blue', 'borg'], ['--brg-on', 'Text on a node', 'borg'],
 ];
 export const GROUPS = [['page', 'Page & panels'], ['accent', 'Accent'], ['text', 'Text'], ['lines', 'Lines'], ['status', 'Status'],
-  ['charts', 'Charts'], ['lcars', 'LCARS', 'lcars'], ['lcars-hd', 'LCARS phone header', 'lcars']];
+  ['charts', 'Charts'], ['lcars', 'LCARS', 'lcars'], ['lcars-hd', 'LCARS phone header', 'lcars'], ['borg', 'Borg', 'borg']];
 export const TOKEN_NAMES = TOKENS.map(t => t[0]);
-const LCARS_GROUPS = new Set(['lcars', 'lcars-hd']);
-export const tokensFor = skin => TOKENS.filter(t => skin === 'lcars' || !LCARS_GROUPS.has(t[2]));
+const SKIN_GROUPS = { lcars: new Set(['lcars', 'lcars-hd']), borg: new Set(['borg']) };
+const ALL_SKIN_GROUPS = new Set(['lcars', 'lcars-hd', 'borg']);
+export const tokensFor = skin => TOKENS.filter(t => !ALL_SKIN_GROUPS.has(t[2]) || SKIN_GROUPS[skin]?.has(t[2]));
 
 // The four Basic colours each built-in look starts from (also app/appearance.py BASE).
 export const BASE = {
@@ -37,6 +40,8 @@ export const BASE = {
     day: { accent: '#b5541f', secondary: '#8a2e2e', third: '#3d5a73', panel: '#f8f0e2' } },
   lcars: { night: { accent: '#a78bfa', secondary: '#8577e0', third: '#d3a4ea', panel: '#0e0b14' },
     day: { accent: '#b5541f', secondary: '#8a2e2e', third: '#3d5a73', panel: '#f8f0e2' } },
+  borg: { night: { accent: '#2ee86c', secondary: '#d8a328', third: '#26c6b8', panel: '#060e08' },
+    day: { accent: '#167a3e', secondary: '#9c6d14', third: '#186b6e', panel: '#f3f7f4' } },
 };
 
 // ---- colour maths (sRGB hex <-> OKLab / OKLCh) ------------------------------------------------------------------------
@@ -85,12 +90,14 @@ export const solid = c => String(c).slice(0, 7);
 const WHITE = '#ffffff', BLACK = '#000000';
 const NIGHT = { ink: ['#e6e9ee', '#c9ced6', '#9aa1ad', '#6b7280'], ok: '#34d399', warn: '#f5b454', bad: '#f43f5e', heat: ['#f3d899', '#f5a742', '#ff4b2b'] };
 const DAY = { ink: ['#2a2015', '#4a3c2a', '#6b5c44', '#93876c'], ok: '#3d5a73', warn: '#b0601c', bad: '#8a2e2e', heat: ['#8c6a45', '#b5541f', '#a3302a'] };
+const BORG_NIGHT = { ink: ['#e4f5e9', '#b8d4be', '#7aa084', '#4d6f57'], ok: '#2ee86c', warn: '#e5b23a', bad: '#f43f5e', heat: ['#d8a328', '#f59e0b', '#ff4b2b'] };
+const BORG_DAY = { ink: ['#112117', '#263d2e', '#476351', '#6f8a78'], ok: '#167a3e', warn: '#9c6d14', bad: '#a3262e', heat: ['#6e6b20', '#9c6d14', '#a3262e'] };
 
 /** One mode's Basic colours (missing ones from the built-in look) -> { token: hex }. */
 export function derive(h = {}, mode = 'night', skin = 'citadel') {
   const dark = mode !== 'day', base = (BASE[skin] || BASE.citadel)[dark ? 'night' : 'day'];
   const P = h.accent || base.accent, S = h.secondary || base.secondary, T = h.third || base.third, N = h.panel || base.panel;
-  const o = h.panel_opacity ?? 100, K = dark ? NIGHT : DAY;
+  const o = h.panel_opacity ?? 100, K = skin === 'borg' ? (dark ? BORG_NIGHT : BORG_DAY) : (dark ? NIGHT : DAY);
   const see = c => alpha(c, o);
   const ink = K.ink.map(c => mix(c, dark ? 94 : 90, P));
   const v = {
@@ -124,6 +131,16 @@ export function derive(h = {}, mode = 'night', skin = 'citadel') {
     if (!dark) Object.assign(lc, { '--lc-hd-frame': lc['--lc-frame'], '--lc-hd-1': lc['--lc-2'], '--lc-hd-2': lc['--lc-4'], '--lc-hd-3': lc['--lc-5'] });
     lc['--lc-hd-4'] = lc['--lc-hd-frame'];
     Object.assign(v, lc);
+  }
+  if (skin === 'borg') {
+    const bg = v['--bg'];
+    Object.assign(v, {
+      '--brg-node': P,
+      '--brg-axis': S,
+      '--brg-cyan': T,
+      '--brg-sub': dark ? mix('#6684b5', 85, T) : mix('#3f5c80', 85, T),
+      '--brg-on': dark ? mix(bg, 75, BLACK) : mix(N, 50, WHITE),
+    });
   }
   return v;
 }

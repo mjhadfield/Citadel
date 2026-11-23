@@ -20,7 +20,7 @@ const KEY = 'motion';
 
 const root = document.documentElement;
 const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-const lcars = () => root.dataset.skin === 'lcars';
+const aliveSkin = () => root.dataset.skin === 'lcars' || root.dataset.skin === 'borg';
 
 /** This device's chosen level (what Settings shows), whatever the theme. */
 export function savedLevel() {
@@ -35,7 +35,7 @@ export function saveLevel(l) {
 }
 
 /** The level in force: the saved one, or off for reduced motion and for Citadel. */
-const level = () => (reduced.matches || !lcars() ? 'off' : savedLevel());
+const level = () => (reduced.matches || !aliveSkin() ? 'off' : savedLevel());
 export const isOn = id => LEVELS[level()].on.includes(id);
 
 function apply() {
@@ -277,7 +277,8 @@ export const ambient = {
     this.timer = setTimeout(() => { this.fire(); this.reschedule(); }, (lo + Math.random() * (hi - lo)) * 1000);
   },
   fire() {
-    if (document.hidden || !LEVELS[level()].every || root.dataset.page !== 'home' || root.classList.contains('lc-boot')) return;
+    if (document.hidden || !LEVELS[level()].every || root.dataset.page !== 'home' || root.classList.contains('lc-boot') || root.classList.contains('brg-boot')) return;
+    if (root.dataset.skin === 'borg') { if (isOn('trickle')) RUNNERS.trickle(); return; }
     const runs = Object.keys(RUNNERS).filter(isOn);
     if (!runs.length) return;
     // the trickle is the main one; a segment blink is the occasional variation

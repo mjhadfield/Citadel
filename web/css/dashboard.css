@@ -914,9 +914,14 @@ body.has-max::before { content: ""; position: fixed; inset: 0; z-index: 80; back
 .tm__sw--citadel { --sw-bg: #0e0b14; --sw-ac: #8b5cf6; }
 .tm__sw--lcars { --sw-bg: #050407; --sw-ac: #f2b45a; border-radius: 9px 0 0 9px; }
 .tm__sw--lcars::after { left: 0; right: auto; top: 0; bottom: 0; width: 5px; height: auto; background: #a78bfa; }
+.tm__sw--borg { --sw-bg: #050c07; --sw-ac: #2ee86c; border-color: color-mix(in srgb, var(--sw-ac) 70%, transparent);
+  background: linear-gradient(90deg, transparent 34%, color-mix(in srgb, #d8a328 70%, transparent) 34% calc(34% + 1px), transparent 0), var(--sw-bg); }
+.tm__sw--borg::after { left: 50%; right: auto; top: 50%; bottom: auto; width: 9px; height: 9px; transform: translate(-50%, -50%); border-radius: 50%;
+  background: radial-gradient(circle, var(--sw-ac) 0 1.8px, transparent 2.2px 3.2px, var(--sw-ac) 3.6px); }
 [data-theme="light"] .tm__sw--citadel { --sw-bg: #f8f0e2; --sw-ac: #b5541f; }
 [data-theme="light"] .tm__sw--lcars { --sw-bg: #f2e8d5; --sw-ac: #c25a17; }
 [data-theme="light"] .tm__sw--lcars::after { background: #b5541f; }
+[data-theme="light"] .tm__sw--borg { --sw-bg: #eef4f0; --sw-ac: #167a3e; }
 
 /* ---- Gig radar → Booked: the quick form (field/input/check rules copied from settings.css, which isn't loaded here) ---- */
 .book { width: min(620px, calc(100vw - 32px)); padding: 22px 24px; color: var(--silver); background: var(--surface); border: 1px solid var(--edge-strong); }

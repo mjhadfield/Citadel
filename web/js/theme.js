@@ -12,12 +12,18 @@
 import { TOKEN_NAMES, resolve } from './palette.js';
 
 const MODE_KEY = 'mode';           // 'day' | 'night'
-const LOOK_KEY = 'look';           // 'citadel' | 'lcars' | 'c:<custom theme id>'
+const LOOK_KEY = 'look';           // 'citadel' | 'lcars' | 'borg' | 'c:<custom theme id>'
 const SPEC_KEY = 'look-spec';      // the chosen custom theme's computed CSS for both modes, for theme-init.js
 const BG_VARS = ['--bg-image', '--bg-dim', '--bg-size', '--bg-repeat', '--bg-pos'];
 const VAR_NAMES = [...TOKEN_NAMES, ...BG_VARS];
 
-export const THEMES = [{ id: 'citadel', name: 'Citadel', skin: 'citadel' }, { id: 'lcars', name: 'LCARS', skin: 'lcars' }];
+export const THEMES = [
+  { id: 'citadel', name: 'Citadel', skin: 'citadel' },
+  { id: 'lcars', name: 'LCARS', skin: 'lcars' },
+  { id: 'borg', name: 'Borg', skin: 'borg' },
+];
+const BUILTIN_SKINS = new Set(['citadel', 'lcars', 'borg']);
+const normSkin = s => (BUILTIN_SKINS.has(s) ? s : 'citadel');
 
 const store = {
   get(k) { try { return localStorage.getItem(k); } catch { return null; } },
@@ -40,17 +46,17 @@ function half(h = {}, m, skin) {
 
 /** A custom theme -> { skin, day, night } ready to apply. */
 export function specOf(t) {
-  const skin = t.skin === 'lcars' ? 'lcars' : 'citadel';
+  const skin = normSkin(t.skin);
   return { skin, day: half(t.day, 'day', skin), night: half(t.night, 'night', skin) };
 }
 
 /** This device's mode: 'day' or 'night'. */
 export function mode() { return store.get(MODE_KEY) === 'day' ? 'day' : 'night'; }
 
-/** This device's chosen theme id: 'citadel', 'lcars' or a custom theme's id. */
+/** This device's chosen theme id: 'citadel', 'lcars', 'borg' or a custom theme's id. */
 export function look() {
   const v = store.get(LOOK_KEY);
-  return v === 'lcars' ? 'lcars' : v?.startsWith('c:') ? v.slice(2) : 'citadel';
+  return BUILTIN_SKINS.has(v) ? v : v?.startsWith('c:') ? v.slice(2) : 'citadel';
 }
 
 function storedSpec() {
@@ -59,10 +65,10 @@ function storedSpec() {
 }
 
 /** Put a mode + theme on the page. With no arguments: this device's own choice. Exported for the editor's live preview. */
-export function applySpec(spec = storedSpec(), m = mode(), skin = spec ? spec.skin : (look() === 'lcars' ? 'lcars' : 'citadel')) {
+export function applySpec(spec = storedSpec(), m = mode(), skin = spec ? normSkin(spec.skin) : normSkin(look())) {
   const root = document.documentElement;
   if (m === 'day') root.dataset.theme = 'light'; else delete root.dataset.theme;
-  if (skin === 'lcars') root.dataset.skin = 'lcars'; else delete root.dataset.skin;
+  if (skin === 'lcars' || skin === 'borg') root.dataset.skin = skin; else delete root.dataset.skin;
   VAR_NAMES.forEach(n => root.style.removeProperty(n));
   root.classList.remove('has-bg', 'no-glow');
   const h = spec?.[m];
@@ -93,7 +99,7 @@ export function setMode(m) {
 export function setLook(id, customs = []) {
   const t = customs.find(x => x.id === id);
   if (t) { store.set(LOOK_KEY, `c:${id}`); store.set(SPEC_KEY, JSON.stringify(specOf(t))); }
-  else { store.set(LOOK_KEY, id === 'lcars' ? 'lcars' : 'citadel'); store.set(SPEC_KEY, null); }
+  else { store.set(LOOK_KEY, normSkin(id)); store.set(SPEC_KEY, null); }
   applySpec();
   changed();
 }
@@ -101,19 +107,19 @@ export function setLook(id, customs = []) {
 /** After the server's list arrives: re-apply this device's theme (it may have been edited elsewhere, or deleted). */
 export function syncThemes(customs = []) {
   const id = look();
-  if (id === 'citadel' || id === 'lcars') return;
+  if (BUILTIN_SKINS.has(id)) return;
   const t = customs.find(x => x.id === id);
   const fresh = t ? JSON.stringify(specOf(t)) : null;
   if (fresh !== store.get(SPEC_KEY) || !t) setLook(t ? id : 'citadel', customs);
 }
 
 /** What an embedded page (Music Companion, Music DB Explorer, Odysseus, Home Improvements) needs to look the same:
- * the mode as dark/light, a custom theme's colours for that mode (they use the same variable names; the LCARS bar
- * colours stay here), and whether Citadel is drawing a background picture behind them — if so they make their own
+ * the mode as dark/light, a custom theme's colours for that mode (they use the same variable names; skin-specific
+ * tokens stay here), and whether Citadel is drawing a background picture behind them — if so they make their own
  * page backdrop see-through and the picture shows through the frame. */
 export function currentLook() {
   const h = storedSpec()?.[mode()];
-  const vars = h ? Object.fromEntries(Object.entries(h.vars).filter(([k]) => !BG_VARS.includes(k) && !k.startsWith('--lc-') && !k.startsWith('--series-'))) : null;
+  const vars = h ? Object.fromEntries(Object.entries(h.vars).filter(([k]) => !BG_VARS.includes(k) && !k.startsWith('--lc-') && !k.startsWith('--brg-') && !k.startsWith('--series-'))) : null;
   return { type: 'citadel-theme', theme: currentTheme(), vars, bg: !!h?.bg, glow: h ? h.glow : true };
 }
 
@@ -122,7 +128,7 @@ export function currentTheme() {
   return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
 }
 
-/** 'citadel' or 'lcars' — the built-in theme this device's look is built on. */
+/** 'citadel', 'lcars' or 'borg' — the built-in theme this device's look is built on. */
 export function currentSkin() {
-  return document.documentElement.dataset.skin === 'lcars' ? 'lcars' : 'citadel';
+  return normSkin(document.documentElement.dataset.skin);
 }

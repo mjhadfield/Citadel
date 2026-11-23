@@ -46,6 +46,9 @@ def test_a_theme_is_cleaned_and_each_half_defaults_to_its_mode():
     assert appearance.clean({"name": "x"})["skin"] == "citadel"
     assert appearance.clean(theme(night=half(panel_opacity=5, background={"dim": 400})))["night"]["panel_opacity"] == 30   # clamped, not refused
     assert appearance.clean(theme())["night"]["accent"] == "#3b82f6"
+    b = appearance.clean({"name": "Unimatrix", "skin": "borg", "night": {"tokens": {"--brg-axis": "#E5B23A"}}})
+    assert b["skin"] == "borg" and b["night"]["accent"] == appearance.BASE["borg"]["night"]["accent"]
+    assert b["night"]["tokens"] == {"--brg-axis": "#e5b23a"}
 
 
 def test_a_theme_saved_before_the_day_night_split_is_read_as_citadel_with_its_old_mode_kept():
@@ -116,9 +119,11 @@ def test_create_edit_delete_through_the_api_and_every_screen_sees_them(owner_cli
     tid = r.json()["id"]
     assert owner_client.get("/api/owner/state").json()["appearance"]["themes"][0]["name"] == "Midnight"
     cfg = owner_client.get("/api/owner/config").json()["appearance"]
-    assert cfg["themes"][0]["id"] == tid and cfg["skins"] == ["citadel", "lcars"] and set(cfg["base_accent"]) == {"day", "night"}
-    assert cfg["base"]["lcars"]["night"]["accent"] == "#a78bfa" and [p["id"] for p in cfg["presets"]] == ["command", "sci", "eng", "ent"]
+    assert cfg["themes"][0]["id"] == tid and cfg["skins"] == ["citadel", "lcars", "borg"] and set(cfg["base_accent"]) == {"day", "night"}
+    assert cfg["base"]["lcars"]["night"]["accent"] == "#a78bfa" and cfg["base"]["borg"]["night"]["accent"] == "#2ee86c"
+    assert [p["id"] for p in cfg["presets"]] == ["command", "sci", "eng", "ent"]
     assert owner_client.put(f"{BASE}/themes/{tid}", json=theme(name="Midnight 2", skin="lcars")).json()["skin"] == "lcars"
+    assert owner_client.put(f"{BASE}/themes/{tid}", json=theme(name="Unimatrix", skin="borg")).json()["skin"] == "borg"
     assert owner_client.put(f"{BASE}/themes/{tid}", json=theme(night=half(accent="nope"))).status_code == 422
     assert owner_client.put(f"{BASE}/themes/nope", json=theme()).status_code == 404
     assert owner_client.delete(f"{BASE}/themes/{tid}").status_code == 200

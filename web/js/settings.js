@@ -3,7 +3,7 @@
 import * as api from './api.js';
 import { $, $$, esc, ico, hhmm, ago, toast, isoOf } from './util.js';
 import { THEMES, applySpec, look, mode, setLook, setMode, specOf, syncThemes } from './theme.js';
-import { GROUPS, alpha, derive, opacityOf, solid, tokensFor } from './palette.js';
+import { GROUPS, TOKENS, alpha, derive, opacityOf, solid, tokensFor } from './palette.js';
 import * as motion from './motion.js';
 
 const TABS = [['links', 'Links', 'globe'], ['projects', 'Projects', 'grid'], ['remote', 'Remote access', 'desk'], ['widgets', 'Widgets', 'cal'], ['appearance', 'Appearance', 'sun'], ['navigation', 'Navigation', 'list'], ['music', 'Music', 'disc'], ['listen', 'Music page', 'wave'], ['news', 'News', 'news'], ['screens', 'Screens & devices', 'server'], ['maintenance', 'Maintenance & logs', 'gear'], ['about', 'About', 'chip']];
@@ -389,8 +389,8 @@ function newsShieldCard() {
   const sh = f1.shield || {};
   const status = !f1.enabled ? '<div class="status-line"><span class="dot"></span>Off — F1 stories show as normal.</div>'
     : sh.locked && sh.reason !== 'race' ? `<div class="status-line status-line--err"><span class="dot dot--warn"></span>On, hiding every F1-looking story: the calendar ${sh.reason === 'stale' ? 'is out of date' : 'hasn’t loaded yet'}.</div>`
-    : sh.locked ? `<div class="status-line status-line--err"><span class="dot dot--warn"></span>Locked: ${esc(sh.rounds.map(r => shortGp(r.name)).join(', '))} — F1 stories since ${esc(when(sh.since))} are hidden until you mark it watched.</div>`
-    : `<div class="status-line"><span class="dot dot--ok"></span>Ready${sh.next ? ` — locks at ${esc(shortGp(sh.next.name))} ${esc((sh.next.first_label || '').toLowerCase())}, ${esc(when(sh.next.first_session))}` : ''}.</div>`;
+      : sh.locked ? `<div class="status-line status-line--err"><span class="dot dot--warn"></span>Locked: ${esc(sh.rounds.map(r => shortGp(r.name)).join(', '))} — F1 stories since ${esc(when(sh.since))} are hidden until you mark it watched.</div>`
+        : `<div class="status-line"><span class="dot dot--ok"></span>Ready${sh.next ? ` — locks at ${esc(shortGp(sh.next.name))} ${esc((sh.next.first_label || '').toLowerCase())}, ${esc(when(sh.next.first_session))}` : ''}.</div>`;
   const now = Date.now() / 1000;
   const started = (f1.rounds || []).filter(r => r.first_session && r.first_session <= now);
   const watched = s.f1_watched && s.f1_watched.season === f1.season ? s.f1_watched.round : '';
@@ -486,8 +486,8 @@ function spotifyCard() {
   const until = sp.login_until ? new Date(sp.login_until * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
   const status = !svc.configured ? '<div class="status-line"><span class="dot"></span>Add your Spotify app’s client ID and secret, then Connect.</div>'
     : sp.expired ? '<div class="status-line status-line--err"><span class="dot dot--bad"></span>The login has run out (they last six months) — Connect again.</div>'
-    : sp.connected ? `<div class="status-line${sp.days_left <= 14 ? ' status-line--err' : ''}"><span class="dot ${sp.days_left <= 14 ? 'dot--warn' : 'dot--ok'}"></span>Connected${sp.user ? ` as ${esc(sp.user)}` : ''} — login good until ${esc(until)} (${sp.days_left} days)</div>`
-    : '<div class="status-line"><span class="dot dot--warn"></span>Not connected yet.</div>';
+      : sp.connected ? `<div class="status-line${sp.days_left <= 14 ? ' status-line--err' : ''}"><span class="dot ${sp.days_left <= 14 ? 'dot--warn' : 'dot--ok'}"></span>Connected${sp.user ? ` as ${esc(sp.user)}` : ''} — login good until ${esc(until)} (${sp.days_left} days)</div>`
+        : '<div class="status-line"><span class="dot dot--warn"></span>Not connected yet.</div>';
   const link = musicLink ? `<div class="form-grid" style="margin-top:12px">${field('Open this in a browser on the Citadel PC', `<input class="input" readonly data-select-all value="${esc(musicLink)}">`,
     'Spotify only sends logins back to 127.0.0.1, so it has to finish on this PC. Afterwards every device can use the Music page.', 'wide')}</div>
     <div class="form-actions"><a class="btn btn--go" href="${esc(musicLink)}" target="_blank" rel="noopener">Open the login page</a></div>` : '';
@@ -566,8 +566,10 @@ function enrolCard() {
 }
 
 // ---- Maintenance & logs ----------------------------------------------------------------------------------------------
-const STATUS = { ok: ['dot--ok', 'Working'], running: ['dot--warn', 'Running now'], failing: ['dot--bad', 'Failing'], stale: ['dot--bad', 'Hasn’t synced for a while'],
-  waiting: ['dot', 'Waiting for its first run'], 'not set up': ['dot', 'Not set up'] };
+const STATUS = {
+  ok: ['dot--ok', 'Working'], running: ['dot--warn', 'Running now'], failing: ['dot--bad', 'Failing'], stale: ['dot--bad', 'Hasn’t synced for a while'],
+  waiting: ['dot', 'Waiting for its first run'], 'not set up': ['dot', 'Not set up']
+};
 const dayStart = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 /** "04:00", "yesterday 04:00", "tomorrow 04:00", or "Mon 28 Sep 04:00". */
 function whenLabel(epoch) {
@@ -663,25 +665,32 @@ async function paintMaint() {
 // is kept as an override (half.tokens) while the rest keep following Basic.
 const FIT_LABELS = { cover: 'Fill the screen', contain: 'Show all of it', tile: 'Tile', center: 'Centre, actual size' };
 const MODE_LABEL = { day: 'Day', night: 'Night' };
-const SKIN_LABEL = { citadel: 'Citadel', lcars: 'LCARS' };
+const SKIN_LABEL = { citadel: 'Citadel', lcars: 'LCARS', borg: 'Borg' };
 const BASIC = [['accent', 'Primary'], ['secondary', 'Secondary'], ['third', 'Third'], ['panel', 'Panel']];
-const BUILTIN_LOOK = { citadel: { day: { panel: '#f8f0e2', accent: '#b5541f' }, night: { panel: '#0e0b14', accent: '#8b5cf6' } },
-  lcars: { day: { panel: '#f2e8d5', accent: '#b5541f' }, night: { panel: '#050407', accent: '#a78bfa' } } };
+const BUILTIN_LOOK = {
+  citadel: { day: { panel: '#f8f0e2', accent: '#b5541f' }, night: { panel: '#0e0b14', accent: '#8b5cf6' } },
+  lcars: { day: { panel: '#f2e8d5', accent: '#b5541f' }, night: { panel: '#050407', accent: '#a78bfa' } },
+  borg: { day: { panel: '#f3f7f4', accent: '#167a3e' }, night: { panel: '#060e08', accent: '#2ee86c' } }
+};
 const baseOf = (skin, m) => (cfg.appearance.base[skin] || cfg.appearance.base.citadel)[m];
 const overrides = t => Object.keys(t?.day?.tokens || {}).length + Object.keys(t?.night?.tokens || {}).length;
 
 function themePreview(t, m = mode()) {
   const skin = t.skin || t.id, h = t[m] || BUILTIN_LOOK[skin]?.[m] || BUILTIN_LOOK.citadel[m];
   const bg = h.background?.file ? `<img src="/backgrounds/${esc(h.background.file)}" alt="">` : '';
-  return `<span class="tp${skin === 'lcars' ? ' tp--lcars' : ''}" style="--tp-panel:${esc(h.panel)};--tp-accent:${esc(h.accent)};--tp-base:${m === 'day' ? '#f2e8d5' : '#07060a'}">${bg}
+  const base = m === 'day' ? (skin === 'borg' ? '#e8efe9' : '#f2e8d5') : (skin === 'borg' ? '#030704' : '#07060a');
+  const cls = skin === 'lcars' ? ' tp--lcars' : skin === 'borg' ? ' tp--borg' : '';
+  return `<span class="tp${cls}" style="--tp-panel:${esc(h.panel)};--tp-accent:${esc(h.accent)};--tp-base:${base}">${bg}
     <span class="tp__card"><span class="tp__tick"></span><span class="tp__line"></span><span class="tp__line tp__line--short"></span></span></span>`;
 }
 
 const pct = (n, v, min, max, step) => `<span class="range"><input type="range" name="${n}" min="${min}" max="${max}" step="${step}" value="${v}"><output>${v}%</output></span>`;
 function halfFields(m, h = {}, skin = 'citadel') {
   const bg = h.background || {}, base = baseOf(skin, m);
-  const colour = ([k, label]) => { const v = h[k] || base[k];
-    return field(label, `<span class="colour"><input type="color" name="${m}_${k}" value="${esc(v)}"><code>${esc(v)}</code>${k === 'panel' ? act('panel-reset', 'Reset', `data-half="${m}" title="Back to ${MODE_LABEL[m]}’s own panel colour"`, 'btn--icon-text') : ''}</span>`, ''); };
+  const colour = ([k, label]) => {
+    const v = h[k] || base[k];
+    return field(label, `<span class="colour"><input type="color" name="${m}_${k}" value="${esc(v)}"><code>${esc(v)}</code>${k === 'panel' ? act('panel-reset', 'Reset', `data-half="${m}" title="Back to ${MODE_LABEL[m]}’s own panel colour"`, 'btn--icon-text') : ''}</span>`, '');
+  };
   return `<fieldset class="half" data-half="${m}"><legend>${ico(m === 'day' ? 'sun' : 'moon')}${MODE_LABEL[m]}</legend>
     <div class="form-grid">
       ${BASIC.map(colour).join('')}
@@ -711,7 +720,7 @@ function tokenCell(name, label, m, a, t) {
 }
 function tokenTables(t) {
   return GROUPS.map(([g, label, only]) => {
-    const rows = tokensFor('lcars').filter(x => x[2] === g).map(([name, l, , a]) => `<div class="tok-row"><span class="tok-row__l">${esc(l)}<small>${esc(name)}</small></span>
+    const rows = TOKENS.filter(x => x[2] === g).map(([name, l, , a]) => `<div class="tok-row"><span class="tok-row__l">${esc(l)}<small>${esc(name)}</small></span>
       ${tokenCell(name, l, 'day', a, t)}${tokenCell(name, l, 'night', a, t)}</div>`).join('');
     return `<details class="toks" open${only ? ` data-only="${only}"` : ''}><summary>${esc(label)}</summary>
       <div class="tok-row tok-row--head"><span></span><span>${ico('sun')}Day</span><span>${ico('moon')}Night</span></div>${rows}</details>`;
@@ -727,7 +736,7 @@ function themeForm(t, view = 'basic') {
       ${field('Preview', select('preview', [['night', 'Night'], ['day', 'Day']], mode()), 'Which half you see on this page while you edit.')}
     </div>
     <div class="bar-actions modepick theme-views">${[['basic', 'Basic'], ['advanced', 'Advanced']].map(([k, l]) =>
-      `<button type="button" class="btn${k === view ? ' btn--go' : ''}" data-do="theme-view" data-view="${k}" aria-pressed="${k === view}">${l}</button>`).join('')}
+    `<button type="button" class="btn${k === view ? ' btn--go' : ''}" data-do="theme-view" data-view="${k}" aria-pressed="${k === view}">${l}</button>`).join('')}
       <button type="button" class="chip chip--new" data-do="theme-view" data-view="advanced" data-tok-count hidden></button></div>
     <div class="theme-basic"><div class="halves">${halfFields('day', t.day, skin)}${halfFields('night', t.night, skin)}</div>
     <p class="field__h" style="margin-top:6px">JPEG, PNG, WebP or GIF pictures, up to ${cfg.appearance.max_background_mb} MB. Previews live; nothing is kept until you save.</p></div>
@@ -744,8 +753,10 @@ function cellValue(c) {
 function readHalf(f, m, skin) {
   const el = n => f.elements[`${m}_${n}`], names = new Set(tokensFor(skin).map(x => x[0]));
   const tokens = Object.fromEntries($$(`.tok[data-half="${m}"][data-set]`, f).filter(c => names.has(c.dataset.tok)).map(c => [c.dataset.tok, c.dataset.v || cellValue(c)]));
-  return { accent: el('accent').value, secondary: el('secondary').value, third: el('third').value, panel: el('panel').value, panel_opacity: Number(el('panel_opacity').value),
-    background: { file: el('bg_file').value, fit: el('fit').value, dim: Number(el('dim').value), glow: el('glow').checked }, tokens };
+  return {
+    accent: el('accent').value, secondary: el('secondary').value, third: el('third').value, panel: el('panel').value, panel_opacity: Number(el('panel_opacity').value),
+    background: { file: el('bg_file').value, fit: el('fit').value, dim: Number(el('dim').value), glow: el('glow').checked }, tokens
+  };
 }
 function readTheme(f) {
   const skin = f.elements.skin.value;
@@ -784,13 +795,14 @@ function appearanceTab() {
         <div class="item__main"><b>${esc(t.name)}</b>${t.id === cur ? '<span class="chip chip--new">This device</span>' : ''}<span class="chip">built on ${esc(SKIN_LABEL[t.skin] || t.skin)}</span>${t.day.background.file || t.night.background.file ? '<span class="chip">Background</span>' : ''}${overrides(t) ? '<span class="chip">Advanced</span>' : ''}
           <div class="item__sub">Day primary ${esc(t.day.accent)} · Night primary ${esc(t.night.accent)}</div></div>
         <div class="item__acts">${act('edit-theme', 'Edit', `data-id="${esc(t.id)}"`)}${act('copy-theme', 'Duplicate', `data-id="${esc(t.id)}"`)}${act('delete-theme', 'Delete', `data-id="${esc(t.id)}" data-name="${esc(t.name)}"`, 'btn--danger')}</div></li>`).join('');
-  // LCARS only: how much it moves between page changes (motion.js), this device's own
-  const lv = motion.savedLevel(), motionRow = document.documentElement.dataset.skin !== 'lcars' ? ''
+  // LCARS and Borg: how much it moves between page changes (motion.js), this device's own
+  const sk = document.documentElement.dataset.skin;
+  const lv = motion.savedLevel(), motionRow = (sk !== 'lcars' && sk !== 'borg') ? ''
     : `<div class="bar-actions modepick modepick--motion"><span class="field__l">Motion</span>${motion.LEVEL_NAMES.map(([k, label]) =>
       `<button type="button" class="btn${k === lv ? ' btn--go' : ''}" data-do="use-motion" data-level="${k}" aria-pressed="${k === lv}">${label}</button>`).join('')}</div>`;
   // LCARS only: the screen overlay over everything (theme-init.js sets html[data-lc-overlay]; lcars.css draws it)
   const ovCur = (() => { try { return localStorage.getItem('lc-overlay') || 'scan'; } catch { return 'scan'; } })();
-  const overlayRow = document.documentElement.dataset.skin !== 'lcars' ? ''
+  const overlayRow = sk !== 'lcars' ? ''
     : `<div class="bar-actions modepick modepick--motion"><span class="field__l">Overlay</span>${LC_OVERLAYS.map(([k, label]) =>
       `<button type="button" class="btn${k === ovCur ? ' btn--go' : ''}" data-do="use-overlay" data-overlay="${k}" aria-pressed="${k === ovCur}">${label}</button>`).join('')}</div>`;
   const adding = editing?.kind === 'theme' && editing.id === 'new' ? `<li class="item item--edit">${themeForm(editing.seed || {}, editing.view)}</li>` : '';
@@ -799,8 +811,8 @@ function appearanceTab() {
     'Day or Night, and which theme. The same two buttons sit in the dashboard’s header.',
     `<div class="bar-actions modepick">${modes}</div><div class="themepicks">${tiles}</div>${motionRow}${overlayRow}`)
     + card('Custom themes',
-    'A variant of Citadel or LCARS, with its own Day and Night colours and pictures.',
-    `<div class="bar-actions modepick modepick--motion"><span class="field__l">New theme</span>${starts.map(([k, label]) => act('new-theme', `${ico('plus')}${esc(label)}`, `data-from="${esc(k)}"`)).join('')}</div><ul class="items">${adding}${rows}</ul>
+      'A variant of Citadel, LCARS or Borg, with its own Day and Night colours and pictures.',
+      `<div class="bar-actions modepick modepick--motion"><span class="field__l">New theme</span>${starts.map(([k, label]) => act('new-theme', `${ico('plus')}${esc(label)}`, `data-from="${esc(k)}"`)).join('')}</div><ul class="items">${adding}${rows}</ul>
      ${themes.length || adding ? '' : '<p class="sx__intro" style="padding-top:0">No custom themes yet.</p>'}`);
 }
 
@@ -833,7 +845,7 @@ function navigationTab() {
 // ---- About -----------------------------------------------------------------------------------------------------
 function aboutTab() {
   const rows = [['Version', cfg.version], ['Host', `${cfg.host} · ${cfg.ip}`], ['Address', cfg.public_url], ['Database', cfg.paths.database], ['Projects folder', cfg.paths.projects],
-    ['Links / projects / devices', `${cfg.links.length} / ${cfg.projects.length} / ${cfg.devices.length}`]];
+  ['Links / projects / devices', `${cfg.links.length} / ${cfg.projects.length} / ${cfg.devices.length}`]];
   return card('About', 'To move Citadel, copy <code>data/hub.sqlite</code> and <code>.env</code>.',
     `<ul class="items">${rows.map(([k, v]) => `<li class="item" style="grid-template-columns:200px 1fr"><span class="field__l">${esc(k)}</span><span class="mono" style="word-break:break-all">${esc(v)}</span></li>`).join('')}</ul>`);
 }
@@ -903,7 +915,7 @@ panel.addEventListener('change', e => {
     return;
   }
   const src = e.target.closest('[data-log-source]');
-  if (src) { logf.source = src.value; run(async () => {}); return; }
+  if (src) { logf.source = src.value; run(async () => { }); return; }
   const sel = e.target.closest('[data-artist-status]');
   if (sel) run(() => api.patch(`/api/owner/artists/${sel.dataset.id}`, { status: sel.value }), 'Updated');
 });
@@ -942,7 +954,7 @@ panel.addEventListener('click', e => {
     }
     case 'new-theme': {
       const p = cfg.appearance.presets.find(x => `p:${x.id}` === d.from);
-      editing = { kind: 'theme', id: 'new', seed: p ? { ...structuredClone(p), id: '' } : { skin: d.from === 'lcars' ? 'lcars' : 'citadel' } };
+      editing = { kind: 'theme', id: 'new', seed: p ? { ...structuredClone(p), id: '' } : { skin: ['lcars', 'borg'].includes(d.from) ? d.from : 'citadel' } };
       render(); $('[data-form="theme"] [name=name]')?.focus(); previewTheme($('[data-form="theme"]')); break;
     }
     case 'theme-view': {
@@ -980,8 +992,10 @@ panel.addEventListener('click', e => {
     case 'delete-gig': if (confirm(`Delete the ${d.name} gig?`)) run(() => api.del(`/api/owner/gigs/${d.id}`), 'Gig deleted'); break;
     case 'remove-artist': if (confirm(`Stop following ${d.name}? Their found items will disappear.`)) run(() => api.del(`/api/owner/artists/${d.id}`), 'Removed'); break;
     case 'resync': run(async () => { const r = await api.post('/api/owner/artists/resync'); toast(`Music Companion: ${r.added} new artist${r.added === 1 ? '' : 's'} followed, ${r.updated} refreshed`); }); break;
-    case 'spotify-login': run(async () => { const r = await api.post('/api/owner/music/spotify/login'); musicLink = r.url;
-      if (['127.0.0.1', 'localhost'].includes(location.hostname)) window.open(r.url, '_blank', 'noopener'); }, ['127.0.0.1', 'localhost'].includes(location.hostname) ? 'Opened Spotify’s login page' : 'Open the link below on the Citadel PC'); break;
+    case 'spotify-login': run(async () => {
+      const r = await api.post('/api/owner/music/spotify/login'); musicLink = r.url;
+      if (['127.0.0.1', 'localhost'].includes(location.hostname)) window.open(r.url, '_blank', 'noopener');
+    }, ['127.0.0.1', 'localhost'].includes(location.hostname) ? 'Opened Spotify’s login page' : 'Open the link below on the Citadel PC'); break;
     case 'spotify-logout': if (confirm('Disconnect Spotify? Playlists stay on your account; Citadel just stops updating them.')) run(async () => { await api.post('/api/owner/music/spotify/logout'); musicLink = null; }, 'Disconnected'); break;
     case 'svc-test': b.disabled = true; b.textContent = 'Testing…';
       api.post(`/api/owner/music/services/${d.id}/test`).then(r => { svcTests[d.id] = r; render(); }).catch(err => toast(err.message)); break;
@@ -1049,7 +1063,7 @@ panel.addEventListener('click', e => {
     case 'run-job': run(async () => { await api.post(`/api/owner/maintenance/${d.id}/run`); await new Promise(r => setTimeout(r, 1500)); }, 'Started'); break;
     case 'sched-default': run(() => api.put(`/api/owner/maintenance/${d.id}/schedule`, { mode: 'default' }), 'Back to the default schedule'); break;
     case 'maint-refresh': paintMaint().then(() => toast('Refreshed')).catch(err => toast(err.message)); break;
-    case 'log-level': logf.level = d.level; run(async () => {}); break;
+    case 'log-level': logf.level = d.level; run(async () => { }); break;
     case 'log-clear': if (confirm('Clear the whole event log?')) run(() => api.del('/api/owner/logs'), 'Log cleared'); break;
     case 'add-cal': $('#cals').insertAdjacentHTML('beforeend', calRow()); break;
     case 'sc-add': $('#scs').insertAdjacentHTML('beforeend', scRow()); $('#scs [data-sc]:last-child [name=sc_label]')?.focus(); break;
@@ -1089,8 +1103,10 @@ panel.addEventListener('submit', e => {
   e.preventDefault();
   const f = e.target, kind = f.dataset.form;
   if (kind === 'link') {
-    const body = { name: val(f, 'name'), subtitle: val(f, 'subtitle'), url: val(f, 'url'), icon: val(f, 'icon'), health_url: val(f, 'health_url') || null,
-      is_primary: on(f, 'is_primary'), show_guest: on(f, 'show_guest'), tier: on(f, 'more') ? 'more' : 'main', pinned: on(f, 'pinned'), for_media: on(f, 'for_media'), for_music: on(f, 'for_music'), for_sql: on(f, 'for_sql'), for_ai: on(f, 'for_ai'), for_house: on(f, 'for_house'), for_casino: on(f, 'for_casino') };
+    const body = {
+      name: val(f, 'name'), subtitle: val(f, 'subtitle'), url: val(f, 'url'), icon: val(f, 'icon'), health_url: val(f, 'health_url') || null,
+      is_primary: on(f, 'is_primary'), show_guest: on(f, 'show_guest'), tier: on(f, 'more') ? 'more' : 'main', pinned: on(f, 'pinned'), for_media: on(f, 'for_media'), for_music: on(f, 'for_music'), for_sql: on(f, 'for_sql'), for_ai: on(f, 'for_ai'), for_house: on(f, 'for_house'), for_casino: on(f, 'for_casino')
+    };
     const id = f.dataset.id;
     run(async () => { await (id ? api.put(`/api/owner/links/${id}`, body) : api.post('/api/owner/links', body)); editing = null; }, 'Link saved');
   } else if (kind === 'navigation') {
@@ -1100,9 +1116,11 @@ panel.addEventListener('submit', e => {
   } else if (kind === 'project') {
     let env;
     try { env = parseEnv(val(f, 'env')); } catch (err) { toast(err.message); return; }
-    const body = { name: val(f, 'name'), description: val(f, 'description'), kind: val(f, 'kind'), url: val(f, 'url') || null,
+    const body = {
+      name: val(f, 'name'), description: val(f, 'description'), kind: val(f, 'kind'), url: val(f, 'url') || null,
       port: val(f, 'port') ? Number(val(f, 'port')) : null, cwd: val(f, 'cwd'), command: val(f, 'command'), env, lan_visible: !on(f, 'local_only'), enabled: on(f, 'enabled'), pinned: on(f, 'pinned'),
-      show_projects: on(f, 'show_projects'), show_launchpad: on(f, 'show_launchpad'), icon: val(f, 'icon'), for_music: on(f, 'for_music'), for_sql: on(f, 'for_sql') };
+      show_projects: on(f, 'show_projects'), show_launchpad: on(f, 'show_launchpad'), icon: val(f, 'icon'), for_music: on(f, 'for_music'), for_sql: on(f, 'for_sql')
+    };
     const slug = f.dataset.slug;
     run(async () => {
       const res = await (slug ? api.put(`/api/owner/projects/${slug}`, body) : api.post('/api/owner/projects', { ...body, slug: val(f, 'slug') }));
@@ -1126,12 +1144,16 @@ panel.addEventListener('submit', e => {
     })).filter(x => x.url || x.label);                                        // an untouched "Add shortcut" row is ignored
     run(() => api.put('/api/owner/widgets/shortcuts/settings', { show: on(f, 'sc_show'), shortcuts }), 'Shortcuts saved — fetching icons');
   } else if (kind === 'bins') {
-    run(() => api.put('/api/owner/widgets/bins/settings', { uprn: val(f, 'uprn'), put_out_hour: Number(val(f, 'put_out_hour')),
-      alert_streams: Object.keys(cfg.streams).filter(k => on(f, `stream_${k}`)) }), 'Bins saved — syncing');
+    run(() => api.put('/api/owner/widgets/bins/settings', {
+      uprn: val(f, 'uprn'), put_out_hour: Number(val(f, 'put_out_hour')),
+      alert_streams: Object.keys(cfg.streams).filter(k => on(f, `stream_${k}`))
+    }), 'Bins saved — syncing');
   } else if (kind === 'diary') {
     const calendars = $$('[data-cal]', f)
-      .map(r => ({ id: r.dataset.id || undefined, name: r.querySelector('[name=cal_name]').value.trim() || 'Calendar', colour: r.querySelector('[name=cal_colour]').value,
-        ...(r.querySelector('[name=cal_url]').value.trim() ? { url: r.querySelector('[name=cal_url]').value.trim() } : {}) }))
+      .map(r => ({
+        id: r.dataset.id || undefined, name: r.querySelector('[name=cal_name]').value.trim() || 'Calendar', colour: r.querySelector('[name=cal_colour]').value,
+        ...(r.querySelector('[name=cal_url]').value.trim() ? { url: r.querySelector('[name=cal_url]').value.trim() } : {})
+      }))
       .filter(c => c.id || c.url);                                          // an untouched "Add calendar" row is ignored
     run(() => api.put('/api/owner/widgets/diary/settings', { calendars, horizon_days: Number(val(f, 'horizon_days')) || 93 }), 'Calendars saved — syncing');
   } else if (kind === 'screens') {
@@ -1152,8 +1174,10 @@ panel.addEventListener('submit', e => {
   } else if (kind === 'releases') {
     run(() => api.put('/api/owner/widgets/releases/settings', { lookback_days: Number(val(f, 'lookback_days')), horizon_days: Number(val(f, 'horizon_days')), batch: Number(val(f, 'batch')), types: ['Album', 'EP', 'Single'].filter(t => on(f, `type_${t}`)), include_extras: on(f, 'include_extras') }), 'Saved');
   } else if (kind === 'vinyl') {
-    const shops = $$('[data-shop]', f).map(r => ({ id: r.dataset.id || undefined, kind: r.dataset.kind || 'shopify', name: r.querySelector('[name=s_name]').value.trim(), url: r.querySelector('[name=s_url]').value.trim(),
-      collection: r.querySelector('[name=s_coll]').value.trim(), enabled: r.querySelector('[name=s_on]').checked })).filter(x => x.name || x.url);
+    const shops = $$('[data-shop]', f).map(r => ({
+      id: r.dataset.id || undefined, kind: r.dataset.kind || 'shopify', name: r.querySelector('[name=s_name]').value.trim(), url: r.querySelector('[name=s_url]').value.trim(),
+      collection: r.querySelector('[name=s_coll]').value.trim(), enabled: r.querySelector('[name=s_on]').checked
+    })).filter(x => x.name || x.url);
     run(() => api.put('/api/owner/widgets/vinyl/settings', { shops }), 'Saved — syncing');
   } else if (kind === 'radar') {
     run(() => api.put('/api/owner/widgets/radar/settings', { latlong: val(f, 'latlong'), radius_miles: Number(val(f, 'radius_miles')), batch: Number(val(f, 'batch')), api_key: val(f, 'api_key') }), 'Saved — syncing');
@@ -1161,8 +1185,10 @@ panel.addEventListener('submit', e => {
     run(() => api.put('/api/owner/widgets/news/settings', { most_read: on(f, 'most_read'), most_read_guardian: on(f, 'most_read_guardian'), front_per_section: Number(val(f, 'front_per_section')), latest_hours: Number(val(f, 'latest_hours')), latest_cap: Number(val(f, 'latest_cap')) }), 'Saved');
   } else if (kind === 'news-f1') {
     const round = val(f, 'f1_watched'), season = Number(f.dataset.season);
-    run(() => api.put('/api/owner/widgets/news/settings', { f1_shield: on(f, 'f1_shield'), f1_extra_terms: lines(val(f, 'f1_extra_terms')),
-      f1_watched: round === '' || !season ? null : { season, round: Number(round) } }), 'Saved');
+    run(() => api.put('/api/owner/widgets/news/settings', {
+      f1_shield: on(f, 'f1_shield'), f1_extra_terms: lines(val(f, 'f1_extra_terms')),
+      f1_watched: round === '' || !season ? null : { season, round: Number(round) }
+    }), 'Saved');
   } else if (kind === 'news-rule') {
     run(async () => { await api.post('/api/owner/news/rules', { term: val(f, 'term'), section: val(f, 'section') || null }); }, 'Rule added');
   } else if (kind === 'news-sections') {
@@ -1172,8 +1198,10 @@ panel.addEventListener('submit', e => {
       exclude: lines(el.querySelector('[name=s_exclude]').value), include: lines(el.querySelector('[name=s_include]').value),
       favour: lines(el.querySelector('[name=s_favour]').value), play_down: lines(el.querySelector('[name=s_play_down]').value),
       personal: !!el.querySelector('[name=s_personal]')?.checked, front_with: el.querySelector('[name=s_with]')?.value || null,
-      feeds: $$('[data-feed]', el).map(r => ({ id: r.dataset.id || undefined, name: r.querySelector('[name=f_name]').value.trim(), url: r.querySelector('[name=f_url]').value.trim(),
-        enabled: r.querySelector('[name=f_on]').checked })).filter(x => x.name || x.url),
+      feeds: $$('[data-feed]', el).map(r => ({
+        id: r.dataset.id || undefined, name: r.querySelector('[name=f_name]').value.trim(), url: r.querySelector('[name=f_url]').value.trim(),
+        enabled: r.querySelector('[name=f_on]').checked
+      })).filter(x => x.name || x.url),
     }));
     run(() => api.put('/api/owner/widgets/news/settings', { sections }), 'Saved — syncing');
   } else if (kind === 'schedule') {
@@ -1211,7 +1239,7 @@ api.subscribe(() => {
       if (tab === 'maintenance') await paintMaint();
     } catch { /* transient */ }
   }, 500);
-}, () => {});
+}, () => { });
 
 // The device's look changed on the dashboard (or another tab): theme.js has applied it; the Appearance tab shows the
 // current choice, so it redraws (not while a custom theme is open in the editor).
@@ -1219,5 +1247,5 @@ document.addEventListener('theme:change', () => { if (tab === 'appearance' && !e
 
 motion.init();
 await load();
-document.documentElement.classList.remove('lc-boot');    // the LCARS boot animation is the dashboard's; theme-init sets it everywhere
+document.documentElement.classList.remove('lc-boot', 'brg-boot');    // boot animations are the dashboard's; theme-init sets them everywhere
 if (addParam === 'gig') $('[data-form="gig"] input')?.focus();

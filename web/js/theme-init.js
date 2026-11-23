@@ -12,9 +12,10 @@ try {
   var m = ls.getItem('mode') === 'day' ? 'day' : 'night', l = ls.getItem('look') || 'citadel', s = null;
   if (m === 'day') r.dataset.theme = 'light';
   if (l.indexOf('c:') === 0) s = JSON.parse(ls.getItem('look-spec') || 'null');
-  // LCARS boots from the first paint (lcars.css, Motion), so nothing shows and then vanishes to animate in; app.js
-  // takes the class off once the page has filled
-  if ((s ? s.skin : l) === 'lcars') { r.dataset.skin = 'lcars'; r.classList.add('lc-boot'); }
+  // LCARS and Borg boot from the first paint so nothing flashes before animating in; app.js clears the class once filled
+  var sk = s ? s.skin : l;
+  if (sk === 'lcars') { r.dataset.skin = 'lcars'; r.classList.add('lc-boot'); }
+  else if (sk === 'borg') { r.dataset.skin = 'borg'; r.classList.add('brg-boot'); }
   var h = s && s[m];
   if (h) {
     for (var k in h.vars) r.style.setProperty(k, h.vars[k]);
@@ -22,7 +23,7 @@ try {
     if (!h.glow) r.classList.add('no-glow');
   }
   // LCARS screen overlay (Settings → Appearance → Overlay, this device's own; lcars.css): scanlines unless picked
-  var ov = function () { var v = null; try { v = localStorage.getItem('lc-overlay'); } catch (e) {} if (v && v !== 'scan') r.dataset.lcOverlay = v; else delete r.dataset.lcOverlay; };
+  var ov = function () { var v = null; try { v = localStorage.getItem('lc-overlay'); } catch (e) { } if (v && v !== 'scan') r.dataset.lcOverlay = v; else delete r.dataset.lcOverlay; };
   ov();
   addEventListener('storage', function (e) { if (e.key === 'lc-overlay' || e.key === null) ov(); });
-} catch (e) {}
+} catch (e) { }

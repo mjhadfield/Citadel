@@ -217,6 +217,14 @@ select.input option { background: var(--surface-3); }
 /* LCARS's little picture: a rounded-left card with a lit edge */
 .tp--lcars .tp__card { border-radius: 10px 0 10px 10px; border-left: 3px solid var(--tp-accent); }
 .tp--lcars .tp__tick { width: 22%; height: 6px; border-radius: 3px; }
+/* Borg's little picture: orthogonal crosshair + concentric node ring on obsidian-emerald grid */
+.tp--borg { background-image:
+  linear-gradient(90deg, transparent 22%, color-mix(in srgb, #d8a328 55%, transparent) 22% calc(22% + 1px), transparent 0),
+  linear-gradient(0deg, transparent 74%, color-mix(in srgb, var(--tp-accent) 45%, transparent) 74% calc(74% + 1px), transparent 0),
+  linear-gradient(var(--tp-base), var(--tp-base)); }
+.tp--borg .tp__card { border-radius: 0; border: 1px solid color-mix(in srgb, var(--tp-accent) 75%, transparent);
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); }
+.tp--borg .tp__tick { width: 10px; height: 10px; border-radius: 50%; background: radial-gradient(circle, var(--tp-accent) 0 2px, transparent 2.5px 4px, var(--tp-accent) 4.5px); }
 .modepick { padding: 4px 18px 0; }
 .modepick .btn[aria-pressed="true"] { background: var(--accent-wash); }
 .modepick--motion { align-items: center; padding-top: 12px; }
@@ -241,9 +249,10 @@ select.input option { background: var(--surface-3); }
 .bgpick__thumb img { width: 100%; height: 100%; object-fit: cover; }
 .bgpick label.btn { cursor: pointer; }
 .bgpick .field__h { flex-basis: 100%; }
-/* Basic | Advanced: one form, two views; Advanced's LCARS groups only for a theme built on LCARS */
+/* Basic | Advanced: one form, two views; Advanced's skin-specific groups only for that skin */
 [data-form="theme"][data-view="basic"] .theme-adv, [data-form="theme"][data-view="advanced"] .theme-basic { display: none; }
-[data-form="theme"][data-skin="citadel"] .toks[data-only="lcars"] { display: none; }
+[data-form="theme"]:not([data-skin="lcars"]) .toks[data-only="lcars"],
+[data-form="theme"]:not([data-skin="borg"]) .toks[data-only="borg"] { display: none; }
 .theme-views { padding: 14px 0 0; align-items: center; }
 .theme-views .chip { cursor: pointer; }
 .theme-adv { display: grid; gap: 10px; margin-top: 16px; }
