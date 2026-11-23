@@ -10,28 +10,28 @@
    with deep circuit emerald, schematic gold and dark pine ink for crisp readability in bright light.
    ========================================================================== */
 
-/* ---- Palette: Night (TNG/VOY Unimatrix obsidian + phosphor emerald + gold crosshairs) -------------------------- */
+/* ---- Palette: Night (Obsidian default — pitch-black hull, steel framing, phosphor emerald heavy accents) ------- */
 html[data-family="borg"] {
-  --bg:           #030704;
-  --bg-2:         #060d08;
-  --surface:      #060e08;
-  --surface-2:    #09150d;
-  --surface-3:    #0e2014;
+  --bg:           #030304;
+  --bg-2:         #060708;
+  --surface:      #090a0c;
+  --surface-2:    #0f1114;
+  --surface-3:    #16191e;
 
   --accent:       #2ee86c;
   --accent-hi:    #5eff91;
   --accent-soft:  #86f7a9;
-  --accent-deep:  #0d4d24;
-  --accent-wash:  rgba(46, 232, 108, 0.11);
-  --glow-2:       #145c4c;
+  --accent-deep:  #0d4a22;
+  --accent-wash:  rgba(46, 232, 108, 0.09);
+  --glow-2:       #030304;
 
-  --silver-hi:    #e4f5e9;
-  --silver:       #b8d4be;
-  --silver-mute:  #7aa084;
-  --silver-dim:   #4d6f57;
+  --silver-hi:    #eef1f4;
+  --silver:       #c2c8cf;
+  --silver-mute:  #7d8590;
+  --silver-dim:   #4d545e;
 
-  --edge:         rgba(46, 232, 108, 0.22);
-  --edge-strong:  rgba(46, 232, 108, 0.56);
+  --edge:         rgba(255, 255, 255, 0.11);
+  --edge-strong:  rgba(46, 232, 108, 0.43);
 
   --ok:           #2ee86c;
   --warn:         #e5b23a;
@@ -42,108 +42,105 @@ html[data-family="borg"] {
 
   --series-1:     #2ee86c;
   --series-2:     #d8a328;
-  --series-3:     #26c6b8;
+  --series-3:     #5f8c8a;
   --series-4:     #6684b5;
   --series-5:     #a6f4c5;
 
-  --well:         rgba(0, 8, 3, 0.55);
-  --vignette:     rgba(0, 6, 2, 0.62);
+  --well:         rgba(0, 0, 0, 0.60);
+  --vignette:     rgba(0, 0, 0, 0.70);
 
   /* Borg-specific tokens (palette.js / appearance.py TOKENS) */
-  --brg-node:     #2ee86c;   /* concentric circular target nodes & primary conduits */
+  --brg-node:     #2ee86c;   /* concentric circular target nodes & heavy emerald accents */
+  --brg-frame:    #5c6670;   /* structural console frames, borders, tracks & grid (steel in Obsidian, emerald in Neon) */
   --brg-axis:     #d8a328;   /* stepped orthogonal crosshair axes (TNG/VOY gold) */
-  --brg-cyan:     #26c6b8;   /* secondary neural conduits & telemetry links */
-  --brg-sub:      #6684b5;   /* segmented glyph blue (VOY side column glyphs) */
-  --brg-on:       #030805;   /* ink on solid glowing emerald/gold blocks */
+  --brg-cyan:     #5f8c8a;   /* secondary neural conduits & telemetry links */
+  --brg-sub:      #556270;   /* segmented glyph blue-steel (VOY side column glyphs) */
+  --brg-on:       #030604;   /* ink on solid glowing emerald/gold blocks */
 
   --brg-ease:     cubic-bezier(.16, .84, .32, 1);
   --brg-rail:     90px;
-  --brg-grid:     rgba(46, 232, 108, 0.055);
-  --brg-glow:     rgba(46, 232, 108, 0.28);
+  --brg-grid:     color-mix(in srgb, var(--brg-frame) 5.5%, transparent);
+  --brg-glow:     color-mix(in srgb, var(--brg-node) 28%, transparent);
 }
 
-/* ---- Palette: Day (clinical schematic paper — crisp deep emerald, schematic ochre-gold, neural teal) ----------- */
+/* ---- Palette: Day (Obsidian default — crisp architectural paper, graphite framing, deep emerald accents) ------- */
 html[data-family="borg"][data-mode="day"] {
-  --bg:           #e8efe9;
-  --bg-2:         #edf4ee;
-  --surface:      #f3f7f4;
-  --surface-2:    #f7faf8;
-  --surface-3:    #fbfdfb;
+  --bg:           #e6e9ec;
+  --bg-2:         #edf0f2;
+  --surface:      #f5f7f9;
+  --surface-2:    #fafbfc;
+  --surface-3:    #ffffff;
 
-  --accent:       #167a3e;
+  --accent:       #147a3c;
   --accent-hi:    #1c944c;
   --accent-soft:  #115c2f;
   --accent-deep:  #0c4523;
-  --accent-wash:  rgba(22, 122, 62, 0.10);
-  --glow-2:       #186b6e;
+  --accent-wash:  rgba(20, 122, 60, 0.09);
+  --glow-2:       #e6e9ec;
 
-  --silver-hi:    #112117;
-  --silver:       #263d2e;
-  --silver-mute:  #476351;
-  --silver-dim:   #6f8a78;
+  --silver-hi:    #14181d;
+  --silver:       #2d353e;
+  --silver-mute:  #586370;
+  --silver-dim:   #7c8794;
 
-  --edge:         rgba(22, 122, 62, 0.24);
-  --edge-strong:  rgba(22, 122, 62, 0.55);
+  --edge:         rgba(20, 24, 29, 0.12);
+  --edge-strong:  rgba(20, 122, 60, 0.55);
 
-  --ok:           #167a3e;
+  --ok:           #147a3c;
   --warn:         #9c6d14;
   --bad:          #a3262e;
   --heat-1:       #6e6b20;
   --heat-2:       #9c6d14;
   --heat-3:       #a3262e;
 
-  --series-1:     #167a3e;
+  --series-1:     #147a3c;
   --series-2:     #9c6d14;
-  --series-3:     #186b6e;
+  --series-3:     #2c6e73;
   --series-4:     #3f5c80;
-  --series-5:     #3a5243;
+  --series-5:     #4c5764;
 
-  --well:         rgba(17, 33, 23, 0.07);
-  --vignette:     rgba(17, 33, 23, 0.11);
+  --well:         rgba(20, 24, 29, 0.07);
+  --vignette:     rgba(20, 24, 29, 0.11);
 
-  --brg-node:     #167a3e;
+  --brg-node:     #147a3c;
+  --brg-frame:    #6a7480;
   --brg-axis:     #9c6d14;
-  --brg-cyan:     #186b6e;
-  --brg-sub:      #3f5c80;
-  --brg-on:       #f4fbf6;
+  --brg-cyan:     #2c6e73;
+  --brg-sub:      #4a5a6e;
+  --brg-on:       #f6fbf8;
 
-  --brg-grid:     rgba(22, 122, 62, 0.08);
-  --brg-glow:     rgba(22, 122, 62, 0.18);
+  --brg-grid:     color-mix(in srgb, var(--brg-frame) 8%, transparent);
+  --brg-glow:     color-mix(in srgb, var(--brg-node) 18%, transparent);
 }
 
-/* ---- Background: orthogonal Borg matrix grid + subtle neural-tendril corner motif ------------------------------ */
+/* ---- Background: orthogonal Borg matrix grid + ambient corner glow (neutral in Obsidian, phosphor in Neon) ----- */
 html[data-family="borg"] body {
   background-color: var(--bg);
   background-image:
-    /* faint orthogonal matrix grid (Image 1) */
     linear-gradient(90deg, var(--brg-grid) 1px, transparent 1px),
     linear-gradient(0deg, var(--brg-grid) 1px, transparent 1px),
-    /* subtle concentric target & organic conduit watermark tucked top-right (CSP-safe data SVG) */
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420' viewBox='0 0 420 420' fill='none'%3E%3Cg opacity='.11'%3E%3Cpath d='M260 0V420M0 160H420' stroke='%23d8a328' stroke-width='1.5'/%3E%3Cpath d='M260 95V225' stroke='%23d8a328' stroke-width='5'/%3E%3Cpath d='M195 160H325' stroke='%23d8a328' stroke-width='4'/%3E%3Ccircle cx='260' cy='160' r='82' stroke='%232ee86c' stroke-width='2'/%3E%3Ccircle cx='260' cy='160' r='64' stroke='%232ee86c' stroke-width='5' stroke-dasharray='38 14'/%3E%3Ccircle cx='260' cy='160' r='44' stroke='%2326c6b8' stroke-width='2'/%3E%3Ccircle cx='260' cy='160' r='16' stroke='%232ee86c' stroke-width='3'/%3E%3Cpath d='M260 78C235 42 290 25 320 0M180 160C138 145 125 192 78 186C42 181 26 218 0 226M340 160C368 185 352 238 390 264M260 242C242 288 286 314 270 368C258 396 292 406 312 420' stroke='%232ee86c' stroke-width='2.4' stroke-linecap='round'/%3E%3Cpath d='M218 108C185 88 164 114 134 92M312 204C344 226 322 276 355 312' stroke='%2326c6b8' stroke-width='1.8' stroke-linecap='round'/%3E%3Ccircle cx='134' cy='92' r='12' stroke='%232ee86c' stroke-width='2.5'/%3E%3Ccircle cx='134' cy='92' r='4' fill='%232ee86c'/%3E%3Ccircle cx='355' cy='312' r='15' stroke='%232ee86c' stroke-width='2.5'/%3E%3Ccircle cx='355' cy='312' r='6' stroke='%23d8a328' stroke-width='2'/%3E%3Ccircle cx='78' cy='186' r='9' stroke='%2326c6b8' stroke-width='2'/%3E%3C/g%3E%3C/svg%3E"),
-    /* ambient emerald cube glow */
-    radial-gradient(900px 540px at 8% -8%, color-mix(in srgb, var(--brg-node) 14%, transparent), transparent 62%),
-    radial-gradient(780px 480px at 96% 102%, color-mix(in srgb, var(--brg-cyan) 12%, transparent), transparent 60%);
-  background-size: 44px 44px, 44px 44px, 420px 420px, auto, auto;
-  background-position: 0 0, 0 0, right -24px top 24px, center, center;
-  background-repeat: repeat, repeat, no-repeat, no-repeat, no-repeat;
+    radial-gradient(900px 540px at 8% -8%, color-mix(in srgb, var(--glow-2) 18%, transparent), transparent 62%),
+    radial-gradient(780px 480px at 96% 102%, color-mix(in srgb, var(--glow-2) 14%, transparent), transparent 60%);
+  background-size: 44px 44px, 44px 44px, auto, auto;
+  background-position: 0 0, 0 0, center, center;
+  background-repeat: repeat, repeat, no-repeat, no-repeat;
   background-attachment: fixed;
 }
 html[data-family="borg"][data-mode="day"] body {
   background-image:
     linear-gradient(90deg, var(--brg-grid) 1px, transparent 1px),
     linear-gradient(0deg, var(--brg-grid) 1px, transparent 1px),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420' viewBox='0 0 420 420' fill='none'%3E%3Cg opacity='.08'%3E%3Cpath d='M260 0V420M0 160H420' stroke='%239c6d14' stroke-width='1.5'/%3E%3Cpath d='M260 95V225' stroke='%239c6d14' stroke-width='5'/%3E%3Ccircle cx='260' cy='160' r='82' stroke='%23167a3e' stroke-width='2'/%3E%3Ccircle cx='260' cy='160' r='64' stroke='%23167a3e' stroke-width='5' stroke-dasharray='38 14'/%3E%3Ccircle cx='260' cy='160' r='44' stroke='%23186b6e' stroke-width='2'/%3E%3Cpath d='M260 78C235 42 290 25 320 0M180 160C138 145 125 192 78 186M260 242C242 288 286 314 270 368' stroke='%23167a3e' stroke-width='2.2' stroke-linecap='round'/%3E%3Ccircle cx='134' cy='92' r='12' stroke='%23167a3e' stroke-width='2.5'/%3E%3Ccircle cx='355' cy='312' r='15' stroke='%23167a3e' stroke-width='2.5'/%3E%3C/g%3E%3C/svg%3E"),
-    radial-gradient(900px 540px at 8% -8%, color-mix(in srgb, var(--brg-node) 8%, transparent), transparent 62%),
-    radial-gradient(780px 480px at 96% 102%, color-mix(in srgb, var(--brg-cyan) 7%, transparent), transparent 60%);
+    radial-gradient(900px 540px at 8% -8%, color-mix(in srgb, var(--glow-2) 10%, transparent), transparent 62%),
+    radial-gradient(780px 480px at 96% 102%, color-mix(in srgb, var(--glow-2) 8%, transparent), transparent 60%);
 }
 html[data-family="borg"].no-glow body { background-image: linear-gradient(90deg, var(--brg-grid) 1px, transparent 1px), linear-gradient(0deg, var(--brg-grid) 1px, transparent 1px); background-size: 44px 44px; }
 html[data-family="borg"].has-bg body { background-image: radial-gradient(900px 540px at 8% -8%, color-mix(in srgb, var(--brg-node) 12%, transparent), transparent 62%); background-color: transparent; background-size: auto; }
 html[data-family="borg"].has-bg.no-glow body { background: none; }
 
-/* subtle CRT phosphor scanlines tinted Borg emerald */
+/* subtle CRT phosphor scanlines tinted Borg frame */
 html[data-family="borg"] body::after {
   background:
-    repeating-linear-gradient(to bottom, color-mix(in srgb, var(--brg-node) 3.2%, transparent) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(to bottom, color-mix(in srgb, var(--brg-frame) 3.2%, transparent) 0 1px, transparent 1px 3px),
     radial-gradient(125% 95% at 50% 42%, transparent 56%, var(--vignette) 100%);
 }
 html[data-family="borg"][data-mode="day"] body::after {
@@ -157,13 +154,13 @@ html[data-family="borg"][data-mode="day"] body::after {
 @media (min-width: 761px) {
   html[data-family="borg"] .shell { grid-template-columns: var(--brg-rail) 1fr; }
   html[data-family="borg"] .rail {
-    border-right: 1px solid color-mix(in srgb, var(--brg-node) 42%, transparent);
+    border-right: 1px solid color-mix(in srgb, var(--brg-frame) 42%, transparent);
     background:
       /* fine etched hull-circuit micro-grid along the left edge (Image 2) */
-      repeating-linear-gradient(0deg, color-mix(in srgb, var(--brg-node) 6%, transparent) 0 1px, transparent 1px 10px) left / 14px 100% no-repeat,
-      repeating-linear-gradient(90deg, color-mix(in srgb, var(--brg-node) 5%, transparent) 0 1px, transparent 1px 7px) left / 14px 100% no-repeat,
+      repeating-linear-gradient(0deg, color-mix(in srgb, var(--brg-frame) 6%, transparent) 0 1px, transparent 1px 10px) left / 14px 100% no-repeat,
+      repeating-linear-gradient(90deg, color-mix(in srgb, var(--brg-frame) 5%, transparent) 0 1px, transparent 1px 7px) left / 14px 100% no-repeat,
       linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 92%, transparent), color-mix(in srgb, var(--bg) 94%, transparent));
-    box-shadow: inset -1px 0 0 color-mix(in srgb, var(--brg-node) 18%, transparent), 4px 0 24px -10px var(--brg-glow);
+    box-shadow: inset -1px 0 0 color-mix(in srgb, var(--brg-frame) 18%, transparent), 4px 0 24px -10px color-mix(in srgb, var(--brg-frame) 28%, transparent);
   }
   html[data-family="borg"] .main { --main-pl: 26px; --main-pr: 24px; padding: 16px var(--main-pr) 48px var(--main-pl); }
 
@@ -177,7 +174,7 @@ html[data-family="borg"][data-mode="day"] body::after {
       color-mix(in srgb, var(--brg-node) 88%, transparent) 82px 240px,
       transparent 240px 246px,
       color-mix(in srgb, var(--brg-cyan) 62%, transparent) 246px 340px,
-      color-mix(in srgb, var(--brg-node) 34%, transparent) 340px 85%,
+      color-mix(in srgb, var(--brg-frame) 34%, transparent) 340px 85%,
       transparent 100%) left center / 100% 2px no-repeat;
   }
   /* Concentric Borg reticle node seated directly on the rail / crosshair intersection */
@@ -282,8 +279,8 @@ html[data-family="borg"] .chip--today, html[data-family="borg"] .chip--fresh {
 
 /* Buttons: crisp angular Borg tactical keys */
 html[data-family="borg"] .btn {
-  border-radius: 0; border-color: color-mix(in srgb, var(--brg-node) 34%, transparent);
-  background: color-mix(in srgb, var(--brg-node) 5%, var(--surface));
+  border-radius: 0; border-color: color-mix(in srgb, var(--brg-frame) 34%, transparent);
+  background: color-mix(in srgb, var(--brg-frame) 5%, var(--surface));
   clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
 }
 html[data-family="borg"] .btn:hover:not([disabled]) {
@@ -299,7 +296,7 @@ html[data-family="borg"] .btn--solid:hover:not([disabled]) { background: var(--a
    Header controls: bookmarks, Style, GoXLR volume, live readout
    ========================================================================== */
 html[data-family="borg"] .sc, html[data-family="borg"] .look-btn {
-  border-radius: 0; border: 1px solid color-mix(in srgb, var(--brg-node) 34%, transparent);
+  border-radius: 0; border: 1px solid color-mix(in srgb, var(--brg-frame) 34%, transparent);
   background: color-mix(in srgb, var(--surface-2) 86%, transparent);
   clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
 }
@@ -332,7 +329,7 @@ html[data-family="borg"] .bmbar {
   html[data-family="borg"] .stylebar { background: var(--surface-2); border-color: var(--brg-node); }
 }
 html[data-family="borg"] .bm {
-  border-color: color-mix(in srgb, var(--brg-node) 22%, transparent);
+  border-color: color-mix(in srgb, var(--brg-frame) 22%, transparent);
   background: color-mix(in srgb, var(--surface) 88%, transparent);
   clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
 }
@@ -344,18 +341,18 @@ html[data-family="borg"] .stylebar__sep { height: 1px; margin: 2px 4px; backgrou
 /* GoXLR header volume buttons & drop slider */
 html[data-family="borg"] .vol-btn {
   --vol-fill: color-mix(in srgb, var(--brg-node) 44%, transparent);
-  border-color: color-mix(in srgb, var(--brg-node) 40%, transparent);
+  border-color: color-mix(in srgb, var(--brg-frame) 40%, transparent);
   clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
 }
 html[data-family="borg"] .vol-btn__fill { box-shadow: inset 0 1px 0 var(--brg-axis); }
-html[data-family="borg"] .volbar__rail { border-radius: 0; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brg-node) 45%, transparent); }
+html[data-family="borg"] .volbar__rail { border-radius: 0; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brg-frame) 45%, transparent); }
 html[data-family="borg"] .volbar__fill { background: linear-gradient(0deg, var(--accent-deep), var(--brg-node)); }
 html[data-family="borg"] .volbar__thumb { border-radius: 0; background: var(--brg-axis); }
 html[data-family="borg"] .volbar__mute[aria-pressed="true"] { background: color-mix(in srgb, var(--bad) 22%, transparent); color: var(--bad); }
 
 /* Header readout: crisp Borg telemetry block with gold crosshair ticks */
 html[data-family="borg"] .readout {
-  border-left: 2px solid var(--brg-axis); border-right: 1px solid color-mix(in srgb, var(--brg-node) 35%, transparent);
+  border-left: 2px solid var(--brg-axis); border-right: 1px solid color-mix(in srgb, var(--brg-frame) 35%, transparent);
   background: color-mix(in srgb, var(--surface-2) 65%, transparent);
   padding: 4px 14px;
 }
@@ -391,9 +388,9 @@ html[data-family="borg"] .card {
   --c: 13px;
   padding: 1px;
   background: linear-gradient(135deg,
-    color-mix(in srgb, var(--brg-node) 72%, transparent) 0%,
+    color-mix(in srgb, var(--brg-frame) 72%, transparent) 0%,
     color-mix(in srgb, var(--brg-cyan) 34%, transparent) 42%,
-    color-mix(in srgb, var(--brg-node) 22%, transparent) 78%,
+    color-mix(in srgb, var(--brg-frame) 22%, transparent) 78%,
     color-mix(in srgb, var(--brg-axis) 58%, transparent) 100%);
   clip-path: polygon(var(--c) 0, 100% 0, 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, 0 100%, 0 var(--c));
   transition: background .25s var(--brg-ease), filter .25s var(--brg-ease);
@@ -407,7 +404,7 @@ html[data-family="borg"] .card:hover {
 }
 html[data-family="borg"] .card__in {
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--brg-node) 5%, var(--surface-2)) 0, var(--surface) 64px, var(--surface) 100%);
+    linear-gradient(180deg, color-mix(in srgb, var(--brg-frame) 5%, var(--surface-2)) 0, var(--surface) 64px, var(--surface) 100%);
   clip-path: polygon(calc(var(--c) - .5px) 0, 100% 0, 100% calc(100% - var(--c) + .5px), calc(100% - var(--c) + .5px) 100%, 0 100%, 0 calc(var(--c) - .5px));
 }
 /* top tactical accent bar: short gold crosshair segment running into phosphor emerald */
@@ -440,12 +437,12 @@ html[data-family="borg"] #grid .card__head::before {
 html[data-family="borg"] #grid .card__tools { flex: 1; }
 html[data-family="borg"] #grid .card__tools::before {
   content: ""; flex: 1; min-width: 14px; height: 2px; order: -1;
-  background: linear-gradient(90deg, var(--brg-axis) 0 18px, color-mix(in srgb, var(--brg-node) 55%, transparent) 18px 65%, transparent 100%);
+  background: linear-gradient(90deg, var(--brg-axis) 0 18px, color-mix(in srgb, var(--brg-frame) 55%, transparent) 18px 65%, transparent 100%);
 }
 html[data-family="borg"] .card .btn--icon {
   border-radius: 50%; clip-path: none; width: 26px; height: 26px; padding: 0; justify-content: center;
-  border: 1px solid color-mix(in srgb, var(--brg-node) 42%, transparent);
-  background: color-mix(in srgb, var(--brg-node) 6%, var(--bg));
+  border: 1px solid color-mix(in srgb, var(--brg-frame) 42%, transparent);
+  background: color-mix(in srgb, var(--brg-frame) 6%, var(--bg));
 }
 html[data-family="borg"] .card .btn--icon:hover {
   background: var(--brg-node); border-color: var(--brg-node); color: var(--brg-on);
@@ -455,11 +452,11 @@ html[data-family="borg"] .card .btn--icon:hover {
 /* Filters in expanded cards */
 html[data-family="borg"] .fchip {
   border-radius: 0; font: 500 11px var(--font-mono); letter-spacing: .1em;
-  border-color: color-mix(in srgb, var(--brg-node) 38%, transparent);
+  border-color: color-mix(in srgb, var(--brg-frame) 38%, transparent);
   clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
 }
 html[data-family="borg"] .fchip[aria-pressed="true"] { background: var(--brg-node); color: var(--brg-on); border-color: var(--brg-node); font-weight: 700; }
-html[data-family="borg"] .card .search { border-radius: 0; border-color: color-mix(in srgb, var(--brg-node) 40%, transparent); background: var(--well); }
+html[data-family="borg"] .card .search { border-radius: 0; border-color: color-mix(in srgb, var(--brg-frame) 40%, transparent); background: var(--well); }
 html[data-family="borg"] .card .search:focus { border-color: var(--brg-node); box-shadow: 0 0 0 2px color-mix(in srgb, var(--brg-node) 18%, transparent); }
 
 /* ==========================================================================
@@ -473,10 +470,10 @@ html[data-family="borg"] #grid > .card.is-max {
 html[data-family="borg"] #grid > .card.is-max .card__in { clip-path: none; background: var(--surface); }
 html[data-family="borg"] #grid > .card.is-max .card__in::before { display: none; }
 html[data-family="borg"] #grid > .card.is-max .card__head {
-  padding: 10px 16px; border-bottom: 1px solid color-mix(in srgb, var(--brg-node) 42%, transparent);
+  padding: 10px 16px; border-bottom: 1px solid color-mix(in srgb, var(--brg-frame) 42%, transparent);
   background:
     linear-gradient(90deg, var(--brg-axis) 0 4px, transparent 4px) left / 4px 100% no-repeat,
-    linear-gradient(180deg, color-mix(in srgb, var(--brg-node) 13%, var(--surface-2)), var(--surface-2));
+    linear-gradient(180deg, color-mix(in srgb, var(--brg-frame) 13%, var(--surface-2)), var(--surface-2));
 }
 html[data-family="borg"] #grid > .card.is-max .card__head .hud { font-size: 14px; color: var(--silver-hi); }
 
@@ -497,10 +494,10 @@ html[data-family="borg"] .now__label {
 html[data-family="borg"] .now__label::before { content: none; }
 html[data-family="borg"] .now__label::after {
   content: ""; flex: 1; height: 1px;
-  background: linear-gradient(90deg, var(--brg-axis) 0 18px, color-mix(in srgb, var(--brg-node) 45%, transparent) 18px, transparent);
+  background: linear-gradient(90deg, var(--brg-axis) 0 18px, color-mix(in srgb, var(--brg-frame) 45%, transparent) 18px, transparent);
 }
 html[data-family="borg"] .bin__swatch { width: 6px; border-radius: 0; }
-html[data-family="borg"] .cd { border-radius: 0; border-color: color-mix(in srgb, var(--brg-node) 18%, transparent); }
+html[data-family="borg"] .cd { border-radius: 0; border-color: color-mix(in srgb, var(--brg-frame) 18%, transparent); }
 html[data-family="borg"] .cd--today {
   border-color: var(--brg-node); background: color-mix(in srgb, var(--brg-node) 18%, var(--surface));
   color: var(--silver-hi); box-shadow: inset 0 0 0 1px var(--brg-axis);
@@ -526,8 +523,8 @@ html[data-family="borg"] .ev__bar { width: 3px; border-radius: 0; }
 /* Monitoring & System: industrial 6px segmented phosphor cells */
 html[data-family="borg"] .bar__track {
   height: 9px; border-radius: 0;
-  background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--brg-node) 15%, transparent) 0 6px, transparent 6px 8px);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brg-node) 20%, transparent);
+  background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--brg-frame) 15%, transparent) 0 6px, transparent 6px 8px);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brg-frame) 20%, transparent);
 }
 html[data-family="borg"] .bar__fill {
   border-radius: 0;
@@ -546,7 +543,7 @@ html[data-family="borg"] .mon-section .hud, html[data-family="borg"] .logwrap > 
 html[data-family="borg"] .mon-section .hud::before, html[data-family="borg"] .logwrap > .hud::before, html[data-family="borg"] .gigs__h::before { content: none; }
 html[data-family="borg"] .mon-section .hud::after, html[data-family="borg"] .logwrap > .hud::after, html[data-family="borg"] .gigs__h::after {
   content: ""; flex: 1; min-width: 20px; height: 2px;
-  background: linear-gradient(90deg, var(--brg-axis) 0 18px, color-mix(in srgb, var(--brg-node) 45%, transparent) 18px, transparent);
+  background: linear-gradient(90deg, var(--brg-axis) 0 18px, color-mix(in srgb, var(--brg-frame) 45%, transparent) 18px, transparent);
 }
 
 /* Feed rows (Releases, Vinyl, Radar) */
@@ -559,15 +556,15 @@ html[data-family="borg"] .feed--pinned {
   background: linear-gradient(90deg, color-mix(in srgb, var(--brg-node) 11%, transparent), transparent 48%);
 }
 html[data-family="borg"] .cover {
-  border-color: color-mix(in srgb, var(--brg-node) 35%, transparent);
+  border-color: color-mix(in srgb, var(--brg-frame) 35%, transparent);
   clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
 }
 
 /* Launchpad & Remote Access tiles */
 html[data-family="borg"] .tile {
-  border: 1px solid color-mix(in srgb, var(--brg-node) 26%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brg-frame) 26%, transparent);
   border-left: 3px solid color-mix(in srgb, var(--brg-node) 65%, transparent);
-  background: color-mix(in srgb, var(--brg-node) 5%, var(--surface-2));
+  background: color-mix(in srgb, var(--brg-frame) 5%, var(--surface-2));
   clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
 }
 html[data-family="borg"] .tile:hover {
@@ -576,15 +573,15 @@ html[data-family="borg"] .tile:hover {
   transform: none;
 }
 html[data-family="borg"] .tile > .i { color: var(--brg-node); }
-html[data-family="borg"] .tile--primary { border-left-color: var(--brg-axis); background: color-mix(in srgb, var(--brg-node) 10%, var(--surface-2)); }
+html[data-family="borg"] .tile--primary { border-left-color: var(--brg-axis); background: color-mix(in srgb, var(--brg-frame) 10%, var(--surface-2)); }
 
 /* ==========================================================================
    News & Music tabs, segmented switches, playlists & player bar
    ========================================================================== */
 html[data-family="borg"] .mtabs { gap: 6px; }
 html[data-family="borg"] .mtabs button {
-  border-radius: 0; border: 1px solid color-mix(in srgb, var(--brg-node) 34%, transparent);
-  background: color-mix(in srgb, var(--brg-node) 6%, var(--surface-2));
+  border-radius: 0; border: 1px solid color-mix(in srgb, var(--brg-frame) 34%, transparent);
+  background: color-mix(in srgb, var(--brg-frame) 6%, var(--surface-2));
   clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
 }
 html[data-family="borg"] .mtabs button .i { color: var(--brg-node); }
@@ -594,25 +591,25 @@ html[data-family="borg"] .mtabs button[aria-pressed="true"] {
 }
 html[data-family="borg"] .mtabs button[aria-pressed="true"] .i { color: var(--brg-on); }
 
-html[data-family="borg"] .seg { border-color: color-mix(in srgb, var(--brg-node) 42%, transparent); }
+html[data-family="borg"] .seg { border-color: color-mix(in srgb, var(--brg-frame) 42%, transparent); }
 html[data-family="borg"] .seg button { background: color-mix(in srgb, var(--surface-2) 85%, transparent); }
-html[data-family="borg"] .seg button + button { border-left-color: color-mix(in srgb, var(--brg-node) 28%, transparent); }
+html[data-family="borg"] .seg button + button { border-left-color: color-mix(in srgb, var(--brg-frame) 28%, transparent); }
 html[data-family="borg"] .seg button[aria-pressed="true"] { background: var(--brg-node); color: var(--brg-on); font-weight: 700; }
 
 html[data-family="borg"] .pl-tile {
-  border-color: color-mix(in srgb, var(--brg-node) 28%, transparent); border-left: 3px solid var(--brg-cyan);
-  background: color-mix(in srgb, var(--brg-node) 5%, var(--surface-2));
+  border-color: color-mix(in srgb, var(--brg-frame) 28%, transparent); border-left: 3px solid var(--brg-cyan);
+  background: color-mix(in srgb, var(--brg-frame) 5%, var(--surface-2));
   clip-path: polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 0 100%);
 }
 html[data-family="borg"] .pl-tile:hover { border-color: var(--brg-node); background: color-mix(in srgb, var(--brg-node) 13%, var(--surface-2)); }
 html[data-family="borg"] .pl-tile[aria-pressed="true"] { border-color: var(--brg-node); border-left-color: var(--brg-axis); background: color-mix(in srgb, var(--brg-node) 17%, var(--surface-2)); }
 html[data-family="borg"] .mu-bar {
-  border-color: color-mix(in srgb, var(--brg-node) 46%, transparent); border-left: 3px solid var(--brg-axis);
+  border-color: color-mix(in srgb, var(--brg-frame) 46%, transparent); border-left: 3px solid var(--brg-axis);
   background: color-mix(in srgb, var(--surface-2) 92%, transparent);
 }
 html[data-family="borg"] .mu-bar .ctl__b .btn--play { background: var(--brg-node); color: var(--brg-on); border-color: var(--brg-node); }
 html[data-family="borg"] .mu-bar .prog__bar {
-  background: color-mix(in srgb, var(--brg-node) 18%, transparent);
+  background: color-mix(in srgb, var(--brg-frame) 18%, transparent);
   -webkit-mask: repeating-linear-gradient(90deg, #000 0 6px, transparent 6px 8px);
   mask: repeating-linear-gradient(90deg, #000 0 6px, transparent 6px 8px);
 }
@@ -624,7 +621,7 @@ html[data-family="borg"] .mu-bar .prog__bar i { background: var(--brg-node); }
 html[data-family="borg"] .rs { --rs-c1: var(--brg-node); --rs-c2: var(--brg-axis); --rs-heat: var(--brg-node); }
 html[data-family="borg"][data-mode="day"] .rs { --rs-heat: var(--brg-node); }
 html[data-family="borg"] .rs-m {
-  border-color: color-mix(in srgb, var(--brg-node) 26%, transparent); border-left: 3px solid color-mix(in srgb, var(--brg-sub) 60%, transparent);
+  border-color: color-mix(in srgb, var(--brg-frame) 26%, transparent); border-left: 3px solid color-mix(in srgb, var(--brg-sub) 60%, transparent);
   clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
 }
 html[data-family="borg"] .rs-m[aria-pressed="true"] {
@@ -632,7 +629,7 @@ html[data-family="borg"] .rs-m[aria-pressed="true"] {
   background: color-mix(in srgb, var(--brg-node) 13%, var(--surface-2));
 }
 html[data-family="borg"] .rs-dhead h2 { color: var(--brg-node); letter-spacing: .06em; text-transform: uppercase; }
-html[data-family="borg"] .rs-gridline { stroke: color-mix(in srgb, var(--brg-node) 22%, transparent); }
+html[data-family="borg"] .rs-gridline { stroke: color-mix(in srgb, var(--brg-frame) 22%, transparent); }
 html[data-family="borg"] .rs-cross { background: var(--brg-axis); }
 html[data-family="borg"] .rs-tip { border-color: var(--brg-node); border-left: 3px solid var(--brg-axis); background: var(--surface-3); }
 html[data-family="borg"] .rs-disk__bar, html[data-family="borg"] .rs-disk__bar i,
@@ -647,19 +644,19 @@ html[data-family="borg"] .ax-lab { color: var(--brg-node); }
 html[data-family="borg"] .ax-lab::before { content: none; }
 html[data-family="borg"] .ax-lab::after {
   content: ""; flex: 1; min-width: 18px; height: 2px; order: 1;
-  background: linear-gradient(90deg, var(--brg-axis) 0 16px, color-mix(in srgb, var(--brg-node) 45%, transparent) 16px, transparent);
+  background: linear-gradient(90deg, var(--brg-axis) 0 16px, color-mix(in srgb, var(--brg-frame) 45%, transparent) 16px, transparent);
 }
 html[data-family="borg"] .ax-lab > :last-child:not(:first-child) { order: 2; margin-left: 0; }
 html[data-family="borg"] .ax-strip, html[data-family="borg"] .ax-pad {
-  border-color: color-mix(in srgb, var(--brg-node) 30%, transparent); border-top: 2px solid color-mix(in srgb, var(--brg-node) 65%, transparent);
-  background: color-mix(in srgb, var(--brg-node) 5%, var(--surface-2));
+  border-color: color-mix(in srgb, var(--brg-frame) 30%, transparent); border-top: 2px solid color-mix(in srgb, var(--brg-node) 65%, transparent);
+  background: color-mix(in srgb, var(--brg-frame) 5%, var(--surface-2));
   clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
 }
-html[data-family="borg"] .ax-sl__rail { border-radius: 0; background: color-mix(in srgb, var(--brg-node) 14%, var(--well)); }
+html[data-family="borg"] .ax-sl__rail { border-radius: 0; background: color-mix(in srgb, var(--brg-frame) 14%, var(--well)); }
 html[data-family="borg"] .ax-sl__thumb { border-radius: 0; background: var(--brg-axis); box-shadow: 0 0 8px color-mix(in srgb, var(--brg-axis) 55%, transparent); }
 html[data-family="borg"] .ax-rc {
-  border-radius: 0; border-color: color-mix(in srgb, var(--brg-node) 30%, transparent);
-  background: color-mix(in srgb, var(--brg-node) 5%, var(--surface));
+  border-radius: 0; border-color: color-mix(in srgb, var(--brg-frame) 30%, transparent);
+  background: color-mix(in srgb, var(--brg-frame) 5%, var(--surface));
 }
 html[data-family="borg"] .ax-rc[aria-pressed="true"] {
   background: var(--brg-node); border-color: var(--brg-node);
@@ -671,7 +668,7 @@ html[data-family="borg"] .ax-sw[aria-pressed="true"], html[data-family="borg"] .
 html[data-family="borg"] .ax-mute[aria-pressed="true"], html[data-family="borg"] .ax-cough[aria-pressed="true"] {
   background: var(--bad); color: #fff; border-color: var(--bad);
 }
-html[data-family="borg"] .ax-meter { border-radius: 0; background: color-mix(in srgb, var(--brg-node) 12%, var(--well)); }
+html[data-family="borg"] .ax-meter { border-radius: 0; background: color-mix(in srgb, var(--brg-frame) 12%, var(--well)); }
 html[data-family="borg"] .ax-meter i { background: repeating-linear-gradient(90deg, var(--brg-node) 0 6px, transparent 6px 8px); }
 
 /* ==========================================================================
@@ -681,7 +678,7 @@ html[data-family="borg"] .ax-meter i { background: repeating-linear-gradient(90d
 @media (max-width: 760px) {
   html[data-family="borg"] .top { --c: 10px; }
   html[data-family="borg"] .top::before {
-    background: linear-gradient(135deg, var(--brg-node) 0%, color-mix(in srgb, var(--brg-cyan) 48%, transparent) 52%, var(--brg-axis) 100%);
+    background: linear-gradient(135deg, var(--brg-frame) 0%, color-mix(in srgb, var(--brg-cyan) 48%, transparent) 52%, var(--brg-axis) 100%);
     clip-path: polygon(var(--c) 0, 100% 0, 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, 0 100%, 0 var(--c));
   }
   html[data-family="borg"] .top::after {
@@ -697,7 +694,7 @@ html[data-family="borg"] .ax-meter i { background: repeating-linear-gradient(90d
   }
   html[data-family="borg"] .top__badge { background: var(--brg-axis); color: var(--brg-on); font-weight: 700; border-radius: 2px; }
   html[data-family="borg"] .top .sc--menu, html[data-family="borg"] .top .look-btn, html[data-family="borg"] .top .top__settings {
-    border-left-color: color-mix(in srgb, var(--brg-node) 26%, transparent); color: var(--silver); clip-path: none;
+    border-left-color: color-mix(in srgb, var(--brg-frame) 26%, transparent); color: var(--silver); clip-path: none;
   }
   html[data-family="borg"] .top .top__settings {
     clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--c) + 1px), calc(100% - var(--c) + 1px) 100%, 0 100%);
@@ -714,7 +711,7 @@ html[data-family="borg"] .ax-meter i { background: repeating-linear-gradient(90d
 
   /* Bottom tab bar & More sheet */
   html[data-family="borg"] .tabbar {
-    border-top-color: color-mix(in srgb, var(--brg-node) 50%, transparent);
+    border-top-color: color-mix(in srgb, var(--brg-frame) 50%, transparent);
     background: color-mix(in srgb, var(--bg-2) 96%, transparent);
   }
   html[data-family="borg"] .tabbar a { position: relative; }
@@ -773,7 +770,7 @@ html.brg-boot[data-family="borg"] #grid > .card:nth-child(8) { --brg-d: 380ms; }
     background:
       linear-gradient(90deg, transparent, var(--brg-node), transparent) -40% center / 26% 3px no-repeat,
       linear-gradient(90deg, var(--brg-axis) 0 76px, transparent 76px 82px, color-mix(in srgb, var(--brg-node) 88%, transparent) 82px 240px,
-        transparent 240px 246px, color-mix(in srgb, var(--brg-cyan) 62%, transparent) 246px 340px, color-mix(in srgb, var(--brg-node) 34%, transparent) 340px 85%, transparent 100%) left center / 100% 2px no-repeat;
+        transparent 240px 246px, color-mix(in srgb, var(--brg-cyan) 62%, transparent) 246px 340px, color-mix(in srgb, var(--brg-frame) 34%, transparent) 340px 85%, transparent 100%) left center / 100% 2px no-repeat;
     animation: brg-pulse .55s linear 1;
   }
 }

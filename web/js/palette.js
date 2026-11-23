@@ -24,7 +24,7 @@ export const TOKENS = [
   ['--lc-diary', 'Calendar', 'lcars'], ['--lc-on', 'Text on a block', 'lcars'],
   ['--lc-hd-frame', 'Elbow', 'lcars-hd'], ['--lc-hd-1', 'Bookmarks', 'lcars-hd'], ['--lc-hd-2', 'Day/Night', 'lcars-hd'],
   ['--lc-hd-3', 'Style', 'lcars-hd'], ['--lc-hd-4', 'Settings', 'lcars-hd'],
-  ['--brg-node', 'Concentric node', 'borg'], ['--brg-axis', 'Crosshair axis', 'borg'],
+  ['--brg-node', 'Concentric node', 'borg'], ['--brg-frame', 'Console frame', 'borg'], ['--brg-axis', 'Crosshair axis', 'borg'],
   ['--brg-cyan', 'Neural conduit', 'borg'], ['--brg-sub', 'Glyph blue', 'borg'], ['--brg-on', 'Text on a node', 'borg'],
 ];
 export const GROUPS = [['page', 'Page & panels'], ['accent', 'Accent'], ['text', 'Text'], ['lines', 'Lines'], ['status', 'Status'],
@@ -40,8 +40,8 @@ export const BASE = {
     day: { accent: '#b5541f', secondary: '#8a2e2e', third: '#3d5a73', panel: '#f8f0e2' } },
   lcars: { night: { accent: '#a78bfa', secondary: '#8577e0', third: '#d3a4ea', panel: '#0e0b14' },
     day: { accent: '#b5541f', secondary: '#8a2e2e', third: '#3d5a73', panel: '#f8f0e2' } },
-  borg: { night: { accent: '#2ee86c', secondary: '#d8a328', third: '#26c6b8', panel: '#060e08' },
-    day: { accent: '#167a3e', secondary: '#9c6d14', third: '#186b6e', panel: '#f3f7f4' } },
+  borg: { night: { accent: '#2ee86c', secondary: '#d8a328', third: '#5f8c8a', panel: '#090a0c' },
+    day: { accent: '#147a3c', secondary: '#9c6d14', third: '#2c6e73', panel: '#f5f7f9' } },
 };
 
 // ---- colour maths (sRGB hex <-> OKLab / OKLCh) ------------------------------------------------------------------------
@@ -90,8 +90,8 @@ export const solid = c => String(c).slice(0, 7);
 const WHITE = '#ffffff', BLACK = '#000000';
 const NIGHT = { ink: ['#e6e9ee', '#c9ced6', '#9aa1ad', '#6b7280'], ok: '#34d399', warn: '#f5b454', bad: '#f43f5e', heat: ['#f3d899', '#f5a742', '#ff4b2b'] };
 const DAY = { ink: ['#2a2015', '#4a3c2a', '#6b5c44', '#93876c'], ok: '#3d5a73', warn: '#b0601c', bad: '#8a2e2e', heat: ['#8c6a45', '#b5541f', '#a3302a'] };
-const BORG_NIGHT = { ink: ['#e4f5e9', '#b8d4be', '#7aa084', '#4d6f57'], ok: '#2ee86c', warn: '#e5b23a', bad: '#f43f5e', heat: ['#d8a328', '#f59e0b', '#ff4b2b'] };
-const BORG_DAY = { ink: ['#112117', '#263d2e', '#476351', '#6f8a78'], ok: '#167a3e', warn: '#9c6d14', bad: '#a3262e', heat: ['#6e6b20', '#9c6d14', '#a3262e'] };
+const BORG_NIGHT = { ink: ['#eef1f4', '#c2c8cf', '#7d8590', '#4d545e'], ok: '#2ee86c', warn: '#e5b23a', bad: '#f43f5e', heat: ['#d8a328', '#f59e0b', '#ff4b2b'] };
+const BORG_DAY = { ink: ['#14181d', '#2d353e', '#586370', '#7c8794'], ok: '#147a3c', warn: '#9c6d14', bad: '#a3262e', heat: ['#6e6b20', '#9c6d14', '#a3262e'] };
 
 /** One mode's Basic colours (missing ones from the family's defaults) -> { token: hex }. */
 export function derive(h = {}, mode = 'night', family = 'citadel') {
@@ -136,9 +136,10 @@ export function derive(h = {}, mode = 'night', family = 'citadel') {
     const bg = v['--bg'];
     Object.assign(v, {
       '--brg-node': P,
+      '--brg-frame': dark ? '#5c6670' : '#6a7480',
       '--brg-axis': S,
       '--brg-cyan': T,
-      '--brg-sub': dark ? mix('#6684b5', 85, T) : mix('#3f5c80', 85, T),
+      '--brg-sub': dark ? mix('#556270', 85, T) : mix('#4a5a6e', 85, T),
       '--brg-on': dark ? mix(bg, 75, BLACK) : mix(N, 50, WHITE),
     });
   }

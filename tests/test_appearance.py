@@ -194,6 +194,7 @@ def test_create_edit_delete_through_the_api_and_every_screen_sees_them(owner_cli
     assert cfg["base"]["lcars"]["night"]["accent"] == "#a78bfa" and cfg["base"]["borg"]["night"]["accent"] == "#2ee86c"
     assert "lcars2" not in cfg["base"]
     assert [s["id"] for s in cfg["builtin_styles"]["lcars"]] == ["standard", "com", "sci", "eng", "ent"]
+    assert [(s["id"], s["name"]) for s in cfg["builtin_styles"]["borg"]] == [("standard", "Obsidian"), ("neon", "Neon")]
     assert owner_client.put(f"{BASE}/styles/{sid}", json=style(name="Midnight 2", family="lcars")).json()["family"] == "lcars"
     assert owner_client.put(f"{BASE}/styles/{sid}", json=style(name="Unimatrix", family="borg")).json()["family"] == "borg"
     assert owner_client.put(f"{BASE}/styles/{sid}", json=style(night=half(accent="nope"))).status_code == 422

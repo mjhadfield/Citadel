@@ -108,14 +108,42 @@ export const BUILTIN_STYLES = {
   borg: [
     {
       id: 'standard',
-      name: 'Standard',
+      name: 'Obsidian',
       night: {
-        accent: '#2ee86c', secondary: '#d8a328', third: '#26c6b8', panel: '#060e08',
+        accent: '#2ee86c', secondary: '#d8a328', third: '#5f8c8a', panel: '#090a0c',
         panel_opacity: 100, background: { ...NO_PICTURE }, tokens: {},
       },
       day: {
-        accent: '#167a3e', secondary: '#9c6d14', third: '#186b6e', panel: '#f3f7f4',
+        accent: '#147a3c', secondary: '#9c6d14', third: '#2c6e73', panel: '#f5f7f9',
         panel_opacity: 100, background: { ...NO_PICTURE }, tokens: {},
+      },
+    },
+    {
+      id: 'neon',
+      name: 'Neon',
+      night: {
+        accent: '#2ee86c', secondary: '#d8a328', third: '#26c6b8', panel: '#060e08',
+        panel_opacity: 100, background: { ...NO_PICTURE },
+        tokens: {
+          '--bg': '#030704', '--bg-2': '#060d08', '--surface': '#060e08', '--surface-2': '#09150d', '--surface-3': '#0e2014',
+          '--well': '#0008038c', '--vignette': '#0006029e', '--accent-hi': '#5eff91', '--accent-soft': '#86f7a9',
+          '--accent-deep': '#0d4d24', '--accent-wash': '#2ee86c1c', '--glow-2': '#24c96b',
+          '--silver-hi': '#e4f5e9', '--silver': '#b8d4be', '--silver-mute': '#7aa084', '--silver-dim': '#4d6f57',
+          '--edge': '#2ee86c38', '--edge-strong': '#2ee86c8f',
+          '--brg-frame': '#2ee86c', '--brg-sub': '#6684b5', '--brg-on': '#030805',
+        },
+      },
+      day: {
+        accent: '#167a3e', secondary: '#9c6d14', third: '#186b6e', panel: '#f3f7f4',
+        panel_opacity: 100, background: { ...NO_PICTURE },
+        tokens: {
+          '--bg': '#e8efe9', '--bg-2': '#edf4ee', '--surface': '#f3f7f4', '--surface-2': '#f7faf8', '--surface-3': '#fbfdfb',
+          '--well': '#11211712', '--vignette': '#1121171c', '--accent-hi': '#1c944c', '--accent-soft': '#115c2f',
+          '--accent-deep': '#0c4523', '--accent-wash': '#167a3e1a', '--glow-2': '#167a3e',
+          '--silver-hi': '#112117', '--silver': '#263d2e', '--silver-mute': '#476351', '--silver-dim': '#6f8a78',
+          '--edge': '#167a3e3d', '--edge-strong': '#167a3e8c',
+          '--brg-frame': '#167a3e', '--brg-sub': '#3f5c80', '--brg-on': '#f4fbf6',
+        },
       },
     },
   ],

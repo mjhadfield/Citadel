@@ -57,8 +57,8 @@ BASE: dict[str, dict[str, dict[str, str]]] = {
                 "day": {"accent": "#b5541f", "secondary": "#8a2e2e", "third": "#3d5a73", "panel": "#f8f0e2"}},
     "lcars": {"night": {"accent": "#a78bfa", "secondary": "#8577e0", "third": "#d3a4ea", "panel": "#0e0b14"},
               "day": {"accent": "#b5541f", "secondary": "#8a2e2e", "third": "#3d5a73", "panel": "#f8f0e2"}},
-    "borg": {"night": {"accent": "#2ee86c", "secondary": "#d8a328", "third": "#26c6b8", "panel": "#060e08"},
-             "day": {"accent": "#167a3e", "secondary": "#9c6d14", "third": "#186b6e", "panel": "#f3f7f4"}},
+    "borg": {"night": {"accent": "#2ee86c", "secondary": "#d8a328", "third": "#5f8c8a", "panel": "#090a0c"},
+             "day": {"accent": "#147a3c", "secondary": "#9c6d14", "third": "#2c6e73", "panel": "#f5f7f9"}},
 }
 # The colour tokens Advanced may set (palette.js TOKENS, same order; tests/test_appearance.py checks they match).
 TOKENS: tuple[str, ...] = (
@@ -70,15 +70,15 @@ TOKENS: tuple[str, ...] = (
     "--lc-frame", "--lc-1", "--lc-2", "--lc-3", "--lc-4", "--lc-5", "--lc-6", "--lc-7", "--lc-red",
     "--lc-gig", "--lc-gig-on", "--lc-diary", "--lc-on",
     "--lc-hd-frame", "--lc-hd-1", "--lc-hd-2", "--lc-hd-3", "--lc-hd-4",
-    "--brg-node", "--brg-axis", "--brg-cyan", "--brg-sub", "--brg-on",
+    "--brg-node", "--brg-frame", "--brg-axis", "--brg-cyan", "--brg-sub", "--brg-on",
 )
 _NO_PICTURE = {"file": "", "fit": "cover", "dim": 40, "glow": True}
 
 
-def _standard_style(family: str) -> dict[str, Any]:
+def _standard_style(family: str, name: str = "Standard") -> dict[str, Any]:
     return {
         "id": "standard",
-        "name": "Standard",
+        "name": name,
         "night": {**BASE[family]["night"], "panel_opacity": 100, "background": dict(_NO_PICTURE), "tokens": {}},
         "day": {**BASE[family]["day"], "panel_opacity": 100, "background": dict(_NO_PICTURE), "tokens": {}},
     }
@@ -126,7 +126,30 @@ BUILTIN_STYLES: dict[str, list[dict[str, Any]]] = {
                  "tokens": {"--silver-hi": "#1d232c", "--silver": "#3a4350", "--silver-mute": "#5b6575", "--silver-dim": "#8a93a1",
                             "--lc-4": "#8a93a1", "--lc-gig": "#2f4f86"}}},
     ],
-    "borg": [_standard_style("borg")],
+    "borg": [
+        # Obsidian (default): pitch-black hull and neutral steel framing with phosphor emerald as a heavy accent.
+        _standard_style("borg", name="Obsidian"),
+        # Neon: the classic full-phosphor emerald Borg Unimatrix look (formerly Standard).
+        {"id": "neon", "name": "Neon",
+         "night": {"accent": "#2ee86c", "secondary": "#d8a328", "third": "#26c6b8", "panel": "#060e08", "panel_opacity": 100,
+                   "background": dict(_NO_PICTURE),
+                   "tokens": {"--bg": "#030704", "--bg-2": "#060d08", "--surface": "#060e08", "--surface-2": "#09150d",
+                              "--surface-3": "#0e2014", "--well": "#0008038c", "--vignette": "#0006029e",
+                              "--accent-hi": "#5eff91", "--accent-soft": "#86f7a9", "--accent-deep": "#0d4d24",
+                              "--accent-wash": "#2ee86c1c", "--glow-2": "#24c96b",
+                              "--silver-hi": "#e4f5e9", "--silver": "#b8d4be", "--silver-mute": "#7aa084", "--silver-dim": "#4d6f57",
+                              "--edge": "#2ee86c38", "--edge-strong": "#2ee86c8f",
+                              "--brg-frame": "#2ee86c", "--brg-sub": "#6684b5", "--brg-on": "#030805"}},
+         "day": {"accent": "#167a3e", "secondary": "#9c6d14", "third": "#186b6e", "panel": "#f3f7f4", "panel_opacity": 100,
+                 "background": dict(_NO_PICTURE),
+                 "tokens": {"--bg": "#e8efe9", "--bg-2": "#edf4ee", "--surface": "#f3f7f4", "--surface-2": "#f7faf8",
+                            "--surface-3": "#fbfdfb", "--well": "#11211712", "--vignette": "#1121171c",
+                            "--accent-hi": "#1c944c", "--accent-soft": "#115c2f", "--accent-deep": "#0c4523",
+                            "--accent-wash": "#167a3e1a", "--glow-2": "#167a3e",
+                            "--silver-hi": "#112117", "--silver": "#263d2e", "--silver-mute": "#476351", "--silver-dim": "#6f8a78",
+                            "--edge": "#167a3e3d", "--edge-strong": "#167a3e8c",
+                            "--brg-frame": "#167a3e", "--brg-sub": "#3f5c80", "--brg-on": "#f4fbf6"}}},
+    ],
 }
 
 LEGACY_BASE = {"dark": "night", "light": "day"}
