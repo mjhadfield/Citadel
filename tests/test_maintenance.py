@@ -658,3 +658,27 @@ def test_run_now_starts_the_backup_unit_but_the_hourly_check_never_does(tmp_path
 
 def test_tests_never_point_at_the_real_backup():
     assert config.BACKUP_UNIT == "none" and "citadel-test-" in str(config.BACKUP_STATUS)
+
+
+def test_a_job_loop_survives_an_error_reading_its_schedule(monkeypatch, live_fetching):
+    """A transient error in due_at() (SQLite busy, an odd cached payload) used to end the job's task for good, silently.
+    Now it's logged, and the job runs once the schedule can be read again (review B2, 2026-11-09)."""
+    monkeypatch.setattr(sched_mod, "TICK", 0.05)
+    w = Probe()
+    s = Scheduler({"probe": w}, lambda _wid: None)
+    real, calls = s.due_at, {"n": 0}
+
+    def flaky(widget):
+        calls["n"] += 1
+        if calls["n"] <= 3:                                              # the start-up check and the first two loop reads
+            raise sqlite3.OperationalError("database is locked")
+        return real(widget)
+    monkeypatch.setattr(s, "due_at", flaky)
+
+    async def scenario():
+        await s.start()
+        await asyncio.sleep(0.6)
+        await s.stop()
+    asyncio.run(scenario())
+    assert w.runs == 1
+    assert any("database is locked" in (e.get("detail") or e["message"]) for e in logbook.query(source="probe"))

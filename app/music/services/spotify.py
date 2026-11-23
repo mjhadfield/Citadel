@@ -54,7 +54,7 @@ BACKGROUND_BUDGET = 5                 # of which background work may use this ma
 BACKGROUND_GAP = 6.0                  # ...spread out, one at least this far apart
 MIN_GAP = 0.2                         # and no two calls of any kind closer than this (a queued top 10 is ten calls)
 DEFAULT_RETRY = 60                    # a 429 without a Retry-After (or a 503) waits this long the first time...
-MAX_REST = 24 * 3600                  # ...doubling with each refusal in a row, up to this; a call that works starts again
+MAX_REST = 24 * 3600                  # ...doubling with each refusal in a row, up to this (a longer Retry-After still wins); a call that works starts again
 
 log = logging.getLogger("hub.music")
 
@@ -183,7 +183,7 @@ def _rest(retry_after: str | None) -> float:
         asked = max(1, int(float(retry_after)))
     except (TypeError, ValueError):
         asked = 0
-    wait = min(MAX_REST, max(asked, DEFAULT_RETRY * 2 ** (strikes - 1)))
+    wait = max(asked, min(MAX_REST, DEFAULT_RETRY * 2 ** (strikes - 1)))     # the cap is for our doubling only: Spotify's own wait is never cut short
     until = max(time.time() + wait, cur.get("until") or 0)
     db.put_settings(COOLDOWN_KEY, {"until": until, "since": time.time(), "retry_after": asked or None, "strikes": strikes})
     log.warning("Spotify refused a call (%s in a row; Retry-After %s): no Spotify calls until %s", strikes, asked or "none",

@@ -21,7 +21,7 @@ function binRow(item, streams, hour) {
 
 function binsPanel(w, hour) {
   if (!w?.configured) return msg('bin', 'Bin days aren’t set up yet', 'Settings → Widgets');
-  if (!w.data) return msg('bin', w.error ? 'Couldn’t read the council page' : 'Fetching bin days…');
+  if (!w.data?.next) return msg('bin', w.error ? 'Couldn’t read the council page' : 'Fetching bin days…');
   return `<div class="big-list"><span class="hud">Next collections</span>${binRow(w.data.next.recycling, w.data.streams, hour)}${binRow(w.data.next.domestic, w.data.streams, hour)}</div>`;
 }
 
@@ -43,7 +43,7 @@ function gigsPanel(w) {
 
 function diaryPanel(w, todayIso) {
   if (!w?.configured) return msg('cal', 'No calendar connected', 'Settings → Widgets');
-  if (!w.data) return msg('cal', w.error ? 'Couldn’t read the calendar' : 'Loading…');
+  if (!w.data?.events) return msg('cal', w.error ? 'Couldn’t read the calendar' : 'Loading…');
   const d = parseDate(todayIso); d.setDate(d.getDate() + 1);
   const tomorrow = isoOf(d.getFullYear(), d.getMonth(), d.getDate());
   const groups = new Map();

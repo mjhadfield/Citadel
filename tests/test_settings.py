@@ -54,6 +54,7 @@ def test_link_crud_and_order(owner_client):
 @pytest.mark.parametrize("patch", [
     {"url": "javascript:alert(1)"}, {"url": "ftp://x/"}, {"url": "not a url"}, {"url": ""},
     {"health_url": "file:///etc/passwd"}, {"icon": "<script>"}, {"name": ""}, {"tier": "huge"},
+    {"health_url": "http://192.168.0.999/"}, {"health_url": "http://nas:80a/"},       # look like addresses, but httpx can't use them
 ])
 def test_link_validation_rejects_bad_input(owner_client, patch):
     r = owner_client.post(f"{BASE}/links", json={**LINK, **patch})

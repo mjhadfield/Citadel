@@ -9,6 +9,7 @@ import shlex
 from typing import Any, Literal
 from urllib.parse import urlsplit
 
+import httpx
 from pydantic import BaseModel, Field, field_validator
 
 # Must match the symbols in web/js/icons.js.
@@ -23,6 +24,10 @@ def http_url(value: str, *, field: str = "url", allow_placeholders: bool = False
     parts = urlsplit(probe)
     if parts.scheme not in ("http", "https") or not parts.netloc:
         raise ValueError(f"{field} must be a full http:// or https:// address")
+    try:
+        httpx.URL(probe.strip())                    # catches what urlsplit lets through: http://192.168.0.999/, http://nas:80a/
+    except httpx.InvalidURL as exc:
+        raise ValueError(f"{field} isn't a usable address ({exc})") from None
     return value.strip()
 
 

@@ -61,7 +61,7 @@ class Health:
             _, writer = await asyncio.wait_for(asyncio.open_connection("127.0.0.1", port), 2)
             writer.close()
             return True, round((time.perf_counter() - t0) * 1000)
-        except (OSError, asyncio.TimeoutError):
+        except Exception:  # noqa: BLE001 — one probe must never abort the sweep (every dot would freeze)
             return False, 0
 
     async def _remote(self, key: str, host: str) -> tuple[bool, int]:
@@ -98,7 +98,7 @@ class Health:
         try:
             resp = await client.get(url)
             return resp.status_code < 500, round((time.perf_counter() - t0) * 1000)
-        except httpx.HTTPError:
+        except Exception:  # noqa: BLE001 — not just HTTPError: a bad address raises InvalidURL, and one throw aborts the whole sweep
             return False, 0
 
     def _record(self, key: str, ok: bool, ms: int) -> bool:

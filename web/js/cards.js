@@ -289,6 +289,10 @@ export function serviceChecks(s) {
   ];
 }
 
+// nvidia-smi says [N/A] for a reading it can't take (monitor._num -> null): show a dash rather than throw and stop every later card.
+const fx = (v, unit = '', d = 0) => v != null ? `${v.toFixed(d)}${unit}` : '—';
+const pctOf = (a, b) => a != null && b ? a / b * 100 : null;
+
 function bar(label, sub, value, pct, hot = false) {
   const v = Math.max(0, Math.min(100, Number(pct) || 0));
   return `<div class="bar"><div class="bar__top"><span>${esc(label)}${sub ? ` <span class="dim">${esc(sub)}</span>` : ''}</span><b>${esc(value)}</b></div>
@@ -366,12 +370,12 @@ function monitoring(s, ctx) {
 
   if (!ctx.expanded) {
     const busiest = busiestCore(m.cpu.per_core);
-    const vramPct = m.gpu ? m.gpu.mem_used_mb / m.gpu.mem_total_mb * 100 : 0;
-    const powerPct = m.gpu?.power_limit_w ? m.gpu.power_w / m.gpu.power_limit_w * 100 : 0;
+    const vramPct = m.gpu ? pctOf(m.gpu.mem_used_mb, m.gpu.mem_total_mb) : null;
+    const powerPct = m.gpu ? pctOf(m.gpu.power_w, m.gpu.power_limit_w) : null;
     const gpuBars = m.gpu
-      ? `${bar('Usage', '', `${m.gpu.percent}%`, m.gpu.percent, m.gpu.percent >= 85)}
-         ${bar('VRAM', '', `${Math.round(vramPct)}%`, vramPct, vramPct >= 85)}
-         ${m.gpu.power_limit_w ? bar('Power', '', `${m.gpu.power_w.toFixed(0)} W`, powerPct, powerPct >= 90) : ''}`
+      ? `${bar('Usage', '', m.gpu.percent != null ? `${m.gpu.percent}%` : '—', m.gpu.percent, m.gpu.percent >= 85)}
+         ${bar('VRAM', '', vramPct != null ? `${Math.round(vramPct)}%` : '—', vramPct, vramPct >= 85)}
+         ${m.gpu.power_limit_w ? bar('Power', '', fx(m.gpu.power_w, ' W'), powerPct, powerPct >= 90) : ''}`
       : '<p class="dim">No GPU detected.</p>';
     const ms = s.machines || [];
     return {
@@ -397,9 +401,9 @@ function monitoring(s, ctx) {
   const mem = m.mem, swapPct = mem.swap_total ? mem.swap_used / mem.swap_total * 100 : 0;
   const gpuSection = m.gpu
     ? `<div class="mon-section">${secHead(`GPU · ${m.gpu.name}`, [['temp', m.gpu.temp, true]])}
-        ${bar('Usage', '', `${m.gpu.percent}%`, m.gpu.percent, m.gpu.percent >= 85)}
-        ${bar('VRAM', '', `${bytes(m.gpu.mem_used_mb * 1024 * 1024)} / ${bytes(m.gpu.mem_total_mb * 1024 * 1024)}`, m.gpu.mem_used_mb / m.gpu.mem_total_mb * 100)}
-        ${m.gpu.power_limit_w ? bar('Power', '', `${m.gpu.power_w.toFixed(0)} W / ${m.gpu.power_limit_w.toFixed(0)} W`, m.gpu.power_w / m.gpu.power_limit_w * 100) : ''}
+        ${bar('Usage', '', m.gpu.percent != null ? `${m.gpu.percent}%` : '—', m.gpu.percent, m.gpu.percent >= 85)}
+        ${bar('VRAM', '', m.gpu.mem_used_mb != null && m.gpu.mem_total_mb != null ? `${bytes(m.gpu.mem_used_mb * 1024 * 1024)} / ${bytes(m.gpu.mem_total_mb * 1024 * 1024)}` : '—', pctOf(m.gpu.mem_used_mb, m.gpu.mem_total_mb))}
+        ${m.gpu.power_limit_w ? bar('Power', '', `${fx(m.gpu.power_w, ' W')} / ${fx(m.gpu.power_limit_w, ' W')}`, pctOf(m.gpu.power_w, m.gpu.power_limit_w)) : ''}
       </div>`
     : `<div class="mon-section"><span class="hud">GPU</span><p class="dim">No NVIDIA GPU detected.</p></div>`;
 
@@ -411,8 +415,8 @@ function monitoring(s, ctx) {
         ${up != null ? `<dt>uptime</dt><dd>${esc(duration(up))}</dd>` : ''}
         <dt>services</dt><dd>${checks.filter(c => c.ok).length} / ${checks.length} up</dd>
         <dt>load (1/5/15m)</dt><dd>${m.load.map(x => x.toFixed(2)).join(' · ')}</dd>
-        ${m.gpu ? `<dt>GPU core clock</dt><dd>${m.gpu.clock_sm_mhz.toFixed(0)} MHz</dd>
-          <dt>GPU memory clock</dt><dd>${m.gpu.clock_mem_mhz.toFixed(0)} MHz</dd>
+        ${m.gpu ? `<dt>GPU core clock</dt><dd>${fx(m.gpu.clock_sm_mhz, ' MHz')}</dd>
+          <dt>GPU memory clock</dt><dd>${fx(m.gpu.clock_mem_mhz, ' MHz')}</dd>
           <dt>buffers + cached</dt><dd>${bytes(m.mem.buffers + m.mem.cached)}</dd>
           ${m.gpu.fan_percent != null ? `<dt>GPU fan</dt><dd>${m.gpu.fan_percent.toFixed(0)}%</dd>` : ''}` : ''}
         ${m.gpu ? '' : `<dt>buffers + cached</dt><dd>${bytes(m.mem.buffers + m.mem.cached)}</dd>`}</dl>

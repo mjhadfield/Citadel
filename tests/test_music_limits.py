@@ -283,3 +283,13 @@ async def test_refusals_in_a_row_wait_longer_each_time_and_a_success_starts_agai
 def test_only_the_scopes_citadel_uses_are_asked_for():
     assert set(sp.SCOPES.split()) == {"playlist-modify-public", "playlist-modify-private", "user-read-playback-state",
                                       "user-modify-playback-state", "user-library-read", "user-library-modify"}
+
+
+@sync
+async def test_a_retry_after_longer_than_a_day_is_honoured_in_full(connected, monkeypatch):
+    """The 24-hour cap is for Citadel's own doubling only: Spotify's wait is never cut short (review C8, 2026-11-09)."""
+    asked = 30 * 3600
+    monkeypatch.setattr(sp.client, "_client", lambda: Http(Resp(429, {"Retry-After": str(asked)})))
+    with pytest.raises(sp.Resting):
+        await sp.client.api("GET", "/me")
+    assert sp.resting_until() - time.time() == pytest.approx(asked, abs=5)

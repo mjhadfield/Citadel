@@ -243,3 +243,19 @@ def test_stores_vinyl_radar_couldnt_read_become_one_alert_with_a_recheck():
     assert state.sync_alerts({"vinyl": {"data": {"errors": []}}}, AT) == []
     db.put_settings("alerts", {**alerts.DEFAULTS, "down": False})
     assert state.sync_alerts(widgets, AT) == []
+
+
+def test_one_unusable_health_address_doesnt_stop_the_other_dots(monkeypatch):
+    """httpx raises InvalidURL (not an HTTPError) for a bad address saved before validation caught it: that one link is
+    down, and every other probe still gets its answer (review B1, 2026-11-09)."""
+    import asyncio
+    import httpx
+    from app.health import Health
+    h = Health(bus=SimpleNamespace(publish=lambda *a: None))
+    transport = httpx.MockTransport(lambda req: httpx.Response(200))
+
+    async def sweep():
+        async with httpx.AsyncClient(transport=transport) as client:
+            return await asyncio.gather(h._http(client, "http://192.168.0.999/"), h._http(client, "http://good.test/"))
+    bad, good = asyncio.run(sweep())
+    assert bad == (False, 0) and good[0] is True

@@ -109,14 +109,19 @@ class Scheduler:
 
     async def _loop(self, w: Widget, index: int) -> None:
         await asyncio.sleep(0.2)                                    # let the server finish starting
-        if self.due_at(w) <= time.time():                           # overdue at start-up: queue up politely rather than all at once
-            self._not_before[w.id] = time.time() + STAGGER * index
+        try:
+            if self.due_at(w) <= time.time():                       # overdue at start-up: queue up politely rather than all at once
+                self._not_before[w.id] = time.time() + STAGGER * index
+        except Exception:  # noqa: BLE001
+            log.exception("scheduler couldn't read %s's schedule at start-up", w.id, extra={"source": w.id})
         while True:
-            wait = self.due_at(w) - time.time()
-            if wait > 0:
-                await asyncio.sleep(min(wait, TICK))
-                continue
+            # Everything is inside the try, the schedule read too: a transient SQLite error or an odd cached payload
+            # used to end this job's task for good, silently (review B2, 2026-11-09).
             try:
+                wait = self.due_at(w) - time.time()
+                if wait > 0:
+                    await asyncio.sleep(min(wait, TICK))
+                    continue
                 await self.run_once(w)
             except asyncio.CancelledError:
                 raise

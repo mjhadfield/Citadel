@@ -382,7 +382,7 @@ function renderReadout() {
   if (!el || !state) return;
   const m = monitoring, up = state.widgets?.system?.data?.uptime_s;
   const cpuT = m?.cpu?.temp?.package, gpuT = m?.gpu?.temp, cpu = m?.cpu?.percent, gpu = m?.gpu?.percent;
-  const vram = m?.gpu?.mem_total_mb ? m.gpu.mem_used_mb / m.gpu.mem_total_mb * 100 : null, ram = m?.mem ? m.mem.used / m.mem.total * 100 : null;
+  const vram = m?.gpu?.mem_total_mb && m.gpu.mem_used_mb != null ? m.gpu.mem_used_mb / m.gpu.mem_total_mb * 100 : null, ram = m?.mem ? m.mem.used / m.mem.total * 100 : null;
   const t1 = v => v.toFixed(1), p1 = v => `${v.toFixed(1)}%`;
   const cells = [                                                   // fmt: number -> text, so LCARS can roll between readings
     { k: 'CPU °C', n: cpuT, fmt: t1 },
