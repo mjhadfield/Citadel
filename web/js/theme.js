@@ -12,7 +12,7 @@
 import { TOKEN_NAMES, resolve } from './palette.js';
 
 const MODE_KEY = 'mode';           // 'day' | 'night'
-const LOOK_KEY = 'look';           // 'citadel' | 'lcars' | 'borg' | 'c:<custom theme id>'
+const LOOK_KEY = 'look';           // 'citadel' | 'lcars' | 'lcars2' | 'borg' | 'c:<custom theme id>'
 const SPEC_KEY = 'look-spec';      // the chosen custom theme's computed CSS for both modes, for theme-init.js
 const BG_VARS = ['--bg-image', '--bg-dim', '--bg-size', '--bg-repeat', '--bg-pos'];
 const VAR_NAMES = [...TOKEN_NAMES, ...BG_VARS];
@@ -20,9 +20,10 @@ const VAR_NAMES = [...TOKEN_NAMES, ...BG_VARS];
 export const THEMES = [
   { id: 'citadel', name: 'Citadel', skin: 'citadel' },
   { id: 'lcars', name: 'LCARS', skin: 'lcars' },
+  { id: 'lcars2', name: 'LCARS 25', skin: 'lcars2' },
   { id: 'borg', name: 'Borg', skin: 'borg' },
 ];
-const BUILTIN_SKINS = new Set(['citadel', 'lcars', 'borg']);
+const BUILTIN_SKINS = new Set(['citadel', 'lcars', 'lcars2', 'borg']);
 const normSkin = s => (BUILTIN_SKINS.has(s) ? s : 'citadel');
 
 const store = {
@@ -68,7 +69,11 @@ function storedSpec() {
 export function applySpec(spec = storedSpec(), m = mode(), skin = spec ? normSkin(spec.skin) : normSkin(look())) {
   const root = document.documentElement;
   if (m === 'day') root.dataset.theme = 'light'; else delete root.dataset.theme;
-  if (skin === 'lcars' || skin === 'borg') root.dataset.skin = skin; else delete root.dataset.skin;
+  if (skin === 'lcars2') { root.dataset.skin = 'lcars'; root.dataset.lcarsVariant = 'bezel'; }
+  else {
+    delete root.dataset.lcarsVariant;
+    if (skin === 'lcars' || skin === 'borg') root.dataset.skin = skin; else delete root.dataset.skin;
+  }
   VAR_NAMES.forEach(n => root.style.removeProperty(n));
   root.classList.remove('has-bg', 'no-glow');
   const h = spec?.[m];
@@ -115,20 +120,25 @@ export function syncThemes(customs = []) {
 
 const SHARED_TOKENS = TOKEN_NAMES.filter(k => !k.startsWith('--lc-') && !k.startsWith('--brg-') && !k.startsWith('--series-'));
 
-/** What an embedded page (Music Companion, Music DB Explorer, Odysseus, Home Improvements, ZebraLab) needs to look the
- * same: the mode as dark/light, a custom theme's colours for that mode — or built-in Borg's computed palette, since
- * borg.css overrides the shared tokens away from Citadel's default purple/parchment — and whether Citadel is drawing
- * a background picture behind them. */
+/** What an embedded page (Music Companion, Music DB Explorer, Odysseus, Home Improvements, ZebraLab, Holodeck) needs
+ * to look the same: the mode as dark/light, the active skin ('citadel' | 'lcars' | 'lcars2' | 'borg'), a custom
+ * theme's colours for that mode — or built-in Borg's computed palette, since borg.css overrides the shared tokens
+ * away from Citadel's default purple/parchment — optional skin-specific tokens (skinVars: --lc-* / --brg-*) for
+ * skin-aware frames like Holodeck, and whether Citadel is drawing a background picture behind them. */
 export function currentLook() {
+  const skin = currentSkin();
   const h = storedSpec()?.[mode()];
   let vars = null;
+  let skinVars = null;
   if (h) {
     vars = Object.fromEntries(Object.entries(h.vars).filter(([k]) => !BG_VARS.includes(k) && !k.startsWith('--lc-') && !k.startsWith('--brg-') && !k.startsWith('--series-')));
-  } else if (currentSkin() === 'borg') {
+    const sv = Object.entries(h.vars).filter(([k]) => k.startsWith('--lc-') || k.startsWith('--brg-'));
+    if (sv.length) skinVars = Object.fromEntries(sv);
+  } else if (skin === 'borg') {
     const cs = getComputedStyle(document.documentElement);
     vars = Object.fromEntries(SHARED_TOKENS.map(k => [k, cs.getPropertyValue(k).trim()]).filter(([, v]) => v));
   }
-  return { type: 'citadel-theme', theme: currentTheme(), vars, bg: !!h?.bg, glow: h ? h.glow : true };
+  return { type: 'citadel-theme', theme: currentTheme(), skin, vars, skinVars, bg: !!h?.bg, glow: h ? h.glow : true };
 }
 
 /** 'dark' or 'light' — the mode, in the words embedded pages know. */
@@ -136,7 +146,8 @@ export function currentTheme() {
   return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
 }
 
-/** 'citadel', 'lcars' or 'borg' — the built-in theme this device's look is built on. */
+/** 'citadel', 'lcars', 'lcars2' or 'borg' — the built-in theme this device's look is built on. */
 export function currentSkin() {
+  if (document.documentElement.dataset.skin === 'lcars' && document.documentElement.dataset.lcarsVariant === 'bezel') return 'lcars2';
   return normSkin(document.documentElement.dataset.skin);
 }

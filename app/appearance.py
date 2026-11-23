@@ -37,7 +37,7 @@ TOKEN_RE = re.compile(r"^#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?$")      # Advanced: 
 ID_RE = re.compile(r"^[a-z0-9]{1,24}$")
 BG_NAME_RE = re.compile(r"^[0-9a-f]{32}\.(?:png|jpg|webp|gif)$")
 MEDIA_TYPES = {"png": "image/png", "jpg": "image/jpeg", "webp": "image/webp", "gif": "image/gif"}
-SKINS = ("citadel", "lcars", "borg")
+SKINS = ("citadel", "lcars", "lcars2", "borg")
 MODES = ("day", "night")
 BASE_PANEL = {"night": "#0e0b14", "day": "#f8f0e2"}       # the built-in modes' own --surface
 BASE_ACCENT = {"night": "#8b5cf6", "day": "#b5541f"}
@@ -47,6 +47,8 @@ BASE: dict[str, dict[str, dict[str, str]]] = {
                 "day": {"accent": "#b5541f", "secondary": "#8a2e2e", "third": "#3d5a73", "panel": "#f8f0e2"}},
     "lcars": {"night": {"accent": "#a78bfa", "secondary": "#8577e0", "third": "#d3a4ea", "panel": "#0e0b14"},
               "day": {"accent": "#b5541f", "secondary": "#8a2e2e", "third": "#3d5a73", "panel": "#f8f0e2"}},
+    "lcars2": {"night": {"accent": "#a78bfa", "secondary": "#8577e0", "third": "#d3a4ea", "panel": "#0e0b14"},
+               "day": {"accent": "#b5541f", "secondary": "#8a2e2e", "third": "#3d5a73", "panel": "#f8f0e2"}},
     "borg": {"night": {"accent": "#2ee86c", "secondary": "#d8a328", "third": "#26c6b8", "panel": "#060e08"},
              "day": {"accent": "#167a3e", "secondary": "#9c6d14", "third": "#186b6e", "panel": "#f3f7f4"}},
 }
@@ -198,7 +200,7 @@ def clean(t: dict[str, Any]) -> dict[str, Any]:
         raise AppearanceError("give the theme a name")
     skin = t.get("skin") or "citadel"
     if skin not in SKINS:
-        raise AppearanceError("a theme is built on Citadel, LCARS or Borg")
+        raise AppearanceError("a theme is built on Citadel, LCARS, LCARS 25 or Borg")
     return {"id": str(t.get("id") or ""), "name": name, "skin": skin,
             **{mode: _clean_half(t.get(mode), mode, skin) for mode in MODES}}
 

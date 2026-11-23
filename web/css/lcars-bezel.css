@@ -1,0 +1,1235 @@
+/* ==========================================================================
+   LCARS 25 — 25th-Century Command Bezel variant (Style menu → LCARS 25)
+   Applies on top of lcars.css when html[data-skin="lcars"][data-lcars-variant="bezel"]
+   is active (set by theme.js / theme-init.js for skin "lcars2").
+
+   Desktop shell: sculpted top-left Command Core (Home), dual-tier bridge header
+   with equal-sized GoXLR volume blocks and recessed telemetry trough, far-left
+   7px segmented spine with numbered right-capped rail pills, and a Tactical Deck
+   main viewport frame (matching 7px segmented left spine + 3px segmented top
+   and bottom framing rails, zero curved highlight wash).
+
+   Main UI & pop-outs (all widths): symmetrical 6px Tactical Deck tiles with
+   flush segmented LCARS header bars, symmetrical 4px key-pad buttons / date
+   blocks / swatches / covers (no asymmetric left highlight or half-rounded
+   shapes), and Segmented Spine pop-out full windows with a full-width
+   segmented top command bar, twin 7px segmented side spines, and a segmented
+   bottom rail.
+
+   All colours flow from the --lc-* and --lc-hd-* root tokens so custom themes
+   built on LCARS 25 recolour automatically in Day and Night.
+   ========================================================================== */
+
+@media (min-width: 761px) {
+  html[data-skin="lcars"][data-lcars-variant="bezel"] {
+    --lcb-rail: 162px;
+    --lcb-beam: 28px;
+    --lcb-deck: 34px;
+    --lcb-gap: 6px;
+    --lcb-pad-top: 10px;
+    --lcb-core-h: calc(var(--lcb-beam) + var(--lcb-gap) + var(--lcb-deck));
+  }
+
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .shell {
+    grid-template-columns: var(--lcb-rail) 1fr;
+  }
+
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .main {
+    --main-pl: 8px;
+    --main-pr: 14px;
+    padding: var(--lcb-pad-top) var(--main-pr) 16px var(--main-pl);
+  }
+
+  /* ---- Dual-tier bridge header (.top) -----------------------------------
+     Row 1 (28px): equal-sized volume blocks | recessed telemetry trough | Owner badge | Citadel end-cap
+     Row 2 (34px): Bookmarks (or Music player) on left | Day + Style on right
+     Row 3 (auto): Reminders strip when active
+     .top__right uses display: contents so #vol-group, #vol-bar, #look-group,
+     #style-bar and .badge-role join the grid directly and keep .top as their
+     offsetParent for flush dropdown placement (volume.js / app.js placeDrop). */
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .top {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-rows: var(--lcb-beam) var(--lcb-deck) auto;
+    column-gap: 5px;
+    row-gap: var(--lcb-gap);
+    align-items: stretch;
+    padding: 0 0 4px;
+    margin: 0 0 8px;
+    position: relative;
+  }
+
+  /* Structural fallback beam across Row 1 behind the readout (stays visible on
+     non-Home pages and narrow screens where #readout is hidden). */
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .top::before {
+    content: "";
+    position: static;
+    grid-column: 2;
+    grid-row: 1;
+    width: auto;
+    height: var(--lcb-beam);
+    border: 0;
+    border-radius: 3px;
+    pointer-events: none;
+    background: color-mix(in srgb, var(--surface-2) 78%, var(--bg));
+    border-top: 2px solid var(--lc-3);
+    border-bottom: 1px solid color-mix(in srgb, var(--lc-3) 32%, transparent);
+    z-index: 0;
+  }
+
+  /* Action deck bottom hairline with two short LCARS colour runs at the right */
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .top::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(var(--lcb-core-h) + 2px);
+    bottom: auto;
+    height: 2px;
+    border-radius: 1px;
+    pointer-events: none;
+    background: linear-gradient(90deg,
+      color-mix(in srgb, var(--lc-frame) 48%, transparent) 0 calc(100% - 148px),
+      transparent calc(100% - 148px) calc(100% - 142px),
+      var(--lc-5) calc(100% - 142px) calc(100% - 82px),
+      transparent calc(100% - 82px) calc(100% - 76px),
+      var(--lc-2) calc(100% - 76px));
+  }
+
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .top__right {
+    display: contents;
+  }
+
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .top__settings {
+    display: none;
+  }
+
+  /* Row 1, Col 1: Equal-sized GoXLR volume blocks with bottom-up level fills */
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .vol-group {
+    grid-column: 1;
+    grid-row: 1;
+    display: inline-flex;
+    align-items: stretch;
+    gap: 4px;
+    height: var(--lcb-beam);
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .vol-group[hidden] {
+    display: none;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .vol-btn {
+    width: 44px;
+    height: var(--lcb-beam);
+    border-radius: 4px;
+    padding: 0;
+    clip-path: none;
+    border: 0;
+    background: color-mix(in srgb, var(--lc-c) 18%, var(--surface-2));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lc-c) 48%, transparent);
+    --vol-fill: color-mix(in srgb, var(--lc-c) 68%, transparent);
+    color: var(--silver-hi);
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .vol-btn:first-child {
+    border-radius: 5px 4px 4px 5px;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .vol-btn:hover {
+    background: color-mix(in srgb, var(--lc-c) 28%, var(--surface-2));
+    box-shadow: inset 0 0 0 1px var(--lc-c);
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .vol-btn > .i {
+    width: 15px;
+    height: 15px;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .vol-btn.is-muted {
+    color: var(--silver-dim);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lc-c) 28%, transparent);
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .vol-btn.is-muted::after {
+    background: var(--lc-red);
+    left: 11px;
+    right: 11px;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"][data-theme="light"] .vol-btn {
+    --vol-fill: color-mix(in srgb, var(--lc-c) 52%, transparent);
+    color: var(--silver-hi);
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"][data-theme="light"] .vol-btn:not(.is-muted) > .i {
+    color: var(--silver-hi);
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .vol-btn[aria-expanded="true"] {
+    border-radius: 5px 5px 0 0;
+    background: var(--lc-2);
+    color: var(--lc-on);
+    box-shadow: none;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .volbar.bmbar {
+    z-index: 75;
+    border-radius: 0 0 12px 12px;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .volbar__mute {
+    border-radius: 0 0 12px 12px;
+  }
+
+  /* Row 1, Col 2: Recessed Telemetry Trough */
+  html[data-skin="lcars"][data-lcars-variant="bezel"][data-page="home"] .top > .readout {
+    grid-column: 2;
+    grid-row: 1;
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    height: var(--lcb-beam);
+    margin: 0;
+    padding: 0 16px;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--surface-2) 86%, var(--bg));
+    border-top: 2px solid var(--lc-3);
+    border-bottom: 1px solid color-mix(in srgb, var(--lc-3) 35%, transparent);
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .top > .readout:hover {
+    background: color-mix(in srgb, var(--lc-3) 14%, var(--surface-2));
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .readout div {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .readout dt {
+    font-size: 10px;
+    letter-spacing: .12em;
+    line-height: 1;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .readout dd {
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  /* Row 1, Col 3: Owner Device status block */
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .badge-role {
+    grid-column: 3;
+    grid-row: 1;
+    height: var(--lcb-beam);
+    padding: 0 11px;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--lc-3) 12%, var(--surface-2));
+    border-top: 2px solid var(--lc-2);
+    font: 500 12px/1 var(--lc-font);
+    letter-spacing: .12em;
+    align-items: center;
+    white-space: nowrap;
+  }
+
+  /* Row 1, Col 4: Integrated Citadel rounded end-cap */
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .top__brand {
+    grid-column: 4;
+    grid-row: 1;
+    order: 0;
+    min-height: 0;
+    height: var(--lcb-beam);
+    padding: 0 16px 0 14px;
+    border-radius: 3px 14px 14px 3px;
+    background: var(--lc-hd-frame);
+    color: var(--lc-on);
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .top__brand .top__logo {
+    display: none;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .top__brand .wordmark {
+    font: 600 18.5px/1 var(--lc-font);
+    letter-spacing: .22em;
+    margin-right: -.22em;
+    color: var(--lc-on);
+    background: none;
+    -webkit-text-fill-color: currentColor;
+    filter: none;
+  }
+
+  /* Row 2, Col 1–2: Action deck left (Bookmarks or Music player) */
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .top__mid {
+    grid-column: 1 / 3;
+    grid-row: 2;
+    order: 0;
+    min-height: var(--lcb-deck);
+    align-items: center;
+    gap: 8px;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .shortcuts {
+    gap: 5px;
+    padding: 0;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .sc {
+    height: 26px;
+    border-radius: 4px 13px 13px 4px;
+    padding: 0 12px 0 9px;
+    font: 500 13.5px/1 var(--lc-font);
+    letter-spacing: .07em;
+    color: var(--silver-hi);
+    background: color-mix(in srgb, var(--lc-c, var(--lc-2)) 12%, var(--surface-2));
+    box-shadow: inset 3px 0 0 var(--lc-c, var(--lc-2));
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .sc:hover {
+    background: color-mix(in srgb, var(--lc-c, var(--lc-2)) 24%, var(--surface-2));
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .sc--menu {
+    border-radius: 13px 4px 4px 13px;
+    padding: 0 12px;
+    background: var(--lc-hd-frame);
+    color: var(--lc-on);
+    box-shadow: none;
+    font-weight: 600;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .sc--menu .i,
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .sc--menu .sc__chev {
+    color: var(--lc-on);
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .sc--menu:hover {
+    filter: brightness(1.1);
+    background: var(--lc-hd-frame);
+    color: var(--lc-on);
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .sc--menu[aria-expanded="true"] {
+    border-radius: 13px 13px 0 0;
+    background: var(--lc-2);
+    color: var(--lc-on);
+    filter: none;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .sc--menu[aria-expanded="true"] .i,
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .sc--menu[aria-expanded="true"] .sc__chev {
+    color: var(--lc-on);
+  }
+
+  /* Compact Spotify player bar in the 34px action deck on #listen */
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .mu-bar {
+    height: 32px;
+    border-radius: 16px;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .mu-bar .np .art {
+    width: 24px;
+    height: 24px;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .mu-bar .ctl__b .btn--play {
+    height: 24px;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .mu-bar .dev__btn {
+    height: 24px;
+  }
+
+  /* Row 2, Col 3–4: Action deck right (Day/Night + Style pair only) */
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .look-group {
+    grid-column: 3 / 5;
+    grid-row: 2;
+    justify-self: end;
+    align-self: center;
+    gap: 6px;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .look-btn {
+    height: 26px;
+    padding: 0 11px;
+    gap: 6px;
+    font: 500 13px/1 var(--lc-font);
+    letter-spacing: .08em;
+    color: var(--silver-hi);
+    background: color-mix(in srgb, var(--lc-6) 14%, var(--surface-2));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lc-frame) 38%, transparent);
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .look-btn[data-theme-menu] {
+    padding: 0 13px 0 11px;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .look-btn:hover {
+    background: color-mix(in srgb, var(--lc-frame) 22%, var(--surface-2));
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .look-group.is-open {
+    border-radius: 13px 13px 0 0;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .look-group.is-open > .look-btn:first-child {
+    border-top-left-radius: 13px;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .look-group.is-open > .look-btn:last-child {
+    border-top-right-radius: 13px;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .stylebar {
+    z-index: 75;
+  }
+
+  /* Row 3: Reminders strip (collapses to zero when empty) */
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .top > .alerts {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    order: 0;
+    margin: 2px 0 0;
+    gap: 8px;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .top > .alerts:empty {
+    display: none;
+  }
+
+  /* ---- Left Console Spine (.rail) ---------------------------------------
+     Sculpted top-left Command Core (Home), continuous 7px segmented far-left
+     spine, and numbered right-capped nav pills that stay cleanly inside the
+     rail when selected. */
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail {
+    position: sticky;
+    top: 0;
+    padding: var(--lcb-pad-top) 8px 14px 23px;
+    gap: 4px;
+    align-items: stretch;
+    counter-reset: lcb-nav 1;
+  }
+
+  /* 7px segmented vertical spine down the far-left edge below Home */
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail::before {
+    content: "";
+    position: absolute;
+    left: 10px;
+    top: var(--lc-body-top, 84px);
+    bottom: 14px;
+    width: 7px;
+    border-radius: 3px 2px 2px 8px;
+    pointer-events: none;
+    background: linear-gradient(180deg,
+      var(--lc-hd-frame) 0 42%,
+      transparent 42% calc(42% + 4px),
+      var(--lc-hd-2) calc(42% + 4px) 60%,
+      transparent 60% calc(60% + 4px),
+      color-mix(in srgb, var(--lc-6) 45%, transparent) calc(60% + 4px) 82%,
+      transparent 82% calc(82% + 4px),
+      var(--lc-hd-3) calc(82% + 4px) 100%);
+  }
+
+  /* Top-left Command Core (Home) */
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view="home"] {
+    position: absolute;
+    top: var(--lcb-pad-top);
+    left: 10px;
+    right: 8px;
+    width: auto;
+    height: var(--lcb-core-h);
+    min-height: var(--lcb-core-h);
+    margin: 0;
+    padding: 9px 11px;
+    border: 0;
+    border-radius: 22px 4px 4px 6px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0;
+    background: linear-gradient(150deg, var(--lc-hd-frame), color-mix(in srgb, var(--lc-hd-frame) 78%, var(--surface)));
+    color: var(--lc-on);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--silver-hi) 18%, transparent);
+    transition: filter .16s var(--lc-ease), background-color .16s var(--lc-ease);
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view="home"]:hover {
+    filter: brightness(1.12);
+    color: var(--lc-on);
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view="home"][aria-current] {
+    background: var(--lc-7);
+    color: var(--lc-on);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .28), 0 0 14px color-mix(in srgb, var(--lc-7) 30%, transparent);
+  }
+  /* Day: keep idle Home clearly distinct from active Home within the parchment + 3-colour rule */
+  html[data-skin="lcars"][data-lcars-variant="bezel"][data-theme="light"] .rail a[data-view="home"]:not([aria-current]) {
+    background: color-mix(in srgb, var(--lc-frame) 15%, var(--surface));
+    color: var(--lc-frame);
+    box-shadow: inset 0 0 0 1.5px var(--lc-frame);
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"][data-theme="light"] .rail a[data-view="home"][aria-current] {
+    background: var(--lc-frame);
+    color: var(--lc-on);
+    box-shadow: none;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view="home"] .i {
+    width: 21px;
+    height: 21px;
+    color: inherit;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view="home"] .rail__label {
+    font: 600 15px/1 var(--lc-font);
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view="home"]::before {
+    content: "01 · CORE";
+    position: absolute;
+    top: 11px;
+    right: 11px;
+    left: auto;
+    bottom: auto;
+    width: auto;
+    height: auto;
+    background: none;
+    border-radius: 0;
+    font: 600 10px/1 var(--lc-font);
+    letter-spacing: .13em;
+    opacity: .78;
+    animation: none;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view="home"]::after {
+    content: none;
+  }
+
+  /* Rail nav pills: right-capped, numbered, strictly contained inside the rail */
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view]:not([data-view="home"]),
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a.rail__settings {
+    width: 100%;
+    min-width: 0;
+    min-height: 32px;
+    height: 32px;
+    margin: 0;
+    padding: 0 9px 0 7px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    border-radius: 4px 14px 14px 4px;
+    background: color-mix(in srgb, var(--lc-c) 9%, var(--surface));
+    border-left: 2.5px solid color-mix(in srgb, var(--lc-c) 60%, transparent);
+    color: var(--silver);
+    font: 500 13px/1 var(--lc-font);
+    letter-spacing: .05em;
+    transition: background-color .16s var(--lc-ease), color .16s var(--lc-ease), box-shadow .16s var(--lc-ease), border-color .16s var(--lc-ease);
+  }
+  /* First page after Home aligns cleanly with the top of the viewport bezel (placed AFTER general rail rule so it wins) */
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view="home"] + a[data-view] {
+    margin-top: calc(var(--lc-body-top, 84px) - var(--lcb-pad-top));
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view]:not([data-view="home"]):not([hidden]),
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a.rail__settings:not([hidden]) {
+    counter-increment: lcb-nav;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view]:not([data-view="home"]) .i,
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a.rail__settings .i {
+    width: 15px;
+    height: 15px;
+    color: var(--lc-c);
+    flex: none;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view]:not([data-view="home"]) .rail__label,
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a.rail__settings .rail__label {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* Sequential two-digit deck index inside each pill (stays accurate even when pages are reordered or hidden) */
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view]:not([data-view="home"])::after,
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a.rail__settings::after {
+    content: counter(lcb-nav, decimal-leading-zero);
+    position: static;
+    inset: auto;
+    z-index: auto;
+    opacity: .72;
+    transform: none;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    clip-path: none;
+    font: 500 10px/1 var(--lc-font);
+    letter-spacing: .06em;
+    color: var(--silver-dim);
+    flex: none;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view]:not([data-view="home"])::before,
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a.rail__settings::before {
+    content: none;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view]:not([data-view="home"]):hover,
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a.rail__settings:hover {
+    background: color-mix(in srgb, var(--lc-c) 22%, var(--surface-2));
+    color: var(--silver-hi);
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view]:not([data-view="home"])[aria-current],
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a.rail__settings[aria-current] {
+    background: var(--lc-c);
+    color: var(--lc-on);
+    border-left-color: transparent;
+    font-weight: 600;
+    box-shadow: inset 3px 0 0 rgba(255, 255, 255, .45), 0 0 12px color-mix(in srgb, var(--lc-c) 28%, transparent);
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"][data-theme="light"] .rail a[data-view]:not([data-view="home"])[aria-current],
+  html[data-skin="lcars"][data-lcars-variant="bezel"][data-theme="light"] .rail a.rail__settings[aria-current] {
+    box-shadow: inset 3px 0 0 rgba(255, 255, 255, .32);
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view]:not([data-view="home"])[aria-current] .i,
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a.rail__settings[aria-current] .i,
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a[data-view]:not([data-view="home"])[aria-current]::after,
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail a.rail__settings[aria-current]::after {
+    color: var(--lc-on);
+    opacity: .88;
+  }
+
+  /* Subtle OPS divider anchored at the foot of the spacer above Curate/Audio/Settings */
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail .spacer {
+    min-height: 22px;
+    display: flex;
+    align-items: flex-end;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .rail .spacer::after {
+    content: "OPS";
+    width: 100%;
+    padding: 0 2px 3px;
+    font: 500 9.5px/1 var(--lc-font);
+    letter-spacing: .16em;
+    color: var(--silver-dim);
+    border-bottom: 1px solid var(--edge);
+  }
+
+  /* ---- Tactical Deck main viewport frame (.view.is-active) ---------------
+     Replaces the curved translucent-wash bezel with a crisp 7px segmented
+     vertical spine on the left (matching the far-left rail spine) paired with
+     3px segmented top and bottom framing rails. Keeping ::after as the 3px top
+     bar preserves motion.js trickle/segblink and lc-sweep alignment. */
+  html[data-skin="lcars"][data-lcars-variant="bezel"] {
+    --lcb-segs-top: linear-gradient(90deg,
+      var(--lc-hd-frame) 0 10%, transparent 10% calc(10% + 5px),
+      color-mix(in srgb, var(--lc-frame) 42%, transparent) calc(10% + 5px) 58%, transparent 58% calc(58% + 5px),
+      var(--lc-4) calc(58% + 5px) 62%, transparent 62% calc(62% + 5px),
+      var(--lc-hd-2) calc(62% + 5px) 86%, transparent 86% calc(86% + 5px),
+      var(--lc-5) calc(86% + 5px) 100%);
+    --lcb-segs-bot: linear-gradient(90deg,
+      var(--lc-hd-3) 0 88px, transparent 88px 93px,
+      color-mix(in srgb, var(--lc-frame) 34%, transparent) 93px calc(100% - 102px), transparent calc(100% - 102px) calc(100% - 97px),
+      var(--lc-hd-frame) calc(100% - 97px) 100%);
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"][data-theme="light"] {
+    --lcb-segs-top: linear-gradient(90deg,
+      var(--lc-frame) 0 10%, transparent 10% calc(10% + 5px),
+      color-mix(in srgb, var(--lc-frame) 65%, transparent) calc(10% + 5px) 58%, transparent 58% calc(58% + 5px),
+      var(--lc-5) calc(58% + 5px) 62%, transparent 62% calc(62% + 5px),
+      var(--lc-3) calc(62% + 5px) 86%, transparent 86% calc(86% + 5px),
+      var(--lc-frame) calc(86% + 5px) 100%);
+    --lcb-segs-bot: linear-gradient(90deg,
+      var(--lc-5) 0 88px, transparent 88px 93px,
+      color-mix(in srgb, var(--lc-frame) 55%, transparent) 93px calc(100% - 102px), transparent calc(100% - 102px) calc(100% - 97px),
+      var(--lc-3) calc(100% - 97px) 100%);
+  }
+
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .view.is-active {
+    border: 0;
+    border-radius: 0;
+    padding: 10px 0 10px 18px;
+    background: var(--lcb-segs-bot) 14px 100% / calc(100% - 14px) 3px no-repeat;
+  }
+
+  /* 7px segmented vertical spine down the left edge of the viewport */
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .view.is-active::before {
+    content: "";
+    position: absolute;
+    left: 2px;
+    top: 0;
+    bottom: 0;
+    width: 7px;
+    height: auto;
+    border: 0;
+    border-radius: 4px 2px 2px 4px;
+    pointer-events: none;
+    background: linear-gradient(180deg,
+      var(--lc-hd-frame) 0 38%,
+      transparent 38% calc(38% + 4px),
+      var(--lc-hd-2) calc(38% + 4px) 62%,
+      transparent 62% calc(62% + 4px),
+      color-mix(in srgb, var(--lc-6) 52%, transparent) calc(62% + 4px) 82%,
+      transparent 82% calc(82% + 4px),
+      var(--lc-hd-3) calc(82% + 4px) 100%);
+  }
+
+  /* 3px segmented top framing rail (aligned with motion.js SEGS.body) */
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .view.is-active::after {
+    content: "";
+    position: absolute;
+    left: 14px;
+    right: 0;
+    top: 0;
+    height: 3px;
+    border-radius: 1.5px;
+    pointer-events: none;
+    background: var(--lcb-segs-top);
+  }
+  html.lc-sweep[data-skin="lcars"][data-lcars-variant="bezel"] .view.is-active::after {
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--silver-hi) 80%, transparent), transparent) -40% 0 / 30% 100% no-repeat, var(--lcb-segs-top);
+    animation: lc-sweep .6s linear 1;
+  }
+
+  /* Embedded pages (.frame-shell) nest cleanly inside the segmented frame */
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .view.is-active:has(> .frame-shell) {
+    padding: 0;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .view.is-active:has(> .frame-shell)::after {
+    right: 0;
+    border-radius: 1.5px;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] .frame-shell {
+    inset: 6px 0 6px 14px;
+    padding: 0;
+    background: none;
+    border-radius: 4px;
+    overflow: hidden;
+    -webkit-mask: none;
+    mask: none;
+  }
+
+  /* Tighter desk-screen bottom padding on 1440p one-screen layout */
+  @media (min-width: 1800px) and (min-height: 860px) {
+    html[data-skin="lcars"][data-lcars-variant="bezel"] .rail {
+      position: relative;
+      height: 100%;
+    }
+    html[data-skin="lcars"][data-lcars-variant="bezel"] .main {
+      padding-bottom: 14px;
+    }
+  }
+}
+
+/* ==========================================================================
+   Tactical Deck tiles & inner controls (all widths, LCARS 25 only)
+   Replaces the hard left highlight, top-right chamfer and half-rounded inner
+   buttons with symmetrical 6px panels, flush segmented LCARS header bars,
+   4px key-pad tiles, and symmetrical date/time/swatch/cover geometry.
+   ========================================================================== */
+html[data-skin="lcars"][data-lcars-variant="bezel"] .card {
+  padding: 0;
+  border-radius: 6px;
+  background: none;
+  border: 1px solid color-mix(in srgb, var(--lc-c) 28%, var(--edge));
+  clip-path: none;
+  overflow: hidden;
+  transition: border-color .18s var(--lc-ease);
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] .card:hover {
+  border-color: color-mix(in srgb, var(--lc-c) 64%, var(--edge));
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"][data-theme="light"] .card {
+  border-color: color-mix(in srgb, var(--lc-c) 40%, var(--edge));
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"][data-theme="light"] .card:hover {
+  border-color: var(--lc-c);
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] .card__in {
+  border-radius: 5px;
+  clip-path: none;
+}
+
+/* Non-Home cards (News, Music, Fleet, Audio) get a clean symmetrical top cap */
+html[data-skin="lcars"][data-lcars-variant="bezel"] .card:not(#grid > .card) {
+  border-top: 2px solid var(--lc-c);
+}
+
+/* Live data-change acknowledgement flashes symmetrically from the top edge */
+html[data-skin="lcars"][data-lcars-variant="bezel"] .mx-ack {
+  inset: 0 0 auto 0;
+  width: auto;
+  height: 52px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--lc-c, var(--lc-frame)) 24%, transparent), transparent 100%);
+}
+
+/* Home tiles: flush segmented Tactical Deck header bar */
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .card__head {
+  padding: 0;
+  gap: 3px;
+  min-height: 28px;
+  height: 28px;
+  align-items: stretch;
+  background: var(--bg);
+  border-bottom: 1px solid color-mix(in srgb, var(--lc-c) 22%, var(--edge));
+  flex-wrap: nowrap;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .card__head::before {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 9px;
+  border-radius: 0;
+  font-size: 12px;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .card__head .hud {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  background: color-mix(in srgb, var(--lc-c) 14%, var(--surface-2));
+  font-size: 16px;
+  line-height: 1;
+  white-space: nowrap;
+  min-width: 0;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"][data-theme="light"] #grid > .card:not(.is-max) .card__head .hud {
+  background: color-mix(in srgb, var(--lc-c) 11%, var(--surface-2));
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .card__tools {
+  flex: 1;
+  align-self: stretch;
+  gap: 3px;
+  min-width: 0;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .card__tools::before {
+  height: auto;
+  min-width: 8px;
+  align-self: stretch;
+  background: color-mix(in srgb, var(--lc-c) 7%, var(--surface-2));
+  border-top: 2px solid color-mix(in srgb, var(--lc-c) 45%, transparent);
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .card__tools .meta {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding: 0 9px;
+  background: color-mix(in srgb, var(--lc-c) 8%, var(--surface-2));
+  border-top: 2px solid color-mix(in srgb, var(--lc-c) 30%, transparent);
+  font-size: 11.5px;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .card__tools .meta:empty {
+  display: none;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .card__tools .btn--icon {
+  align-self: stretch;
+  width: 28px;
+  height: auto;
+  border: 0;
+  border-radius: 0;
+  background: color-mix(in srgb, var(--lc-c) 22%, var(--surface-2));
+  color: var(--silver-hi);
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .card__tools .btn--icon:hover {
+  background: var(--lc-c);
+  color: var(--lc-on);
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .card__body {
+  padding-top: 10px;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .card__body--flush {
+  padding-top: 4px;
+}
+
+/* ---- Symmetrical inner controls (no half-rounded shapes) ---------------- */
+
+/* Remote Access & Launchpad tiles: symmetrical 4px Tactical Deck key-pads */
+html[data-skin="lcars"][data-lcars-variant="bezel"] .tile {
+  height: 50px;
+  padding: 0 10px 0 8px;
+  gap: 9px;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--lc-t, var(--lc-frame)) 24%, var(--edge));
+  border-top: 2px solid var(--lc-t, var(--lc-frame));
+  background: color-mix(in srgb, var(--lc-t, var(--lc-frame)) 8%, var(--surface-2));
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] .a-launch .tile {
+  padding: 0 10px 0 8px;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] .tile:hover {
+  background: color-mix(in srgb, var(--lc-t, var(--lc-frame)) 18%, var(--surface-2));
+  border-color: color-mix(in srgb, var(--lc-t, var(--lc-frame)) 54%, var(--edge));
+  border-top-color: var(--lc-t, var(--lc-frame));
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] .tile > .i {
+  align-self: center;
+  width: 30px;
+  height: 30px;
+  padding: 6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--lc-t, var(--lc-frame)) 22%, transparent);
+  color: var(--lc-t, var(--lc-frame));
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] .tile--primary {
+  background: color-mix(in srgb, var(--lc-t, var(--lc-frame)) 16%, var(--surface-2));
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] .tile--pinned {
+  box-shadow: none;
+  border-color: color-mix(in srgb, var(--lc-t, var(--lc-frame)) 48%, var(--edge));
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"][data-theme="light"] .tile {
+  background: color-mix(in srgb, var(--silver-dim) 9%, var(--surface-2));
+  border-color: var(--edge);
+  border-top: 2px solid var(--lc-t, var(--lc-frame));
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"][data-theme="light"] .tile:hover {
+  background: color-mix(in srgb, var(--silver-dim) 18%, var(--surface-2));
+  border-color: var(--lc-t, var(--lc-frame));
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"][data-theme="light"] .tile > .i {
+  background: color-mix(in srgb, var(--silver-dim) 18%, transparent);
+  color: var(--lc-t, var(--lc-frame));
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"][data-theme="light"] .tile--primary {
+  background: color-mix(in srgb, var(--silver-dim) 14%, var(--surface-2));
+}
+
+/* Next gig date blocks, Calendar time blocks, Bin swatches, Album covers */
+html[data-skin="lcars"][data-lcars-variant="bezel"] .subrow .mono {
+  border-radius: 3px;
+  justify-content: center;
+  padding: 0 8px;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] .ev__t {
+  border-radius: 3px;
+  justify-content: center;
+  padding: 0 8px;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] .bin__swatch {
+  width: 10px;
+  border-radius: 2px;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] .cover {
+  border-radius: 4px;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] .chip {
+  border-radius: 3px;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] .now__label::after,
+html[data-skin="lcars"][data-lcars-variant="bezel"] .mon-section .hud::after,
+html[data-skin="lcars"][data-lcars-variant="bezel"] .logwrap > .hud::after,
+html[data-skin="lcars"][data-lcars-variant="bezel"] .gigs__h::after {
+  border-radius: 2px;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] .feed--new::before,
+html[data-skin="lcars"][data-lcars-variant="bezel"] .feed--pinned::before {
+  width: 4px;
+  border-radius: 2px;
+}
+
+/* Services Start/Stop & action buttons: crisp symmetrical 4px */
+html[data-skin="lcars"][data-lcars-variant="bezel"] .proj__act .btn:not(.btn--icon),
+html[data-skin="lcars"][data-lcars-variant="bezel"] .pinbtn,
+html[data-skin="lcars"][data-lcars-variant="bezel"] .card .btn--icon,
+html[data-skin="lcars"][data-lcars-variant="bezel"] .preorder-date,
+html[data-skin="lcars"][data-lcars-variant="bezel"] .feed--preorder .preorder__row .btn:not(.btn--icon) {
+  border-radius: 4px;
+}
+
+/* ==========================================================================
+   Segmented Spine Pop-Out Full Windows (#grid > .card.is-max, LCARS 25 only)
+   Replaces the heavy asymmetric top+left elbow border with a symmetrical 8px
+   console window: full-width segmented top header beam, matching 7px segmented
+   vertical spines on BOTH left and right edges, and a 5px segmented footer bar.
+   ========================================================================== */
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max {
+  padding: 0;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--lc-c) 38%, var(--edge));
+  box-shadow: 0 26px 64px var(--vignette);
+  clip-path: none;
+  overflow: hidden;
+  animation: none;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"][data-theme="light"] #grid > .card.is-max {
+  border-color: color-mix(in srgb, var(--lc-c) 55%, var(--edge));
+}
+
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__in {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  clip-path: none;
+  padding-bottom: 5px;
+  background:
+    linear-gradient(90deg,
+      var(--lc-c) 0 18%, transparent 18% calc(18% + 4px),
+      color-mix(in srgb, var(--lc-c) 40%, transparent) calc(18% + 4px) 82%, transparent 82% calc(82% + 4px),
+      var(--lc-c) calc(82% + 4px) 100%) bottom / 100% 5px no-repeat,
+    var(--surface);
+}
+
+/* Twin 7px segmented vertical spines framing left & right of the pop-out body */
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__in::before,
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__in::after {
+  content: "";
+  display: block;
+  position: absolute;
+  top: 44px;
+  bottom: 11px;
+  width: 7px;
+  height: auto;
+  margin: 0;
+  order: 0;
+  border-radius: 3px;
+  pointer-events: none;
+  z-index: 2;
+  background: linear-gradient(180deg,
+    var(--lc-c) 0 46%,
+    transparent 46% calc(46% + 4px),
+    color-mix(in srgb, var(--lc-c) 55%, transparent) calc(46% + 4px) 76%,
+    transparent 76% calc(76% + 4px),
+    var(--lc-frame) calc(76% + 4px) 100%);
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__in::before { left: 6px; right: auto; }
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__in::after  { right: 6px; left: auto; }
+
+/* Full-width segmented command header bar */
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__head {
+  position: relative;
+  left: auto;
+  right: auto;
+  top: auto;
+  flex: none;
+  height: 38px;
+  padding: 0;
+  gap: 0;
+  align-items: stretch;
+  background: var(--bg);
+  border-bottom: 3px solid var(--bg);
+  color: var(--lc-on);
+  flex-wrap: nowrap;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__head::before {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding: 0 8px 0 16px;
+  border-radius: 0;
+  background: var(--lc-c);
+  color: var(--lc-on);
+  opacity: 1;
+  font-size: 13px;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__head .hud {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding: 0 16px 0 2px;
+  background: var(--lc-c);
+  color: var(--lc-on);
+  font-weight: 600;
+  font-size: 20px;
+  white-space: nowrap;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max.card--popout .card__head .hud {
+  padding-left: 16px;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__tools {
+  flex: 1;
+  align-self: stretch;
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  margin-left: 4px;
+  min-width: 0;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__tools::before {
+  flex: 1;
+  min-width: 12px;
+  height: auto;
+  align-self: stretch;
+  border: 0;
+  border-top: 2.5px solid var(--lc-c);
+  background: color-mix(in srgb, var(--lc-c) 22%, var(--surface-2));
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .meta {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  border: 0;
+  border-top: 2.5px solid color-mix(in srgb, var(--lc-c) 65%, transparent);
+  background: color-mix(in srgb, var(--lc-c) 14%, var(--surface-2));
+  color: var(--silver-hi);
+  font-size: 13px;
+  white-space: nowrap;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .meta:empty {
+  display: none;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__tools .btn {
+  align-self: stretch;
+  width: 44px;
+  height: auto;
+  border: 0;
+  border-radius: 0;
+  background: var(--lc-c);
+  color: var(--lc-on);
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__tools .btn:last-child {
+  border-radius: 0;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__tools .btn:hover {
+  filter: brightness(1.14);
+  background: var(--lc-c);
+  color: var(--lc-on);
+}
+
+/* Symmetrical body & filter bar spacing clear of both 7px side spines */
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .maxbar {
+  padding: 14px 26px 4px;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__body {
+  padding: 12px 26px 16px;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__body--flush {
+  padding: 8px 20px 14px;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .cols {
+  padding: 0 6px 14px;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .rows--cols {
+  padding: 4px 6px 14px;
+  column-gap: 14px;
+}
+
+/* Symmetrical controls & rows inside pop-out windows */
+html[data-skin="lcars"][data-lcars-variant="bezel"] .fchip,
+html[data-skin="lcars"][data-lcars-variant="bezel"] .card .search,
+html[data-skin="lcars"][data-lcars-variant="bezel"] .fbtn {
+  border-radius: 4px;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] .maxbar.is-fopen .fchips {
+  border-radius: 6px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--lc-c, var(--lc-2)) 45%, var(--edge));
+  border-top: 2.5px solid var(--lc-c, var(--lc-2));
+  box-shadow: 0 16px 36px var(--vignette);
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .rows--cols > li {
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--lc-c) 20%, var(--edge));
+  background: color-mix(in srgb, var(--lc-c) 6%, var(--surface-2));
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .rows--cols > li.note {
+  border: 0;
+  background: none;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .rows--cols > li::before {
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  border-radius: 2px;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] .gigline {
+  border-radius: 6px;
+  padding: 6px 12px 6px 8px;
+  border: 1px solid color-mix(in srgb, var(--lc-c) 22%, var(--edge));
+  background: color-mix(in srgb, var(--lc-c) 7%, var(--surface-2));
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] .gigline__d {
+  align-self: center;
+  height: 32px;
+  border-radius: 4px;
+  justify-content: center;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max.now .rows > li:not(.note) {
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--lc-c) 20%, var(--edge));
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max.now .bin {
+  padding: 6px 16px 6px 8px;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max.now .bin__swatch {
+  width: 12px;
+  border-radius: 3px;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max.now .sched {
+  padding: 6px 14px 6px 8px;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] .sched__d {
+  align-self: center;
+  height: 32px;
+  border-radius: 4px;
+  justify-content: center;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] .sched__b i,
+html[data-skin="lcars"][data-lcars-variant="bezel"] .cal__legend i {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] .crow {
+  border-radius: 6px;
+  padding: 6px 14px 6px 8px;
+  border: 1px solid color-mix(in srgb, var(--lc-c) 20%, var(--edge));
+  background: color-mix(in srgb, var(--lc-c) 6%, var(--surface-2));
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] .crow__d {
+  align-self: center;
+  height: 32px;
+  border-radius: 4px;
+  justify-content: center;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] .cd__pop {
+  border-radius: 6px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--lc-c) 45%, var(--edge));
+  border-top: 2.5px solid var(--lc-c);
+  box-shadow: 0 14px 34px var(--vignette);
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] .cd__pt {
+  border-radius: 3px;
+  text-align: center;
+}
+html[data-skin="lcars"][data-lcars-variant="bezel"] .log {
+  border-radius: 6px;
+  border: 1px solid var(--edge);
+}
+
+/* ---- Phone polish (never overflow horizontally) ------------------------- */
+@media (max-width: 760px) {
+  html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .card__head {
+    min-height: 30px;
+    height: 30px;
+    overflow: hidden;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .card__head .hud {
+    font-size: 14.5px;
+    padding: 0 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card:not(.is-max) .card__tools .meta {
+    display: none;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__head {
+    height: 34px;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__head::before {
+    padding: 0 6px 0 12px;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__head .hud {
+    font-size: 16px;
+    padding: 0 10px 0 2px;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .meta {
+    display: block;
+    min-width: 0;
+    flex: 0 1 auto;
+    line-height: 31px;
+    padding: 0 8px;
+    font-size: 11.5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__tools .btn {
+    width: 36px;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__in::before,
+  html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__in::after {
+    top: 40px;
+    width: 5px;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__in::before { left: 4px; }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__in::after  { right: 4px; }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .maxbar {
+    padding: 12px 18px 4px;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__body {
+    padding: 10px 18px 14px;
+  }
+  html[data-skin="lcars"][data-lcars-variant="bezel"] #grid > .card.is-max .card__body--flush {
+    padding: 6px 14px 12px;
+  }
+}

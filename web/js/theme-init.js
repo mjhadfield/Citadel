@@ -15,6 +15,7 @@ try {
   // LCARS and Borg boot from the first paint so nothing flashes before animating in; app.js clears the class once filled
   var sk = s ? s.skin : l;
   if (sk === 'lcars') { r.dataset.skin = 'lcars'; r.classList.add('lc-boot'); }
+  else if (sk === 'lcars2') { r.dataset.skin = 'lcars'; r.dataset.lcarsVariant = 'bezel'; r.classList.add('lc-boot'); }
   else if (sk === 'borg') { r.dataset.skin = 'borg'; r.classList.add('brg-boot'); }
   var h = s && s[m];
   if (h) {

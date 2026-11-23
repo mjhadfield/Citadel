@@ -301,7 +301,7 @@ function setHolodeckSrc() {
     holodeckOrigin = parsed.origin;
   } catch { holodeckOrigin = null; }
   const sep = url.includes('?') ? '&' : '?';
-  holodeckFrame.src = `${url}${sep}citadel_theme=${currentTheme()}`;
+  holodeckFrame.src = `${url}${sep}citadel_theme=${currentTheme()}&citadel_skin=${currentSkin()}`;
   holodeckSrcSet = true;
 }
 holodeckFrame.addEventListener('load', tellFrames);
@@ -545,7 +545,7 @@ function renderNav(nav) {
     if (!p.rail) railEnd.after(a); else if (p.movable) spacer.before(a);
   }
   const shown = nav.pages.filter(p => $(`.view[data-view="${p.id}"]`));
-  const icon = p => (p.id === 'home' && currentSkin() === 'lcars' ? 'logo' : p.icon);    // as placeLcars does
+  const icon = p => (p.id === 'home' && isLcars(currentSkin()) ? 'logo' : p.icon);    // as placeLcars does
   const link = p => `<a href="#${esc(p.id)}" data-view="${esc(p.id)}"><svg class="i"><use href="#i-${esc(icon(p))}"/></svg><span class="tabbar__label">${esc(p.label)}</span></a>`;
   const rest = shown.filter(p => !p.phone);
   more.innerHTML = rest.map(link).join('');
@@ -660,19 +660,20 @@ document.addEventListener('keydown', e => {
 // LCARS motion that CSS can't trigger by itself (lcars.css, Motion). Boot: html.lc-boot for a moment after the first
 // load in LCARS and whenever a device switches to LCARS. Page change: the rail button bumps and html.lc-sweep runs a
 // light along the body's bar.
+const isLcars = sk => sk === 'lcars' || sk === 'lcars2';
 let lastSkin = null, booted = false;
 function restartClass(el, cls, ms) {
   el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
   clearTimeout(el[`_${cls}`]); el[`_${cls}`] = setTimeout(() => el.classList.remove(cls), ms);
 }
 function bootLcars() {
-  if (currentSkin() === 'lcars') restartClass(document.documentElement, 'lc-boot', 2200);
+  if (isLcars(currentSkin())) restartClass(document.documentElement, 'lc-boot', 2200);
   else if (currentSkin() === 'borg') restartClass(document.documentElement, 'brg-boot', 1400);
 }
 document.addEventListener('click', e => {
   const link = e.target.closest('.rail a[data-view]');
   if (!link) return;
-  if (currentSkin() === 'lcars') {
+  if (isLcars(currentSkin())) {
     restartClass(link, 'is-bump', 300);
     restartClass(document.documentElement, 'lc-sweep', 700);
   } else if (currentSkin() === 'borg') {
@@ -682,28 +683,28 @@ document.addEventListener('click', e => {
 
 function placeLcars() {
   const sk = currentSkin();
-  if (lastSkin !== null && sk !== lastSkin && (sk === 'lcars' || sk === 'borg')) bootLcars();
+  if (lastSkin !== null && sk !== lastSkin && (isLcars(sk) || sk === 'borg')) bootLcars();
   lastSkin = sk;
   const top = $('.top'), strip = $('#alerts'), readout = $('#readout');
   // the reminders sit in the header in LCARS, and on phones in every theme (their drawer, see alertsDrawer)
-  if (sk === 'lcars' || phone.matches) { if (strip.parentElement !== top) top.append(strip); }
+  if (isLcars(sk) || phone.matches) { if (strip.parentElement !== top) top.append(strip); }
   else if (strip.parentElement.id !== 'view-home') $('#view-home').prepend(strip);
-  if (sk === 'lcars') { if (readout.parentElement !== top) top.append(readout); }
+  if (isLcars(sk)) { if (readout.parentElement !== top) top.append(readout); }
   else if (readout.parentElement === top) $('#mu-bar').before(readout);
   // LCARS has no separate logo at the top of the rail: Home wears it instead (rail and phone tab bar alike)
   // (the rail and tab bar links only: the Home page section is [data-view="home"] too, and holds every card's icons)
-  $$('.rail [data-view="home"] use, .tabbar [data-view="home"] use').forEach(u => u.setAttribute('href', sk === 'lcars' ? '#i-logo' : '#i-home'));
+  $$('.rail [data-view="home"] use, .tabbar [data-view="home"] use').forEach(u => u.setAttribute('href', isLcars(sk) ? '#i-logo' : '#i-home'));
   layoutRail();
 }
 
-// LCARS rail: Home sits level with the middle of the header, and the other pages start where the page body does.
-// The header's height moves (the reminders show on Home only, and wrap), so it's measured, and re-measured whenever the
-// header changes size. Positions are taken relative to the shell, which scrolls with the header. Under the 1440p zoom
-// the measured (zoomed) pixels are divided back down to the rail's own CSS pixels.
+// LCARS rail: Home sits level with the middle of the header (or top-aligned in LCARS 25), and the other pages start
+// where the page body does. The header's height moves (the reminders show on Home only, and wrap), so it's measured,
+// and re-measured whenever the header changes size. Positions are taken relative to the shell, which scrolls with the
+// header. Under the 1440p zoom the measured (zoomed) pixels are divided back down to the rail's own CSS pixels.
 const rail = $('.rail');
 function layoutRail() {
   const view = $('.view.is-active');
-  if (currentSkin() !== 'lcars' || !rail.offsetParent || !view) { rail.style.removeProperty('--lc-home-top'); rail.style.removeProperty('--lc-body-top'); return; }
+  if (!isLcars(currentSkin()) || !rail.offsetParent || !view) { rail.style.removeProperty('--lc-home-top'); rail.style.removeProperty('--lc-body-top'); return; }
   const z = rail.getBoundingClientRect().width / parseFloat(getComputedStyle(rail).width) || 1;
   const s = $('.shell').getBoundingClientRect(), t = $('.top').getBoundingClientRect(), v = view.getBoundingClientRect();
   // Home's layout height, not its on-screen box: switching to LCARS runs the boot animation, which grows the rail buttons

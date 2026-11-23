@@ -665,10 +665,11 @@ async function paintMaint() {
 // is kept as an override (half.tokens) while the rest keep following Basic.
 const FIT_LABELS = { cover: 'Fill the screen', contain: 'Show all of it', tile: 'Tile', center: 'Centre, actual size' };
 const MODE_LABEL = { day: 'Day', night: 'Night' };
-const SKIN_LABEL = { citadel: 'Citadel', lcars: 'LCARS', borg: 'Borg' };
+const SKIN_LABEL = { citadel: 'Citadel', lcars: 'LCARS', lcars2: 'LCARS 25', borg: 'Borg' };
 const BASIC = [['accent', 'Primary'], ['secondary', 'Secondary'], ['third', 'Third'], ['panel', 'Panel']];
 const BUILTIN_LOOK = { citadel: { day: { panel: '#f8f0e2', accent: '#b5541f' }, night: { panel: '#0e0b14', accent: '#8b5cf6' } },
   lcars: { day: { panel: '#f2e8d5', accent: '#b5541f' }, night: { panel: '#050407', accent: '#a78bfa' } },
+  lcars2: { day: { panel: '#f2e8d5', accent: '#b5541f' }, night: { panel: '#050407', accent: '#8577e0' } },
   borg: { day: { panel: '#f3f7f4', accent: '#167a3e' }, night: { panel: '#060e08', accent: '#2ee86c' } } };
 const baseOf = (skin, m) => (cfg.appearance.base[skin] || cfg.appearance.base.citadel)[m];
 const overrides = t => Object.keys(t?.day?.tokens || {}).length + Object.keys(t?.night?.tokens || {}).length;
@@ -677,7 +678,7 @@ function themePreview(t, m = mode()) {
   const skin = t.skin || t.id, h = t[m] || BUILTIN_LOOK[skin]?.[m] || BUILTIN_LOOK.citadel[m];
   const bg = h.background?.file ? `<img src="/backgrounds/${esc(h.background.file)}" alt="">` : '';
   const base = m === 'day' ? (skin === 'borg' ? '#e8efe9' : '#f2e8d5') : (skin === 'borg' ? '#030704' : '#07060a');
-  const cls = skin === 'lcars' ? ' tp--lcars' : skin === 'borg' ? ' tp--borg' : '';
+  const cls = skin === 'lcars' ? ' tp--lcars' : skin === 'lcars2' ? ' tp--lcars tp--lcars2' : skin === 'borg' ? ' tp--borg' : '';
   return `<span class="tp${cls}" style="--tp-panel:${esc(h.panel)};--tp-accent:${esc(h.accent)};--tp-base:${base}">${bg}
     <span class="tp__card"><span class="tp__tick"></span><span class="tp__line"></span><span class="tp__line tp__line--short"></span></span></span>`;
 }
@@ -805,7 +806,7 @@ function appearanceTab() {
     'Day or Night, and which theme. The same two buttons sit in the dashboard’s header.',
     `<div class="bar-actions modepick">${modes}</div><div class="themepicks">${tiles}</div>${motionRow}${overlayRow}`)
     + card('Custom themes',
-    'A variant of Citadel, LCARS or Borg, with its own Day and Night colours and pictures.',
+    'A variant of Citadel, LCARS, LCARS 25 or Borg, with its own Day and Night colours and pictures.',
     `<div class="bar-actions modepick modepick--motion"><span class="field__l">New theme</span>${starts.map(([k, label]) => act('new-theme', `${ico('plus')}${esc(label)}`, `data-from="${esc(k)}"`)).join('')}</div><ul class="items">${adding}${rows}</ul>
      ${themes.length || adding ? '' : '<p class="sx__intro" style="padding-top:0">No custom themes yet.</p>'}`);
 }
@@ -948,7 +949,7 @@ panel.addEventListener('click', e => {
     }
     case 'new-theme': {
       const p = cfg.appearance.presets.find(x => `p:${x.id}` === d.from);
-      editing = { kind: 'theme', id: 'new', seed: p ? { ...structuredClone(p), id: '' } : { skin: ['lcars', 'borg'].includes(d.from) ? d.from : 'citadel' } };
+      editing = { kind: 'theme', id: 'new', seed: p ? { ...structuredClone(p), id: '' } : { skin: ['lcars', 'lcars2', 'borg'].includes(d.from) ? d.from : 'citadel' } };
       render(); $('[data-form="theme"] [name=name]')?.focus(); previewTheme($('[data-form="theme"]')); break;
     }
     case 'theme-view': {

@@ -914,6 +914,9 @@ body.has-max::before { content: ""; position: fixed; inset: 0; z-index: 80; back
 .tm__sw--citadel { --sw-bg: #0e0b14; --sw-ac: #8b5cf6; }
 .tm__sw--lcars { --sw-bg: #050407; --sw-ac: #f2b45a; border-radius: 9px 0 0 9px; }
 .tm__sw--lcars::after { left: 0; right: auto; top: 0; bottom: 0; width: 5px; height: auto; background: #a78bfa; }
+.tm__sw--lcars2 { --sw-bg: #07060a; --sw-ac: #8577e0; border-radius: 7px 3px 3px 5px; border-color: color-mix(in srgb, var(--sw-ac) 60%, transparent);
+  background: linear-gradient(180deg, var(--sw-ac) 0 4px, transparent 4px), var(--sw-bg); }
+.tm__sw--lcars2::after { left: 6px; right: auto; top: 5px; bottom: 3px; width: 4px; height: auto; border-radius: 2px; background: #f2b45a; }
 .tm__sw--borg { --sw-bg: #050c07; --sw-ac: #2ee86c; border-color: color-mix(in srgb, var(--sw-ac) 70%, transparent);
   background: linear-gradient(90deg, transparent 34%, color-mix(in srgb, #d8a328 70%, transparent) 34% calc(34% + 1px), transparent 0), var(--sw-bg); }
 .tm__sw--borg::after { left: 50%; right: auto; top: 50%; bottom: auto; width: 9px; height: 9px; transform: translate(-50%, -50%); border-radius: 50%;
@@ -921,6 +924,8 @@ body.has-max::before { content: ""; position: fixed; inset: 0; z-index: 80; back
 [data-theme="light"] .tm__sw--citadel { --sw-bg: #f8f0e2; --sw-ac: #b5541f; }
 [data-theme="light"] .tm__sw--lcars { --sw-bg: #f2e8d5; --sw-ac: #c25a17; }
 [data-theme="light"] .tm__sw--lcars::after { background: #b5541f; }
+[data-theme="light"] .tm__sw--lcars2 { --sw-bg: #f2e8d5; --sw-ac: #b5541f; }
+[data-theme="light"] .tm__sw--lcars2::after { background: #3d5a73; }
 [data-theme="light"] .tm__sw--borg { --sw-bg: #eef4f0; --sw-ac: #167a3e; }
 
 /* ---- Gig radar → Booked: the quick form (field/input/check rules copied from settings.css, which isn't loaded here) ---- */
