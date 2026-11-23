@@ -20,6 +20,11 @@ def now() -> datetime:
     return datetime.now(config.TZ)
 
 
+# When this hub process started. A page opened with ?wall (NZXT's wallpaper) reloads itself when it changes, so a
+# restart's new JS/CSS reaches it without anyone touching that screen.
+STARTED = datetime.now(config.TZ).isoformat()
+
+
 # ---- widgets -----------------------------------------------------------------------------------
 
 def widget_payload(w: Widget, at: datetime | None = None) -> dict[str, Any]:
@@ -352,6 +357,7 @@ async def owner_state(health: Health, device: dict[str, Any], attention: list[di
         "host": socket.gethostname(),
         "ip": config.lan_ip(),
         "version": __version__,
+        "started": STARTED,
         "device": {"id": device["id"], "name": device["name"], "role": device["role"]},
         "widgets": widgets,
         "projects": projects,

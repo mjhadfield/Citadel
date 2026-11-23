@@ -80,6 +80,12 @@ html[data-skin="lcars"] .themepick__name small { font: 500 12px var(--lc-font); 
 html[data-skin="lcars"] .tp { border-radius: 8px; }
 html[data-skin="lcars"] .half { border: 0; border-radius: 14px; box-shadow: inset 0 0 0 1px var(--edge); }
 html[data-skin="lcars"] .half legend { font: 500 14px var(--lc-font); letter-spacing: .12em; color: var(--lc-c); }
+html[data-skin="lcars"] .toks { border: 0; border-radius: 14px; box-shadow: inset 0 0 0 1px var(--edge); }
+html[data-skin="lcars"] .toks summary { font: 500 14px var(--lc-font); letter-spacing: .12em; color: var(--lc-c); }
+html[data-skin="lcars"] .tok-row--head { font: 500 12px var(--lc-font); }
+html[data-skin="lcars"] .tok-row__l { font: 400 15px var(--lc-font); letter-spacing: .04em; }
+html[data-skin="lcars"] .tok input[type=color] { border-radius: 6px; }
+html[data-skin="lcars"] .tok[data-set]::before { background: var(--lc-7); }
 
 /* ---- Maintenance & logs ------------------------------------------------------------------------------------------- */
 html[data-skin="lcars"] .logrow__t, html[data-skin="lcars"] .logrow__s { font: 400 13px var(--lc-font); letter-spacing: .04em; }

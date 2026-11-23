@@ -25,6 +25,7 @@
   --accent-soft: #c4b5fd;   /* text-safe violet on dark */
   --accent-deep: #4c1d95;
   --accent-wash: rgba(139, 92, 246, 0.10);
+  --glow-2:      #4c1d95;   /* the page's second corner glow (a custom theme's Secondary) */
 
   /* silver */
   --silver-hi:   #e6e9ee;
@@ -44,6 +45,8 @@
   --heat-1: #f3d899;   /* pale gold */
   --heat-2: #f5a742;   /* amber */
   --heat-3: #ff4b2b;   /* burnt orange running into red */
+  /* chart series: one colour per machine on the Fleet page (stats.css --rs-m*) */
+  --series-1: #a78bfa; --series-2: #e6e9ee; --series-3: #f0abfc; --series-4: #67e8f9; --series-5: #93c5fd;
 
   /* neutral wells (true-black overlays with no accent hue) */
   --well:      rgba(0, 0, 0, 0.38);
@@ -79,6 +82,7 @@
   --accent-soft: #82401b;   /* text-safe burnt orange on light bg: DARKENED, not lightened */
   --accent-deep: #6e2a12;
   --accent-wash: rgba(181, 84, 31, 0.10);
+  --glow-2:      #6e2a12;
 
   /* ink (was silver) — direction flips: "hi" = darkest ink (most emphasis) */
   --silver-hi:   #2a2015;
@@ -97,6 +101,7 @@
   --heat-1: #8c6a45;   /* warm sepia: still readable on cream */
   --heat-2: #b5541f;   /* burnt orange */
   --heat-3: #a3302a;   /* red */
+  --series-1: #b5541f; --series-2: #3d5a73; --series-3: #8a2e2e; --series-4: #7d6b52; --series-5: #5c4a3a;
 
   /* neutral wells */
   --well:      rgba(42, 32, 21, 0.07);
@@ -118,7 +123,7 @@ body {
   color: var(--silver);
   background:
     radial-gradient(1100px 600px at 12% -10%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 60%),
-    radial-gradient(900px 500px at 105% 105%, color-mix(in srgb, var(--accent-deep) 20%, transparent), transparent 60%),
+    radial-gradient(900px 500px at 105% 105%, color-mix(in srgb, var(--glow-2) 20%, transparent), transparent 60%),
     var(--bg);
   background-attachment: fixed;
 }
@@ -135,7 +140,7 @@ html.has-bg {
 html.has-bg body {
   background:
     radial-gradient(1100px 600px at 12% -10%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 60%),
-    radial-gradient(900px 500px at 105% 105%, color-mix(in srgb, var(--accent-deep) 20%, transparent), transparent 60%);
+    radial-gradient(900px 500px at 105% 105%, color-mix(in srgb, var(--glow-2) 20%, transparent), transparent 60%);
   background-attachment: fixed;
 }
 html.no-glow body { background: var(--bg); }

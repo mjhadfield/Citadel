@@ -1,6 +1,9 @@
-"""Appearance: custom themes (a Day half and a Night half, built on Citadel or LCARS) and their background pictures."""
+"""Appearance: custom themes (a Day half and a Night half, built on Citadel or LCARS), their Advanced colour overrides,
+the presets, and background pictures."""
 import os
+import re
 import time
+from pathlib import Path
 
 import pytest
 
@@ -15,6 +18,7 @@ JPG = b"\xff\xd8\xff\xe0" + b"\x01" * 64
 def _clean(client):
     with db.db() as con:
         con.execute("DELETE FROM widget_settings WHERE widget = 'appearance'")
+    db.put_settings(appearance.KEY, {"themes": [], "seeded_presets": list(appearance.PRESETS)})   # a client's startup won't add them again
     folder = appearance.bg_dir()
     if folder.exists():
         for f in folder.iterdir():
@@ -35,8 +39,10 @@ def test_a_theme_is_cleaned_and_each_half_defaults_to_its_mode():
     t = appearance.clean({"name": " Sunset ", "skin": "lcars"})
     assert t["name"] == "Sunset" and t["skin"] == "lcars"
     for mode in ("day", "night"):
-        assert t[mode]["accent"] == appearance.BASE_ACCENT[mode] and t[mode]["panel"] == appearance.BASE_PANEL[mode]
+        assert {k: t[mode][k] for k in ("accent", "secondary", "third", "panel")} == appearance.BASE["lcars"][mode]
         assert t[mode]["panel_opacity"] == 100 and t[mode]["background"] == {"file": "", "fit": "cover", "dim": 40, "glow": True}
+        assert t[mode]["tokens"] == {}
+    assert appearance.clean({"name": "x"})["night"]["accent"] == appearance.BASE_ACCENT["night"]
     assert appearance.clean({"name": "x"})["skin"] == "citadel"
     assert appearance.clean(theme(night=half(panel_opacity=5, background={"dim": 400})))["night"]["panel_opacity"] == 30   # clamped, not refused
     assert appearance.clean(theme())["night"]["accent"] == "#3b82f6"
@@ -47,7 +53,8 @@ def test_a_theme_saved_before_the_day_night_split_is_read_as_citadel_with_its_ol
            "background": {"file": "", "fit": "tile", "dim": 20, "glow": False}}
     t = appearance.clean(old)
     assert t["skin"] == "citadel"
-    assert t["day"] == {"accent": "#123456", "panel": "#abcdef", "panel_opacity": 70, "background": {"file": "", "fit": "tile", "dim": 20, "glow": False}}
+    assert t["day"] == {"accent": "#123456", "panel": "#abcdef", "panel_opacity": 70, "background": {"file": "", "fit": "tile", "dim": 20, "glow": False},
+                        "secondary": appearance.BASE["citadel"]["day"]["secondary"], "third": appearance.BASE["citadel"]["day"]["third"], "tokens": {}}
     assert t["night"]["accent"] == appearance.BASE_ACCENT["night"]
     db.put_settings(appearance.KEY, {"themes": [old]})          # and straight out of storage, as every screen reads it
     stored = appearance.themes()[0]
@@ -59,10 +66,48 @@ def test_a_theme_saved_before_the_day_night_split_is_read_as_citadel_with_its_ol
     {"day": half(background={"fit": "stretch"})}, {"night": half(background={"file": "../hub.sqlite"})},
     {"day": half(background={"file": "0" * 32 + ".png"})},   # not uploaded
     {"night": half(panel_opacity="lots")}, {"day": "bright"},
+    {"night": half(secondary="blue")}, {"day": half(third="#1234567")},
+    {"night": half(tokens=["--bg"])}, {"night": half(tokens={"--nope": "#000000"})}, {"day": half(tokens={"--bg": "red"})},
+    {"night": half(tokens={"--bg": "#12345"})}, {"night": half(tokens={"--bg": 7})},
 ])
 def test_bad_themes_are_refused(bad):
     with pytest.raises(appearance.AppearanceError):
         appearance.clean(theme(**bad))
+
+
+def test_advanced_colours_are_kept_lower_cased_and_may_be_see_through():
+    t = appearance.clean(theme(night=half(secondary="#AA0000", tokens={"--bg": "#0A0606", "--edge": "#C9CED621"})))
+    assert t["night"]["secondary"] == "#aa0000"
+    assert t["night"]["tokens"] == {"--bg": "#0a0606", "--edge": "#c9ced621"}
+
+
+def test_too_many_advanced_colours_are_refused():
+    many = {f"--x{i}": "#000000" for i in range(len(appearance.TOKENS) + 1)}
+    with pytest.raises(appearance.AppearanceError):
+        appearance.clean(theme(night=half(tokens=many)))
+
+
+def test_the_token_list_matches_palette_js():
+    js = (Path(__file__).parent.parent / "web/js/palette.js").read_text()
+    block = js[js.index("export const TOKENS"):js.index("export const GROUPS")]
+    assert tuple(re.findall(r"\['(--[a-z0-9-]+)'", block)) == appearance.TOKENS
+
+
+def test_presets_are_seeded_once_and_a_deleted_one_stays_deleted():
+    db.put_settings(appearance.KEY, {"themes": []})
+    assert appearance.seed_presets() == ["LCARS (COM)", "LCARS (SCI)", "LCARS (ENG)", "LCARS (ENT)"]
+    cmd, *_ = appearance.themes()
+    assert cmd["skin"] == "lcars" and cmd["night"]["accent"] == "#e02b2b" and cmd["night"]["tokens"]["--lc-gig"] == "#a8141e"
+    assert appearance.seed_presets() == []
+    appearance.delete_theme(cmd["id"])
+    assert appearance.seed_presets() == [] and [t["name"] for t in appearance.themes()] == ["LCARS (SCI)", "LCARS (ENG)", "LCARS (ENT)"]
+    appearance.save_theme(theme())                       # saving keeps the seeded record
+    assert db.get_settings(appearance.KEY)["seeded_presets"] == ["command", "eng", "ent", "sci"]
+
+
+def test_every_preset_is_a_valid_theme():
+    for p in appearance.PRESETS.values():
+        appearance.clean(p)
 
 
 def test_create_edit_delete_through_the_api_and_every_screen_sees_them(owner_client):
@@ -72,6 +117,7 @@ def test_create_edit_delete_through_the_api_and_every_screen_sees_them(owner_cli
     assert owner_client.get("/api/owner/state").json()["appearance"]["themes"][0]["name"] == "Midnight"
     cfg = owner_client.get("/api/owner/config").json()["appearance"]
     assert cfg["themes"][0]["id"] == tid and cfg["skins"] == ["citadel", "lcars"] and set(cfg["base_accent"]) == {"day", "night"}
+    assert cfg["base"]["lcars"]["night"]["accent"] == "#a78bfa" and [p["id"] for p in cfg["presets"]] == ["command", "sci", "eng", "ent"]
     assert owner_client.put(f"{BASE}/themes/{tid}", json=theme(name="Midnight 2", skin="lcars")).json()["skin"] == "lcars"
     assert owner_client.put(f"{BASE}/themes/{tid}", json=theme(night=half(accent="nope"))).status_code == 422
     assert owner_client.put(f"{BASE}/themes/nope", json=theme()).status_code == 404

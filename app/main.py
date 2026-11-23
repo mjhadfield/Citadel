@@ -18,6 +18,9 @@ from .music.services.spotify import client as spotify_client
 from .bus import bus
 from .scheduler import Scheduler
 from .widgets import discover
+from . import volume as _volume
+from . import goxlr as _goxlr
+from . import audio as _audio
 
 log = logging.getLogger("hub")
 # httpx logs every request URL at INFO. Calendar addresses are secrets, so those loggers stay quiet.
@@ -79,6 +82,8 @@ async def lifespan(app: FastAPI):
     logbook.install()                                # from here on, warnings and errors land in the event log (Settings → Maintenance)
     if (added := seed.seed()) and any(added.values()):
         log.info("seeded %s", added)
+    if (themes_added := _appearance.seed_presets()):
+        log.info("added theme presets %s", themes_added)
 
     if (purged := content.purge_junk()):
         log.info("removed %s placeholder artists/items (e.g. 'Various')", purged)
@@ -104,12 +109,17 @@ async def lifespan(app: FastAPI):
     rotator = Rotator()                              # rotating playlists on the Music page (app/music/rotator.py)
     app.state.health, app.state.scheduler, app.state.monitor, app.state.rotator = health, scheduler, mon, rotator
     app.state.machines = machine_watch
+    app.state.goxlr = _goxlr.GoXLR(config.GOXLR_URL)      # the one connection to the GoXLR daemon (Audio page + header volume)
+    app.state.audio_unsaved = _audio.Unsaved()            # the Audio page's "unsaved changes" marks (app/audio.py)
+    app.state.volume = _volume.Volume(goxlr=app.state.goxlr)    # the header's GoXLR volume buttons; mutes them once per boot
     music_store.learn_secrets()
     await health.start()
     await scheduler.start()
     await mon.start()
     await machine_watch.start()
     await rotator.start()
+    await app.state.goxlr.start()
+    await app.state.volume.start()
     watcher = asyncio.create_task(_watch_units(app), name="unit-watcher")
 
     if auth.needs_bootstrap():
@@ -122,6 +132,8 @@ async def lifespan(app: FastAPI):
     finally:
         watcher.cancel()
         await asyncio.gather(watcher, return_exceptions=True)
+        await app.state.volume.stop()
+        await app.state.goxlr.stop()
         await rotator.stop()
         await machine_watch.stop()
         await mon.stop()

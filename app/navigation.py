@@ -10,8 +10,8 @@ the one `navigation` setting: {"pages": [...], "devices": {id: {"pages": [...]}}
 
 Home always comes first, always has a phone tab and always stays on the rail: on LCARS the rail's Home lines up with the
 header, and a phone with no way home would be stuck. Settings stays on the rail too (on desktop there's no header gear
-to reach it by). Curate and Settings sit at the foot of the rail, below the gap, so they keep their place; on phones
-they start under More.
+to reach it by). Curate, Audio and Settings sit at the foot of the rail, below the gap, so they keep their place; on
+phones they start under More.
 
 Saved pages are read through `_resolve`, which drops pages that no longer exist and adds new ones (with their defaults)
 at the end, so adding a page to Citadel never needs a migration here.
@@ -38,6 +38,7 @@ PAGES: tuple[tuple[str, str, bool, bool, str], ...] = (
     ("house", "House", True, True, "tool"),
     ("stats", "Fleet", False, True, "fleet"),
     ("curate", "Curate", False, False, "tag"),
+    ("audio", "Audio", False, False, "mixer"),
     ("settings", "Settings", False, False, "gear"),
 )
 BY_ID = {p[0]: p for p in PAGES}

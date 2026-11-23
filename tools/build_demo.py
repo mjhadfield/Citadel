@@ -171,6 +171,13 @@ def snapshot(scratch: Path) -> tuple[dict[str, Any], list[dict[str, Any]], list[
         get("/api/owner/music/gigs")
         for path in SETTINGS_GETS:
             get(path)
+        # The Audio page: the GoXLR as captured for the tests (tests/fixtures/goxlr_status.json, serial replaced), shaped
+        # by the real app/audio.py; the demo never talks to a GoXLR, so its level meter stays still and every change
+        # gets the read-only toast.
+        from app import audio
+        gx = json.loads((ROOT / "tests" / "fixtures" / "goxlr_status.json").read_text())
+        serial, mixer = next(iter(gx["mixers"].items()))
+        out["/api/owner/audio"] = {**audio.view(serial, mixer, gx), "configured": True, "live": True}
         # No Spotify call for the player: the demo just shows "Nothing playing".
         out["/api/owner/music/player"] = {"ready": True, "active": False, "playing": False}
 

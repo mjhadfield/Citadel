@@ -28,15 +28,17 @@ An overview of the devices currently connected to Citadel:
 - **House** - Home renovation tasks and projects
 - **Fleet** - CPU, memory, temperatures and disk space monitoring with stats held for a year
 - **Curate** - Music Maintenance, for tidying up the Music Companion SQL database
+- **Audio** - my own GoXLR mixer: faders, routing, effects, sampler, microphone settings and lighting, from any device
 - **Settings** - everything is editable in the browser: links, projects, news feeds, record shops, schedules, backups, etc. 
 
 ## Additional features
 
-- **Themes** - the original Citadel or an LCARS take on it, each in with light/dark mode, plus custom themes
+- **Themes** - the original Citadel or an LCARS take on it, each with light/dark mode, plus custom themes: pick four colours (Basic) and everything else follows, or set every colour yourself (Advanced). four ready-made LCARS variants come with it: COM (red), SCI (blue), ENG (gold) and ENT (silver)
 - **TV mode** - pair a TV with a short code and it cycles through the panels I allow, with a slow pixel shift so nothing burns in
 - **Guest page** - anyone else on the WiFi just gets the media server
 - **Phone layout** - its own header and tabs, with swiping between pages
 - **Android app** - a small WebView app for my phone
+- **Wallpaper** - another PC keeps the Home screen open under its other windows as a live desktop; opened with `?wall`, it reloads itself when Citadel restarts
 - **Backups** - nightly copies of the database, and a warning when the backup to my other PC hasn't run
 - **Bookmarks** - the first four in the top bar, the rest in a drop-down
 

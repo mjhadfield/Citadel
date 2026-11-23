@@ -3,6 +3,7 @@
 import * as api from './api.js';
 import { $, $$, esc, ico, hhmm, ago, toast, isoOf } from './util.js';
 import { THEMES, applySpec, look, mode, setLook, setMode, specOf, syncThemes } from './theme.js';
+import { GROUPS, alpha, derive, opacityOf, solid, tokensFor } from './palette.js';
 import * as motion from './motion.js';
 
 const TABS = [['links', 'Links', 'globe'], ['projects', 'Projects', 'grid'], ['remote', 'Remote access', 'desk'], ['widgets', 'Widgets', 'cal'], ['appearance', 'Appearance', 'sun'], ['navigation', 'Navigation', 'list'], ['music', 'Music', 'disc'], ['listen', 'Music page', 'wave'], ['news', 'News', 'news'], ['screens', 'Screens & devices', 'server'], ['maintenance', 'Maintenance & logs', 'gear'], ['about', 'About', 'chip']];
@@ -320,7 +321,7 @@ function vinylCard() {
   const s = cfg.widgets.vinyl.settings;
   return card('Vinyl radar — pre-orders', 'Shopify stores: the address plus the pre-order collection (<code>store.example/collections/<b>pre-orders</b></code>). Juno: genre sections, e.g. <code>metal,rock</code>.',
     `${statusLine(live?.vinyl, 'vinyl')}<form class="form" data-form="vinyl" style="padding:0 18px 12px">
-      <div id="shops"><div class="field__l" style="display:grid;grid-template-columns:minmax(110px,1fr) minmax(200px,2fr) minmax(110px,1fr);gap:10px;padding:0 0 6px"><span>Store</span><span>Address</span><span>Pre-order collection / Juno sections</span></div>${s.shops.map(shopRow).join('')}</div>
+      <div id="shops"><div class="field__l shopcfg__head"><span>Store</span><span>Address</span><span>Pre-order collection / Juno sections</span></div>${s.shops.map(shopRow).join('')}</div>
       <div class="bar-actions" style="padding:10px 0 4px">${act('add-shop', `${ico('play')}Add store`, '', 'btn--go')}</div>
       <div class="form-actions">${act('refresh-widget', 'Sync now', 'data-id="vinyl"')}<button class="btn btn--solid" type="submit">Save</button></div></form>`);
 }
@@ -656,13 +657,18 @@ async function paintMaint() {
 
 // ---- Appearance: Day/Night, the theme, and custom themes -------------------------------------------------------------
 // A device picks its mode (Day/Night) and its theme (Citadel, LCARS or a custom one) — the same two choices as the
-// dashboard header. A custom theme is built on Citadel or LCARS and has a Day half and a Night half, each with its own
-// accent, panels and optional background picture.
+// dashboard header. A custom theme is built on Citadel or LCARS and has a Day half and a Night half. Basic sets each
+// half's four colours (primary, secondary, third, panel), see-through panels and a background picture, and palette.js
+// works every other colour out from them; Advanced shows every colour token for both halves, and any one changed there
+// is kept as an override (half.tokens) while the rest keep following Basic.
 const FIT_LABELS = { cover: 'Fill the screen', contain: 'Show all of it', tile: 'Tile', center: 'Centre, actual size' };
 const MODE_LABEL = { day: 'Day', night: 'Night' };
 const SKIN_LABEL = { citadel: 'Citadel', lcars: 'LCARS' };
+const BASIC = [['accent', 'Primary'], ['secondary', 'Secondary'], ['third', 'Third'], ['panel', 'Panel']];
 const BUILTIN_LOOK = { citadel: { day: { panel: '#f8f0e2', accent: '#b5541f' }, night: { panel: '#0e0b14', accent: '#8b5cf6' } },
   lcars: { day: { panel: '#f2e8d5', accent: '#b5541f' }, night: { panel: '#050407', accent: '#a78bfa' } } };
+const baseOf = (skin, m) => (cfg.appearance.base[skin] || cfg.appearance.base.citadel)[m];
+const overrides = t => Object.keys(t?.day?.tokens || {}).length + Object.keys(t?.night?.tokens || {}).length;
 
 function themePreview(t, m = mode()) {
   const skin = t.skin || t.id, h = t[m] || BUILTIN_LOOK[skin]?.[m] || BUILTIN_LOOK.citadel[m];
@@ -672,13 +678,13 @@ function themePreview(t, m = mode()) {
 }
 
 const pct = (n, v, min, max, step) => `<span class="range"><input type="range" name="${n}" min="${min}" max="${max}" step="${step}" value="${v}"><output>${v}%</output></span>`;
-function halfFields(m, h = {}) {
-  const bg = h.background || {};
-  const panel = h.panel || cfg.appearance.base_panel[m], accent = h.accent || cfg.appearance.base_accent[m];
+function halfFields(m, h = {}, skin = 'citadel') {
+  const bg = h.background || {}, base = baseOf(skin, m);
+  const colour = ([k, label]) => { const v = h[k] || base[k];
+    return field(label, `<span class="colour"><input type="color" name="${m}_${k}" value="${esc(v)}"><code>${esc(v)}</code>${k === 'panel' ? act('panel-reset', 'Reset', `data-half="${m}" title="Back to ${MODE_LABEL[m]}’s own panel colour"`, 'btn--icon-text') : ''}</span>`, ''); };
   return `<fieldset class="half" data-half="${m}"><legend>${ico(m === 'day' ? 'sun' : 'moon')}${MODE_LABEL[m]}</legend>
     <div class="form-grid">
-      ${field('Accent colour', `<span class="colour"><input type="color" name="${m}_accent" value="${esc(accent)}"><code>${esc(accent)}</code></span>`, '')}
-      ${field('Panel colour', `<span class="colour"><input type="color" name="${m}_panel" value="${esc(panel)}"><code>${esc(panel)}</code>${act('panel-reset', 'Reset', `data-half="${m}" title="Back to ${MODE_LABEL[m]}’s own panel colour"`, 'btn--icon-text')}</span>`, '')}
+      ${BASIC.map(colour).join('')}
       ${field('Panel see-through', pct(`${m}_panel_opacity`, h.panel_opacity ?? 100, 30, 100, 5), '')}
     </div>
     <div class="field__l" style="margin-top:14px">Background picture</div>
@@ -695,29 +701,75 @@ function halfFields(m, h = {}) {
     <div class="checks">${check(`${m}_glow`, 'Accent glow in the corners', bg.glow !== false)}</div></fieldset>`;
 }
 
-function themeForm(t) {
-  return `<form class="form" data-form="theme" data-id="${esc(t.id || '')}">
+/** Advanced: one row per colour token, a cell for Day and one for Night. A cell's value is filled in by paintTokens
+ * (Basic's when it isn't overridden); data-set marks an override. */
+function tokenCell(name, label, m, a, t) {
+  const set = t[m]?.tokens?.[name];
+  return `<span class="tok"${set ? ' data-set' : ''} data-tok="${esc(name)}" data-half="${m}"${set ? ` data-v="${esc(set)}"` : ''}>
+    <input type="color" aria-label="${MODE_LABEL[m]} ${esc(label)}">${a ? '<input type="range" min="0" max="100" step="1" aria-label="Opacity">' : ''}
+    <code></code><button type="button" class="tok__reset" data-do="tok-reset" title="Back to Basic">${ico('x')}</button></span>`;
+}
+function tokenTables(t) {
+  return GROUPS.map(([g, label, only]) => {
+    const rows = tokensFor('lcars').filter(x => x[2] === g).map(([name, l, , a]) => `<div class="tok-row"><span class="tok-row__l">${esc(l)}<small>${esc(name)}</small></span>
+      ${tokenCell(name, l, 'day', a, t)}${tokenCell(name, l, 'night', a, t)}</div>`).join('');
+    return `<details class="toks" open${only ? ` data-only="${only}"` : ''}><summary>${esc(label)}</summary>
+      <div class="tok-row tok-row--head"><span></span><span>${ico('sun')}Day</span><span>${ico('moon')}Night</span></div>${rows}</details>`;
+  }).join('');
+}
+
+function themeForm(t, view = 'basic') {
+  const skin = t.skin || 'citadel';
+  return `<form class="form" data-form="theme" data-id="${esc(t.id || '')}" data-view="${view}" data-skin="${skin}">
     <div class="form-grid">
       ${field('Name', input('name', t.name || '', 'required maxlength="40" placeholder="e.g. Midnight blue"'))}
-      ${field('Built on', select('skin', cfg.appearance.skins.map(k => [k, SKIN_LABEL[k] || k]), t.skin || 'citadel'), 'Its layout, shapes and type; your colours go on top.')}
+      ${field('Built on', select('skin', cfg.appearance.skins.map(k => [k, SKIN_LABEL[k] || k]), skin), 'Its layout, shapes and type; your colours go on top.')}
       ${field('Preview', select('preview', [['night', 'Night'], ['day', 'Day']], mode()), 'Which half you see on this page while you edit.')}
     </div>
-    <div class="halves">${halfFields('day', t.day)}${halfFields('night', t.night)}</div>
-    <p class="field__h" style="margin-top:6px">JPEG, PNG, WebP or GIF pictures, up to ${cfg.appearance.max_background_mb} MB. Previews live; nothing is kept until you save.</p>
+    <div class="bar-actions modepick theme-views">${[['basic', 'Basic'], ['advanced', 'Advanced']].map(([k, l]) =>
+      `<button type="button" class="btn${k === view ? ' btn--go' : ''}" data-do="theme-view" data-view="${k}" aria-pressed="${k === view}">${l}</button>`).join('')}
+      <button type="button" class="chip chip--new" data-do="theme-view" data-view="advanced" data-tok-count hidden></button></div>
+    <div class="theme-basic"><div class="halves">${halfFields('day', t.day, skin)}${halfFields('night', t.night, skin)}</div>
+    <p class="field__h" style="margin-top:6px">JPEG, PNG, WebP or GIF pictures, up to ${cfg.appearance.max_background_mb} MB. Previews live; nothing is kept until you save.</p></div>
+    <div class="theme-adv">${tokenTables(t)}<div class="bar-actions">${act('tok-reset-all', 'Reset all to Basic')}</div></div>
     <div class="form-actions">${act('cancel', 'Cancel')}<button class="btn btn--solid" type="submit">${t.id ? 'Save theme' : 'Create theme'}</button></div></form>`;
 }
 
+/** A token cell's value: its colour, with the opacity range's see-through when it has one. */
+function cellValue(c) {
+  const col = c.querySelector('input[type=color]').value, r = c.querySelector('input[type=range]');
+  return r ? alpha(col, Number(r.value)) : col;
+}
 /** The theme the editor form describes right now (for the live preview and for saving). */
-function readHalf(f, m) {
-  const el = n => f.elements[`${m}_${n}`];
-  return { accent: el('accent').value, panel: el('panel').value, panel_opacity: Number(el('panel_opacity').value),
-    background: { file: el('bg_file').value, fit: el('fit').value, dim: Number(el('dim').value), glow: el('glow').checked } };
+function readHalf(f, m, skin) {
+  const el = n => f.elements[`${m}_${n}`], names = new Set(tokensFor(skin).map(x => x[0]));
+  const tokens = Object.fromEntries($$(`.tok[data-half="${m}"][data-set]`, f).filter(c => names.has(c.dataset.tok)).map(c => [c.dataset.tok, c.dataset.v || cellValue(c)]));
+  return { accent: el('accent').value, secondary: el('secondary').value, third: el('third').value, panel: el('panel').value, panel_opacity: Number(el('panel_opacity').value),
+    background: { file: el('bg_file').value, fit: el('fit').value, dim: Number(el('dim').value), glow: el('glow').checked }, tokens };
 }
 function readTheme(f) {
-  return { name: val(f, 'name'), skin: f.elements.skin.value, day: readHalf(f, 'day'), night: readHalf(f, 'night') };
+  const skin = f.elements.skin.value;
+  return { name: val(f, 'name'), skin, day: readHalf(f, 'day', skin), night: readHalf(f, 'night', skin) };
+}
+/** Fill Advanced's cells: overridden ones show their own value, the rest what Basic works out right now. */
+function paintTokens(f, t) {
+  const derived = { day: derive(t.day, 'day', t.skin), night: derive(t.night, 'night', t.skin) };
+  $$('.tok', f).forEach(c => {
+    const v = c.dataset.v || derived[c.dataset.half][c.dataset.tok] || '#000000';
+    const col = c.querySelector('input[type=color]'), r = c.querySelector('input[type=range]');
+    if (document.activeElement !== col) col.value = solid(v);
+    if (r && document.activeElement !== r) r.value = opacityOf(v);
+    c.querySelector('code').textContent = v;
+  });
+  const n = overrides(t), chip = $('[data-tok-count]', f);
+  chip.hidden = !n || f.dataset.view === 'advanced';
+  chip.textContent = `${n} advanced change${n === 1 ? '' : 's'}`;
 }
 function previewTheme(f) {
-  applySpec(specOf(readTheme(f)), f.elements.preview.value);
+  f.dataset.skin = f.elements.skin.value;
+  const t = readTheme(f);
+  applySpec(specOf(t), f.elements.preview.value);
+  paintTokens(f, t);
   $$('.range output', f).forEach(o => { o.textContent = `${o.previousElementSibling.value}%`; });
   $$('.colour', f).forEach(c => { c.querySelector('code').textContent = c.querySelector('input').value; });
 }
@@ -727,10 +779,10 @@ function appearanceTab() {
   const modes = ['day', 'night'].map(k => `<button type="button" class="btn${k === m ? ' btn--go' : ''}" data-do="use-mode" data-mode="${k}" aria-pressed="${k === m}">${ico(k === 'day' ? 'sun' : 'moon')}${MODE_LABEL[k]}</button>`).join('');
   const tiles = [...THEMES, ...themes].map(t => `<button type="button" class="themepick${t.id === cur ? ' is-current' : ''}" data-do="use-theme" data-id="${esc(t.id)}" aria-pressed="${t.id === cur}">
       ${themePreview(t)}<span class="themepick__name">${esc(t.name)}${t.id === cur ? `<small>${ico('check')}On this device</small>` : ''}</span></button>`).join('');
-  const rows = themes.map(t => editing?.kind === 'theme' && editing.id === t.id ? `<li class="item item--edit">${themeForm(t)}</li>`
+  const rows = themes.map(t => editing?.kind === 'theme' && editing.id === t.id ? `<li class="item item--edit">${themeForm(t, editing.view)}</li>`
     : `<li class="item"><span class="item__icon item__icon--theme">${themePreview(t)}</span>
-        <div class="item__main"><b>${esc(t.name)}</b>${t.id === cur ? '<span class="chip chip--new">This device</span>' : ''}<span class="chip">built on ${esc(SKIN_LABEL[t.skin] || t.skin)}</span>${t.day.background.file || t.night.background.file ? '<span class="chip">Background</span>' : ''}
-          <div class="item__sub">Day accent ${esc(t.day.accent)} · Night accent ${esc(t.night.accent)}</div></div>
+        <div class="item__main"><b>${esc(t.name)}</b>${t.id === cur ? '<span class="chip chip--new">This device</span>' : ''}<span class="chip">built on ${esc(SKIN_LABEL[t.skin] || t.skin)}</span>${t.day.background.file || t.night.background.file ? '<span class="chip">Background</span>' : ''}${overrides(t) ? '<span class="chip">Advanced</span>' : ''}
+          <div class="item__sub">Day primary ${esc(t.day.accent)} · Night primary ${esc(t.night.accent)}</div></div>
         <div class="item__acts">${act('edit-theme', 'Edit', `data-id="${esc(t.id)}"`)}${act('copy-theme', 'Duplicate', `data-id="${esc(t.id)}"`)}${act('delete-theme', 'Delete', `data-id="${esc(t.id)}" data-name="${esc(t.name)}"`, 'btn--danger')}</div></li>`).join('');
   // LCARS only: how much it moves between page changes (motion.js), this device's own
   const lv = motion.savedLevel(), motionRow = document.documentElement.dataset.skin !== 'lcars' ? ''
@@ -741,13 +793,14 @@ function appearanceTab() {
   const overlayRow = document.documentElement.dataset.skin !== 'lcars' ? ''
     : `<div class="bar-actions modepick modepick--motion"><span class="field__l">Overlay</span>${LC_OVERLAYS.map(([k, label]) =>
       `<button type="button" class="btn${k === ovCur ? ' btn--go' : ''}" data-do="use-overlay" data-overlay="${k}" aria-pressed="${k === ovCur}">${label}</button>`).join('')}</div>`;
-  const adding = editing?.kind === 'theme' && editing.id === 'new' ? `<li class="item item--edit">${themeForm(editing.seed || {})}</li>` : '';
+  const adding = editing?.kind === 'theme' && editing.id === 'new' ? `<li class="item item--edit">${themeForm(editing.seed || {}, editing.view)}</li>` : '';
+  const starts = [...THEMES.map(x => [x.id, x.name]), ...cfg.appearance.presets.map(x => [`p:${x.id}`, x.name])];
   return card('This device',
     'Day or Night, and which theme. The same two buttons sit in the dashboard’s header.',
     `<div class="bar-actions modepick">${modes}</div><div class="themepicks">${tiles}</div>${motionRow}${overlayRow}`)
     + card('Custom themes',
     'A variant of Citadel or LCARS, with its own Day and Night colours and pictures.',
-    `<div class="bar-actions">${act('new-theme', `${ico('plus')}New theme`, '', 'btn--go')}</div><ul class="items">${adding}${rows}</ul>
+    `<div class="bar-actions modepick modepick--motion"><span class="field__l">New theme</span>${starts.map(([k, label]) => act('new-theme', `${ico('plus')}${esc(label)}`, `data-from="${esc(k)}"`)).join('')}</div><ul class="items">${adding}${rows}</ul>
      ${themes.length || adding ? '' : '<p class="sx__intro" style="padding-top:0">No custom themes yet.</p>'}`);
 }
 
@@ -858,6 +911,8 @@ let logTimer;
 panel.addEventListener('input', e => {
   const tf = e.target.closest('[data-form="theme"]');
   if (tf && !e.target.matches('[data-bg-file]')) {
+    const cell = e.target.closest('.tok');
+    if (cell) { cell.dataset.set = ''; cell.dataset.v = cellValue(cell); }       // changed in Advanced: now an override
     previewTheme(tf);
     return;
   }
@@ -885,11 +940,22 @@ panel.addEventListener('click', e => {
       if (d.overlay === 'scan') delete document.documentElement.dataset.lcOverlay; else document.documentElement.dataset.lcOverlay = d.overlay;
       render(); break;
     }
-    case 'new-theme': editing = { kind: 'theme', id: 'new', seed: { skin: look() === 'lcars' ? 'lcars' : 'citadel' } }; render(); $('[data-form="theme"] [name=name]')?.focus(); previewTheme($('[data-form="theme"]')); break;
+    case 'new-theme': {
+      const p = cfg.appearance.presets.find(x => `p:${x.id}` === d.from);
+      editing = { kind: 'theme', id: 'new', seed: p ? { ...structuredClone(p), id: '' } : { skin: d.from === 'lcars' ? 'lcars' : 'citadel' } };
+      render(); $('[data-form="theme"] [name=name]')?.focus(); previewTheme($('[data-form="theme"]')); break;
+    }
+    case 'theme-view': {
+      const f = b.closest('form'); f.dataset.view = d.view; if (editing) editing.view = d.view;
+      $$('.theme-views [data-view]:not([data-tok-count])', f).forEach(x => { const on = x.dataset.view === d.view; x.classList.toggle('btn--go', on); x.setAttribute('aria-pressed', on); });
+      previewTheme(f); break;
+    }
+    case 'tok-reset': { const c = b.closest('.tok'); delete c.dataset.set; delete c.dataset.v; previewTheme(b.closest('form')); break; }
+    case 'tok-reset-all': { const f = b.closest('form'); $$('.tok[data-set]', f).forEach(c => { delete c.dataset.set; delete c.dataset.v; }); previewTheme(f); break; }
     case 'edit-theme': editing = { kind: 'theme', id: d.id }; render(); previewTheme($('[data-form="theme"]')); break;
     case 'copy-theme': { const t = cfg.appearance.themes.find(x => x.id === d.id); editing = { kind: 'theme', id: 'new', seed: { ...t, id: '', name: `${t.name} copy`.slice(0, 40) } }; render(); previewTheme($('[data-form="theme"]')); break; }
     case 'delete-theme': if (confirm(`Delete the “${d.name}” theme? Any device using it goes back to Citadel.`)) run(() => api.del(`/api/owner/appearance/themes/${d.id}`), 'Theme deleted'); break;
-    case 'panel-reset': { const f = b.closest('form'); f.elements[`${d.half}_panel`].value = cfg.appearance.base_panel[d.half]; previewTheme(f); break; }
+    case 'panel-reset': { const f = b.closest('form'); f.elements[`${d.half}_panel`].value = baseOf(f.elements.skin.value, d.half).panel; previewTheme(f); break; }
     case 'bg-remove': { const f = b.closest('form'); f.elements[`${d.half}_bg_file`].value = ''; $('.bgpick__thumb', b.closest('[data-half]')).innerHTML = '<span>None</span>'; b.hidden = true; previewTheme(f); break; }
     case 'new-link': editing = { kind: 'link', id: 'new' }; render(); $('[data-form="link"] input')?.focus(); break;
     case 'edit-link': editing = { kind: 'link', id: Number(d.id) }; render(); break;

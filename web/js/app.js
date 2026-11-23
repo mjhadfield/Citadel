@@ -8,7 +8,9 @@ import { THEMES, currentLook, currentSkin, currentTheme, look, mode, setLook, se
 import * as music from './music.js';
 import * as news from './news.js';
 import * as stats from './stats.js';
+import * as audio from './audio.js';
 import * as motion from './motion.js';
+import './volume.js';                      // the header's GoXLR volume buttons (Line out, Vinyl)
 
 let state = null;
 const shell = new Shell($('#grid'), cards, id => renderCard(id));
@@ -414,7 +416,7 @@ async function pollMonitoring() {
 }
 
 // ---- view router (Home / News / Media / Companion / SQL DB / Music / Casino / Odysseus / House / Stats) --------------------------------------------------------------
-const VIEWS = ['home', 'news', 'media', 'music', 'sql', 'listen', 'casino', 'ai', 'house', 'stats', 'curate', 'settings'];
+const VIEWS = ['home', 'news', 'media', 'music', 'sql', 'listen', 'casino', 'ai', 'house', 'stats', 'curate', 'audio', 'settings'];
 // While an embedded page is showing, the phone keyboard shrinks the screen (interactive-widget=resizes-content) rather
 // than sliding over it, so the pinned page (dashboard.css, .main:has(...)) ends just above the keyboard and a chat box
 // at the bottom of it stays visible. Only on those pages: Home, News and Music keep the browser's default.
@@ -453,6 +455,7 @@ function route() {
   music.onView(v);                                  // the Music page (music.js) only polls Spotify while it's on screen
   news.onView(v);                                   // the News page (news.js) loads its own stories when shown
   stats.onView(v);                                  // the Fleet page (stats.js): machine history from the collector on NZXT
+  audio.onView(v);                                  // the Audio page (audio.js): the GoXLR, through the hub
 }
 function markCurrent() {
   $$('.rail a[data-view], .tabbar a[data-view], #more-sheet a[data-view]').forEach(a => {
@@ -668,10 +671,14 @@ document.addEventListener('keydown', e => {
   if (card) { e.preventDefault(); bookmarks(false, true); shell.toggle(card); }
 });
 
-let loading = null;
+let loading = null, startedSeen = null;
+const wall = new URLSearchParams(location.search).has('wall');   // NZXT's wallpaper (README: NZXT wallpaper)
 async function load() {
   if (loading) return loading;                       // coalesce bursts of events into one fetch
   loading = api.get('/api/owner/state').then(s => {
+    // the wallpaper picks up a hub restart's new code by reloading; other pages never reload under you
+    if (wall && startedSeen && s.started !== startedSeen) { location.reload(); return; }
+    startedSeen = s.started;
     state = s; syncThemes(s.appearance?.themes); syncLookButtons(); renderAll();
     // the first fill: the boot began at first paint (theme-init.js); let it finish, then take the class off
     if (!booted) { booted = true; setTimeout(() => document.documentElement.classList.remove('lc-boot'), 1800); }

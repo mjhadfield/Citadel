@@ -55,6 +55,7 @@ def project(owner_client, slug):
 
 def test_seeded_projects_and_links_exist(owner_client):
     s = owner_client.get("/api/owner/state").json()
+    assert s["started"]                          # the ?wall page reloads when this changes
     slugs = {p["slug"] for p in s["projects"]}
     assert {"music-companion", "setlist-spotify", "star-epr", "terminal", "hadfield-casino"} <= slugs
     spotify = next(p for p in s["projects"] if p["slug"] == "setlist-spotify")

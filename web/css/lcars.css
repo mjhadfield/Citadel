@@ -28,6 +28,9 @@ html[data-skin="lcars"] {
   --lc-gig-on: #f6e9ee;      /* text on it: dark text is too faint on a colour this deep */
   --lc-diary: #9a5bb5;       /* plum: Diary's own, between the claret and Now's violet (lilac read as pink) */
   --lc-on: #07060a;  /* text on a coloured block */
+  /* the phone header's solid blocks (lcars.css "Phone header"): the page's pastels are too soft for blocks that size,
+     so at Night it has its own deeper set; the elbow and the Settings cap share --lc-hd-frame */
+  --lc-hd-frame: #6c5ce7; --lc-hd-1: #9b6bff; --lc-hd-2: #6f86d6; --lc-hd-3: #c05ed8; --lc-hd-4: #6c5ce7;
   --lc-font: "Antonio", "Arial Narrow", "Roboto Condensed", sans-serif;
   --lc-ease: cubic-bezier(.2, .8, .2, 1);
   --lc-rail: 94px;   /* a touch wider than Citadel's 88px, for the pill shapes */
@@ -51,6 +54,7 @@ html[data-skin="lcars"][data-theme="light"] {
   --lc-red: #a3302a; --lc-on: #fdf8ee;
   --lc-frame: var(--lc-1);
   --lc-gig: var(--lc-5); --lc-gig-on: var(--lc-on); --lc-diary: var(--lc-2);
+  --lc-hd-frame: var(--lc-frame); --lc-hd-1: var(--lc-2); --lc-hd-2: var(--lc-4); --lc-hd-3: var(--lc-5); --lc-hd-4: var(--lc-1);
 }
 
 /* each card and each nav destination keeps its own colour */
@@ -75,6 +79,7 @@ html[data-skin="lcars"] .rail [data-view="ai"] { --lc-c: var(--lc-6); }
 html[data-skin="lcars"] .rail [data-view="house"] { --lc-c: var(--lc-3); }
 html[data-skin="lcars"] .rail [data-view="stats"] { --lc-c: var(--lc-1); }
 html[data-skin="lcars"] .rail [data-view="curate"] { --lc-c: var(--lc-2); }
+html[data-skin="lcars"] .rail [data-view="audio"] { --lc-c: var(--lc-3); }
 html[data-skin="lcars"] .rail .rail__settings { --lc-c: var(--lc-5); }
 
 /* ==========================================================================
@@ -253,6 +258,32 @@ html[data-skin="lcars"] .bm > .sc__letter { display: grid; place-items: center; 
   html[data-skin="lcars"] .look-group.is-open > .look-btn:hover { background: var(--silver-hi); }
   html[data-skin="lcars"] .stylebar { padding: 6px 6px 0; }
   html[data-skin="lcars"] .stylebar .bmbar__edit { margin: 6px -6px 0; padding: 0 12px; }
+}
+/* GoXLR volume (volume.js): rounded caps that fill from the bottom in their own colour; open, the cap goes lilac and
+   its slider hangs under it as one bracket (the level, the track, Mute as the solid base) */
+html[data-skin="lcars"] .vol-group { gap: 8px; }
+html[data-skin="lcars"] .vol-btn { --vol-fill: color-mix(in srgb, var(--lc-c) 55%, transparent); width: 42px; height: 32px; border: 0; border-radius: 16px; clip-path: none; color: var(--silver);
+  background: color-mix(in srgb, var(--lc-c) 12%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lc-c) 40%, transparent); }
+html[data-skin="lcars"] .vol-btn[data-vol="lineout"] { --lc-c: var(--lc-3); }
+html[data-skin="lcars"] .vol-btn[data-vol="vinyl"] { --lc-c: var(--lc-5); }
+html[data-skin="lcars"] .vol-btn:hover { background: color-mix(in srgb, var(--lc-c) 24%, transparent); }
+html[data-skin="lcars"] .vol-btn__fill { box-shadow: none; }
+html[data-skin="lcars"] .vol-btn:not(.is-muted) > .i { color: var(--silver-hi); }
+html[data-skin="lcars"][data-theme="light"] .vol-btn { --vol-fill: color-mix(in srgb, var(--lc-c) 70%, transparent); }
+html[data-skin="lcars"] .vol-btn.is-muted { color: var(--silver-mute); }
+html[data-skin="lcars"] .volbar__pct { padding: 8px 0 2px; font: 500 15px/1 var(--lc-font); letter-spacing: .04em; color: var(--silver-hi); }
+html[data-skin="lcars"] .volbar.is-muted .volbar__pct { color: var(--lc-red, var(--bad)); text-transform: uppercase; }
+html[data-skin="lcars"] .volbar__rail { width: 10px; border-radius: 5px; background: color-mix(in srgb, var(--lc-2) 16%, transparent); box-shadow: none; }
+html[data-skin="lcars"] .volbar__fill { background: var(--lc-2); }
+html[data-skin="lcars"] .volbar__thumb { width: 24px; height: 8px; margin: 0 0 -4px -12px; border-radius: 4px; background: var(--silver-hi); }
+html[data-skin="lcars"] .volbar__mute { height: 28px; margin: 6px 0 0; border: 0; border-radius: 0 0 16px 16px; background: var(--lc-2); color: var(--lc-on); transition: background-color .2s; }
+html[data-skin="lcars"] .volbar__mute:hover, html[data-skin="lcars"] .volbar__mute:focus-visible { background: var(--silver-hi); color: var(--lc-on); }
+html[data-skin="lcars"] .volbar__mute[aria-pressed="true"] { background: var(--lc-7); color: var(--lc-on); }
+@media (min-width: 761px) {
+  html[data-skin="lcars"] .vol-btn[aria-expanded="true"] { border-radius: 16px 16px 0 0; background: var(--lc-2); color: var(--lc-on); box-shadow: none; }
+  html[data-skin="lcars"] .vol-btn[aria-expanded="true"] .vol-btn__fill { opacity: 0; }
+  html[data-skin="lcars"] .vol-btn[aria-expanded="true"] > .i { color: var(--lc-on); }
+  html[data-skin="lcars"] .volbar.bmbar { padding: 0; border-radius: 0 0 16px 16px; clip-path: none; }
 }
 html[data-skin="lcars"] .stylebar .bm { height: 34px; gap: 7px; padding: 0 8px 0 0; border-radius: 17px 4px 4px 17px; }
 html[data-skin="lcars"] .stylebar .bm b { font: 500 15px/1 var(--lc-font); letter-spacing: .04em; }
@@ -589,13 +620,13 @@ html[data-skin="lcars"][data-theme="light"] .tile--primary { background: color-m
   html[data-skin="lcars"] .top .sc--menu .sc__label, html[data-skin="lcars"] .top .look-btn__word { display: inline; }
   html[data-skin="lcars"] .top .top__settings::after { content: "Settings"; }
   html[data-skin="lcars"] .top .top__settings { border-radius: 0 15px 15px 0; padding-right: 14px; }
-  html[data-skin="lcars"] .top .sc--menu { --lc-c: var(--lc-hd-1, var(--lc-2)); }
-  html[data-skin="lcars"] .top [data-mode-toggle] { --lc-c: var(--lc-hd-2, var(--lc-4)); }
-  html[data-skin="lcars"] .top [data-theme-menu] { --lc-c: var(--lc-hd-3, var(--lc-5)); }
-  html[data-skin="lcars"] .top .top__settings { --lc-c: var(--lc-hd-4, var(--lc-1)); }
-  /* Night: the page's pastels are too soft for solid blocks this size, so the header has its own deeper set (the elbow
-     and the Settings cap share the frame colour). Day's colours are already solid. */
-  html[data-skin="lcars"]:not([data-theme="light"]) .top { --lc-frame: #6c5ce7; --lc-hd-1: #9b6bff; --lc-hd-2: #6f86d6; --lc-hd-3: #c05ed8; --lc-hd-4: #6c5ce7; }
+  html[data-skin="lcars"] .top .sc--menu { --lc-c: var(--lc-hd-1); }
+  html[data-skin="lcars"] .top [data-mode-toggle] { --lc-c: var(--lc-hd-2); }
+  html[data-skin="lcars"] .top [data-theme-menu] { --lc-c: var(--lc-hd-3); }
+  html[data-skin="lcars"] .top .top__settings { --lc-c: var(--lc-hd-4); }
+  /* The header's own colours (--lc-hd-*, set with the palette at the top: a deeper set at Night, the page's own by Day,
+     a custom theme's from palette.js). The elbow and the Settings cap share --lc-hd-frame. */
+  html[data-skin="lcars"] .top { --lc-frame: var(--lc-hd-frame); }
   html[data-skin="lcars"]:not([data-theme="light"]) .top .bmbar { --lc-2: var(--lc-hd-1); }    /* the panels' outline and base, to match */
   html[data-skin="lcars"] .top .sc--menu:active, html[data-skin="lcars"] .top .look-btn:active, html[data-skin="lcars"] .top .top__settings:active { background: var(--silver-hi); }
   html[data-skin="lcars"] .top .sc--menu[aria-expanded="true"], html[data-skin="lcars"] .top .look-btn[aria-expanded="true"],
@@ -676,7 +707,7 @@ html.lc-boot[data-skin="lcars"] .rail a { animation: lc-grow-y .34s var(--lc-eas
 html.lc-boot[data-skin="lcars"] .rail a:nth-child(3) { --lc-d: 30ms; } html.lc-boot[data-skin="lcars"] .rail a:nth-child(4) { --lc-d: 60ms; }
 html.lc-boot[data-skin="lcars"] .rail a:nth-child(5) { --lc-d: 90ms; } html.lc-boot[data-skin="lcars"] .rail a:nth-child(6) { --lc-d: 120ms; }
 html.lc-boot[data-skin="lcars"] .rail a:nth-child(7) { --lc-d: 150ms; } html.lc-boot[data-skin="lcars"] .rail a:nth-child(8) { --lc-d: 180ms; }
-html.lc-boot[data-skin="lcars"] .rail a[data-view="stats"] { --lc-d: 195ms; } html.lc-boot[data-skin="lcars"] .rail a[data-view="curate"] { --lc-d: 210ms; } html.lc-boot[data-skin="lcars"] .rail a.rail__settings { --lc-d: 240ms; }
+html.lc-boot[data-skin="lcars"] .rail a[data-view="stats"] { --lc-d: 195ms; } html.lc-boot[data-skin="lcars"] .rail a[data-view="curate"] { --lc-d: 210ms; } html.lc-boot[data-skin="lcars"] .rail a[data-view="audio"] { --lc-d: 225ms; } html.lc-boot[data-skin="lcars"] .rail a.rail__settings { --lc-d: 240ms; }
 /* cards: arrive one after another, then each header draws left to right and its gauges fill block by block */
 html.lc-boot[data-skin="lcars"] #grid > .card:not(.ph) { animation: lc-in .34s var(--lc-ease) both; animation-delay: var(--lc-d, 260ms); }
 html.lc-boot[data-skin="lcars"] #grid > .card:nth-child(2) { --lc-d: 305ms; } html.lc-boot[data-skin="lcars"] #grid > .card:nth-child(3) { --lc-d: 350ms; }

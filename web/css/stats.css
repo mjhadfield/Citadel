@@ -8,8 +8,8 @@
 /* the Fleet overview: one colour per machine (its place in the list), and the heatmap's calm colour. Night: violet,
    silver, orchid, cyan, sky; heat runs violet → amber → red. Day keeps to Mike's palette: burnt orange, slate, oxblood,
    sepia, umber; heat runs slate → burnt orange → red, so a hot spot never looks like a calm one. */
-.rs { --rs-m1: #a78bfa; --rs-m2: #e6e9ee; --rs-m3: #f0abfc; --rs-m4: #67e8f9; --rs-m5: #93c5fd; --rs-heat: var(--accent); }
-:root[data-theme="light"] .rs { --rs-m1: #b5541f; --rs-m2: #3d5a73; --rs-m3: #8a2e2e; --rs-m4: #7d6b52; --rs-m5: #5c4a3a; --rs-heat: #3d5a73; }
+.rs { --rs-m1: var(--series-1); --rs-m2: var(--series-2); --rs-m3: var(--series-3); --rs-m4: var(--series-4); --rs-m5: var(--series-5); --rs-heat: var(--accent); }
+:root[data-theme="light"] .rs { --rs-heat: var(--ok); }
 html[data-skin="lcars"] .rs .card { --rs-c1: var(--lc-c); }
 .rs__body { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: var(--gap); align-items: start; }
 .rs__sub { display: flex; align-items: center; gap: 8px 18px; flex-wrap: wrap; min-height: 18px;

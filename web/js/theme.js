@@ -5,15 +5,17 @@
 // of a custom theme's colours (theme-init.js applies that copy before first paint, so nothing flashes the wrong look).
 //
 // On the page: Day is html[data-theme="light"] (the name every stylesheet already keys off) and the LCARS theme is
-// html[data-skin="lcars"] (web/css/lcars.css, loaded on the dashboard only). A custom theme is built on Citadel or
-// LCARS and overrides, separately for Day and for Night, the accent, the panel colour and how see-through the panels
-// are, and can add a background picture behind everything.
+// html[data-skin="lcars"] (web/css/lcars.css). A custom theme is built on Citadel or LCARS and sets, separately for Day
+// and for Night, every colour token (palette.js: four Basic colours, plus any Advanced overrides) and can add a
+// background picture behind everything.
+
+import { TOKEN_NAMES, resolve } from './palette.js';
 
 const MODE_KEY = 'mode';           // 'day' | 'night'
 const LOOK_KEY = 'look';           // 'citadel' | 'lcars' | 'c:<custom theme id>'
 const SPEC_KEY = 'look-spec';      // the chosen custom theme's computed CSS for both modes, for theme-init.js
-const VAR_NAMES = ['--accent', '--accent-hi', '--accent-soft', '--accent-deep', '--accent-wash', '--edge-strong', '--surface', '--surface-2', '--surface-3',
-  '--bg-image', '--bg-dim', '--bg-size', '--bg-repeat', '--bg-pos', '--lc-1', '--lc-2'];
+const BG_VARS = ['--bg-image', '--bg-dim', '--bg-size', '--bg-repeat', '--bg-pos'];
+const VAR_NAMES = [...TOKEN_NAMES, ...BG_VARS];
 
 export const THEMES = [{ id: 'citadel', name: 'Citadel', skin: 'citadel' }, { id: 'lcars', name: 'LCARS', skin: 'lcars' }];
 
@@ -22,25 +24,12 @@ const store = {
   set(k, v) { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch { /* private window: this device just won't remember */ } },
 };
 
-const mix = (a, pct, b) => `color-mix(in oklab, ${a} ${pct}%, ${b})`;
-const see = (c, pct) => (pct >= 100 ? c : `color-mix(in srgb, ${c} ${pct}%, transparent)`);
 const FIT = { cover: ['cover', 'no-repeat', 'center'], contain: ['contain', 'no-repeat', 'center'], tile: ['auto', 'repeat', 'top left'], center: ['auto', 'no-repeat', 'center'] };
 
-/** One mode's half of a custom theme -> { vars, bg, glow }. */
+/** One mode's half of a custom theme -> { vars, bg, glow }: every token from its Basic colours, its Advanced overrides
+ * on top (palette.js), then the background picture. */
 function half(h = {}, m, skin) {
-  const dark = m === 'night', a = h.accent, p = h.panel, o = h.panel_opacity ?? 100;
-  const vars = {
-    '--accent': a,
-    '--accent-hi': mix(a, 82, '#fff'),
-    '--accent-soft': dark ? mix(a, 55, '#fff') : mix(a, 62, '#000'),        // text-safe: lighter on dark, darker on light
-    '--accent-deep': mix(a, 52, '#000'),
-    '--accent-wash': `color-mix(in srgb, ${a} 10%, transparent)`,
-    '--edge-strong': `color-mix(in srgb, ${a} 45%, transparent)`,
-    '--surface': see(p, o),
-    '--surface-2': see(mix(p, 93, dark ? '#fff' : '#000'), o),
-    '--surface-3': see(mix(p, 86, dark ? '#fff' : '#000'), o),
-  };
-  if (skin === 'lcars') Object.assign(vars, { '--lc-1': a, '--lc-2': dark ? mix(a, 60, '#fff') : mix(a, 75, '#fff') });   // the frame and highlight bars
+  const vars = resolve(h, m, skin);
   const bg = h.background || {};
   if (bg.file) {
     const [size, repeat, pos] = FIT[bg.fit] || FIT.cover;
@@ -124,7 +113,7 @@ export function syncThemes(customs = []) {
  * page backdrop see-through and the picture shows through the frame. */
 export function currentLook() {
   const h = storedSpec()?.[mode()];
-  const vars = h ? Object.fromEntries(Object.entries(h.vars).filter(([k]) => !k.startsWith('--bg-') && !k.startsWith('--lc-'))) : null;
+  const vars = h ? Object.fromEntries(Object.entries(h.vars).filter(([k]) => !BG_VARS.includes(k) && !k.startsWith('--lc-') && !k.startsWith('--series-'))) : null;
   return { type: 'citadel-theme', theme: currentTheme(), vars, bg: !!h?.bg, glow: h ? h.glow : true };
 }
 

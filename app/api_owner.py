@@ -121,6 +121,99 @@ async def forget_device_navigation(request: Request):
     return navigation.for_settings(me)
 
 
+# ---- GoXLR volume (the header's Line out / Vinyl buttons, app/volume.py) -------------------------
+
+class VolumeIn(BaseModel):
+    volume: int = Field(ge=0, le=100)
+
+
+class MuteIn(BaseModel):
+    muted: bool
+
+
+def _volume_channel(cid: str) -> str:
+    from .volume import CHANNELS
+    if cid not in CHANNELS:
+        raise HTTPException(404, "no such volume")
+    return cid
+
+
+@router.get("/volume")
+async def get_volume(request: Request):
+    return await request.app.state.volume.view()
+
+
+@router.put("/volume/{cid}")
+async def put_volume(cid: str, body: VolumeIn, request: Request):
+    from .volume import Unavailable
+    try:
+        return await request.app.state.volume.set(_volume_channel(cid), body.volume)
+    except Unavailable:
+        raise HTTPException(503, "The GoXLR isn't answering")
+
+
+@router.put("/volume/{cid}/mute")
+async def put_volume_mute(cid: str, body: MuteIn, request: Request):
+    from .volume import Unavailable
+    try:
+        return await request.app.state.volume.mute(_volume_channel(cid), body.muted)
+    except Unavailable:
+        raise HTTPException(503, "The GoXLR isn't answering")
+
+
+# ---- Audio page (app/audio.py; the daemon connection is app/goxlr.py) ---------------------------
+
+@router.get("/audio")
+async def get_audio(request: Request):
+    from . import audio
+    from .goxlr import Unavailable
+    gx = request.app.state.goxlr
+    try:
+        serial, mixer, status = await gx.mixer()
+    except Unavailable:
+        return {"available": False, "configured": gx.configured}
+    return {**audio.view(serial, mixer, status), "configured": True, "live": gx.live,
+            "unsaved": request.app.state.audio_unsaved.observe(mixer)}
+
+
+@router.post("/audio")
+async def post_audio(request: Request):
+    """One page action ({"cmd": …}), checked against the whitelist in app/audio.py, sent to the daemon (one or more
+    commands, in order)."""
+    from pydantic import ValidationError
+    from . import audio
+    from .goxlr import Unavailable
+    try:
+        action = audio.parse(await request.json())
+    except (ValidationError, ValueError) as e:
+        raise HTTPException(422, f"Not a GoXLR action: {e}") from None
+    gx = request.app.state.goxlr
+    try:
+        serial, mixer, status = await gx.mixer()
+        for cmd in audio.commands(action, mixer, status):  # most actions are one command; Apply to all / Match my theme are several
+            await gx.command(serial, cmd)
+        if action.cmd in ("save", "save_as"):           # what's on the device now is what the file holds
+            _, now, _ = await gx.fresh_mixer()
+            request.app.state.audio_unsaved.saved(action.which, now)
+    except audio.Refused as e:
+        raise HTTPException(422, str(e)) from None
+    except Unavailable:
+        raise HTTPException(503, "The GoXLR isn't answering") from None
+    return {"ok": True}
+
+
+@router.get("/audio/level")
+async def get_audio_level(request: Request):
+    """The mic's live level in dBFS (the Microphone tab's meter, polled while it's on screen)."""
+    from .goxlr import Unavailable
+    gx = request.app.state.goxlr
+    try:
+        serial, _, _ = await gx.mixer()
+        return {"level": await gx.mic_level(serial)}
+    except Unavailable:
+        raise HTTPException(503, "The GoXLR isn't answering") from None
+
+
 # ---- project control ---------------------------------------------------------------------------
 
 def _project(slug: str, *, enabled_only: bool = True) -> dict[str, Any]:
@@ -195,7 +288,8 @@ async def get_config(request: Request):
         "screens": state.tv_settings(), "tv_panels": list(schemas.TV_PANELS), "alerts": alerts.settings(), "navigation": navigation.for_settings(me),
         "icons": schemas.ICONS, "streams": {k: v["title"] for k, v in STREAMS.items()}, "colours": ["violet", "silver", "indigo"],
         "appearance": {"themes": appearance.themes(), "skins": list(appearance.SKINS), "modes": list(appearance.MODES),
-                       "base_panel": appearance.BASE_PANEL, "base_accent": appearance.BASE_ACCENT,
+                       "base_panel": appearance.BASE_PANEL, "base_accent": appearance.BASE_ACCENT, "base": appearance.BASE,
+                       "presets": [{"id": k, **v} for k, v in appearance.PRESETS.items()],
                        "fits": list(appearance.FITS), "max_background_mb": appearance.MAX_BACKGROUND // 1_000_000},
     }
 

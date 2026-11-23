@@ -39,6 +39,9 @@ DISK_SERVER_URL = _env("HUB_DISK_SERVER_URL", "http://127.0.0.1:8765/disks.json"
 MACHINES_KEY = Path(_env("HUB_MACHINES_KEY", str(ROOT / "data" / "machines_ed25519")))
 # Test/demo switch: no SSH to the machines at all.
 NO_MACHINES = _env("HUB_NO_MACHINES") == "1"
+# The GoXLR daemon's local HTTP API (goxlr-utility), behind the header's Line out / Vinyl volume buttons (app/volume.py).
+# None under HUB_NO_FETCH (tests, scratch copies): only the live hub may touch the real speakers.
+GOXLR_URL = _env("HUB_GOXLR_URL", None if NO_FETCH else "http://localhost:14564")
 # The stats collector on NZXT (collector/citadel_collector.py, docs/tasks/stats-collector.md) asks the machines for their
 # stats and keeps the history; Citadel reads it back. The token is in the data dir, unlike the SSH key above, so a
 # scratch copy (its own HUB_DATA_DIR) has none and never pushes its machine list to the live collector.

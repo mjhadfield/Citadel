@@ -1,0 +1,798 @@
+{
+ "config": {
+  "activation": {
+   "active_path": null,
+   "app_path": null
+  },
+  "allow_network_access": false,
+  "autostart_enabled": true,
+  "daemon_version": "1.2.4",
+  "driver_interface": {
+   "interface": "LIBUSB",
+   "version": [
+    1,
+    0,
+    30,
+    null
+   ]
+  },
+  "firmware_source": "Live",
+  "handle_macos_aggregates": true,
+  "http_settings": {
+   "bind_address": "localhost",
+   "cors_enabled": false,
+   "enabled": true,
+   "port": 14564
+  },
+  "latest_firmware": {
+   "Full": {
+    "change_log": "\n    1.4.3.110:\n\n    - Submix feature.\n    - Fixed a bug causing fader LEDs to not reach 100%.\n    - Removed unused Latency Control from USB descriptor.\n    ",
+    "version": [
+     1,
+     4,
+     3,
+     110
+    ]
+   },
+   "Mini": {
+    "change_log": "\n    1.2.1.49:\n\n    - Fixed a bug causing the GoXLR to be muted if the optical input\n    is connected to a 44.1 kHz source.\n    - Fixed a bug where unmuting an output does not restore the correct\n    value until fader is moved.\n\n    1.2.0.47:\n\n    - Submix feature.\n    - Fixed audio pops/clicks on optical input.\n    - Removed unused Latency Control from USB descriptor.\n    ",
+    "version": [
+     1,
+     2,
+     1,
+     49
+    ]
+   },
+   "Unknown": null
+  },
+  "locale": {
+   "system_locale": "en_GB",
+   "user_locale": null
+  },
+  "log_level": "Debug",
+  "open_ui_on_launch": false,
+  "platform": "linux",
+  "show_tray_icon": true,
+  "tts_enabled": false
+ },
+ "files": {
+  "icons": [
+   "headphone.png",
+   "level.png",
+   "lightbulb2.png",
+   "mic.png",
+   "mic3.png",
+   "music.png",
+   "person.png",
+   "scale.png"
+  ],
+  "mic_profiles": [
+   "DEFAULT",
+   "HyperX Cloud II"
+  ],
+  "presets": [
+   "Big Echo",
+   "Big Verb",
+   "Comms Radio",
+   "HardTune Music",
+   "Kid Robot",
+   "PitchDn Echo",
+   "Tank"
+  ],
+  "profiles": [
+   "Default",
+   "Default - Red",
+   "Default - Teal Blue",
+   "Default - Vaporwave",
+   "Sleep"
+  ],
+  "samples": {}
+ },
+ "firmware": {},
+ "mixers": {
+  "S1TEST": {
+   "button_down": {
+    "Bleep": false,
+    "Cough": false,
+    "EffectFx": false,
+    "EffectHardTune": false,
+    "EffectMegaphone": false,
+    "EffectRobot": false,
+    "EffectSelect1": false,
+    "EffectSelect2": false,
+    "EffectSelect3": false,
+    "EffectSelect4": false,
+    "EffectSelect5": false,
+    "EffectSelect6": false,
+    "Fader1Mute": false,
+    "Fader2Mute": false,
+    "Fader3Mute": false,
+    "Fader4Mute": false,
+    "SamplerBottomLeft": false,
+    "SamplerBottomRight": false,
+    "SamplerClear": false,
+    "SamplerSelectA": false,
+    "SamplerSelectB": false,
+    "SamplerSelectC": false,
+    "SamplerTopLeft": false,
+    "SamplerTopRight": false
+   },
+   "cough_button": {
+    "is_toggle": false,
+    "mute_type": "All",
+    "state": "Unmuted"
+   },
+   "effects": {
+    "active_preset": "Preset1",
+    "current": {
+     "echo": {
+      "amount": 0,
+      "delay_left": 500,
+      "delay_right": 500,
+      "feedback": 30,
+      "feedback_left": 50,
+      "feedback_right": 50,
+      "feedback_xfb_l_to_r": 0,
+      "feedback_xfb_r_to_l": 0,
+      "raw_encoder": 0,
+      "style": "Quarter",
+      "tempo": 149
+     },
+     "gender": {
+      "amount": 0,
+      "raw_encoder": 0,
+      "style": "Narrow"
+     },
+     "hard_tune": {
+      "amount": 70,
+      "is_enabled": false,
+      "rate": 20,
+      "source": "All",
+      "style": "Natural",
+      "window": 20
+     },
+     "megaphone": {
+      "amount": 0,
+      "is_enabled": true,
+      "post_gain": 2,
+      "style": "Megaphone"
+     },
+     "pitch": {
+      "amount": 0,
+      "character": 100,
+      "raw_encoder": 0,
+      "style": "Narrow"
+     },
+     "reverb": {
+      "amount": 62,
+      "decay": 6000,
+      "diffuse": 0,
+      "early_level": 0,
+      "hi_colour": -39,
+      "hi_factor": 21,
+      "lo_colour": 10,
+      "mod_depth": 21,
+      "mod_speed": -3,
+      "pre_delay": 100,
+      "raw_encoder": 15,
+      "style": "HockeyArena",
+      "tail_level": -2
+     },
+     "robot": {
+      "dry_mix": -6,
+      "high_freq": 182,
+      "high_gain": 0,
+      "high_width": 0,
+      "is_enabled": false,
+      "low_freq": 88,
+      "low_gain": -10,
+      "low_width": 0,
+      "mid_freq": 173,
+      "mid_gain": 5,
+      "mid_width": 25,
+      "pulse_width": 50,
+      "style": "Robot1",
+      "threshold": -36,
+      "waveform": 0
+     }
+    },
+    "is_enabled": false,
+    "preset_names": {
+     "Preset1": "Big Verb",
+     "Preset2": "Comms Radio",
+     "Preset3": "HardTune Music",
+     "Preset4": "Kid Robot",
+     "Preset5": "PitchDn Echo",
+     "Preset6": "Tank"
+    }
+   },
+   "fader_status": {
+    "A": {
+     "channel": "Mic",
+     "mute_state": "Unmuted",
+     "mute_type": "All",
+     "scribble": {
+      "bottom_text": "Mic",
+      "file_name": "mic.png",
+      "inverted": true,
+      "left_text": "1"
+     }
+    },
+    "B": {
+     "channel": "Music",
+     "mute_state": "Unmuted",
+     "mute_type": "All",
+     "scribble": {
+      "bottom_text": "Music",
+      "file_name": "headphone.png",
+      "inverted": true,
+      "left_text": "2"
+     }
+    },
+    "C": {
+     "channel": "Chat",
+     "mute_state": "Unmuted",
+     "mute_type": "All",
+     "scribble": {
+      "bottom_text": "Voice Chat",
+      "file_name": "person.png",
+      "inverted": true,
+      "left_text": "3"
+     }
+    },
+    "D": {
+     "channel": "System",
+     "mute_state": "Unmuted",
+     "mute_type": "All",
+     "scribble": {
+      "bottom_text": "System",
+      "file_name": "level.png",
+      "inverted": true,
+      "left_text": "4"
+     }
+    }
+   },
+   "hardware": {
+    "colour_way": "Black",
+    "device_type": "Full",
+    "manufactured_date": "2021-01-01",
+    "serial_number": "S1TEST",
+    "usb_device": {
+     "address": 1,
+     "bus_number": 1,
+     "identifier": null,
+     "manufacturer_name": "TC-Helicon",
+     "product_name": "GoXLR",
+     "version": [
+      2,
+      0,
+      0
+     ]
+    },
+    "versions": {
+     "dice": [
+      1,
+      4,
+      3,
+      110
+     ],
+     "firmware": [
+      1,
+      4,
+      3,
+      110
+     ],
+     "fpga_count": 7
+    }
+   },
+   "levels": {
+    "bleep": -10,
+    "deess": 20,
+    "output_monitor": "Headphones",
+    "submix": null,
+    "submix_supported": true,
+    "volumes": {
+     "Chat": 156,
+     "Console": 179,
+     "Game": 179,
+     "Headphones": 204,
+     "LineIn": 0,
+     "LineOut": 0,
+     "Mic": 176,
+     "MicMonitor": 255,
+     "Music": 139,
+     "Sample": 179,
+     "System": 179
+    }
+   },
+   "lighting": {
+    "animation": {
+     "mod1": 0,
+     "mod2": 0,
+     "mode": "None",
+     "supported": true,
+     "waterfall_direction": "Down"
+    },
+    "buttons": {
+     "Bleep": {
+      "colours": {
+       "colour_one": "FE0030",
+       "colour_two": "0A2B1B"
+      },
+      "off_style": "Colour2"
+     },
+     "Cough": {
+      "colours": {
+       "colour_one": "FE0A13",
+       "colour_two": "0A2B1B"
+      },
+      "off_style": "Colour2"
+     },
+     "EffectFx": {
+      "colours": {
+       "colour_one": "0A2B1B",
+       "colour_two": "FFFFFF"
+      },
+      "off_style": "Dimmed"
+     },
+     "EffectHardTune": {
+      "colours": {
+       "colour_one": "0A2B1B",
+       "colour_two": "FFFFFF"
+      },
+      "off_style": "Dimmed"
+     },
+     "EffectMegaphone": {
+      "colours": {
+       "colour_one": "0A2B1B",
+       "colour_two": "00FFFF"
+      },
+      "off_style": "Dimmed"
+     },
+     "EffectRobot": {
+      "colours": {
+       "colour_one": "0A2B1B",
+       "colour_two": "FFFFFF"
+      },
+      "off_style": "Dimmed"
+     },
+     "EffectSelect1": {
+      "colours": {
+       "colour_one": "0A2B1B",
+       "colour_two": "FFFFFF"
+      },
+      "off_style": "Dimmed"
+     },
+     "EffectSelect2": {
+      "colours": {
+       "colour_one": "0A2B1B",
+       "colour_two": "FFFFFF"
+      },
+      "off_style": "Dimmed"
+     },
+     "EffectSelect3": {
+      "colours": {
+       "colour_one": "0A2B1B",
+       "colour_two": "FFFFFF"
+      },
+      "off_style": "Dimmed"
+     },
+     "EffectSelect4": {
+      "colours": {
+       "colour_one": "0A2B1B",
+       "colour_two": "FFFFFF"
+      },
+      "off_style": "Dimmed"
+     },
+     "EffectSelect5": {
+      "colours": {
+       "colour_one": "0A2B1B",
+       "colour_two": "FFFFFF"
+      },
+      "off_style": "Dimmed"
+     },
+     "EffectSelect6": {
+      "colours": {
+       "colour_one": "0A2B1B",
+       "colour_two": "FFFFFF"
+      },
+      "off_style": "Dimmed"
+     },
+     "Fader1Mute": {
+      "colours": {
+       "colour_one": "FE001B",
+       "colour_two": "0A2B1B"
+      },
+      "off_style": "Colour2"
+     },
+     "Fader2Mute": {
+      "colours": {
+       "colour_one": "FE001B",
+       "colour_two": "0A2B1B"
+      },
+      "off_style": "Colour2"
+     },
+     "Fader3Mute": {
+      "colours": {
+       "colour_one": "FE001B",
+       "colour_two": "0A2B1B"
+      },
+      "off_style": "Colour2"
+     },
+     "Fader4Mute": {
+      "colours": {
+       "colour_one": "FE001B",
+       "colour_two": "0A2B1B"
+      },
+      "off_style": "Colour2"
+     }
+    },
+    "encoders": {
+     "Echo": {
+      "colour_one": "000000",
+      "colour_three": "0A2B1B",
+      "colour_two": "0A2B1B"
+     },
+     "Gender": {
+      "colour_one": "0A2B1B",
+      "colour_three": "0A2B1B",
+      "colour_two": "0A2B1B"
+     },
+     "Pitch": {
+      "colour_one": "0A2B1B",
+      "colour_three": "0A2B1B",
+      "colour_two": "0A2B1B"
+     },
+     "Reverb": {
+      "colour_one": "000000",
+      "colour_three": "0A2B1B",
+      "colour_two": "0A2B1B"
+     }
+    },
+    "faders": {
+     "A": {
+      "colours": {
+       "colour_one": "000000",
+       "colour_two": "25FF24"
+      },
+      "style": "Gradient"
+     },
+     "B": {
+      "colours": {
+       "colour_one": "000000",
+       "colour_two": "25FF24"
+      },
+      "style": "Gradient"
+     },
+     "C": {
+      "colours": {
+       "colour_one": "000000",
+       "colour_two": "25FF24"
+      },
+      "style": "Gradient"
+     },
+     "D": {
+      "colours": {
+       "colour_one": "000000",
+       "colour_two": "25FF24"
+      },
+      "style": "Gradient"
+     }
+    },
+    "sampler": {
+     "SamplerSelectA": {
+      "colours": {
+       "colour_one": "0A2B1B",
+       "colour_three": "000000",
+       "colour_two": "FFFFFF"
+      },
+      "off_style": "Dimmed"
+     },
+     "SamplerSelectB": {
+      "colours": {
+       "colour_one": "0A2B1B",
+       "colour_three": "000000",
+       "colour_two": "FFFFFF"
+      },
+      "off_style": "Dimmed"
+     },
+     "SamplerSelectC": {
+      "colours": {
+       "colour_one": "0A2B1B",
+       "colour_three": "000000",
+       "colour_two": "FFFFFF"
+      },
+      "off_style": "Dimmed"
+     }
+    },
+    "simple": {
+     "Accent": {
+      "colour_one": "0A2B1B"
+     },
+     "Global": {
+      "colour_one": "00FFFF"
+     },
+     "Scribble1": {
+      "colour_one": "62FF39"
+     },
+     "Scribble2": {
+      "colour_one": "62FF39"
+     },
+     "Scribble3": {
+      "colour_one": "62FF39"
+     },
+     "Scribble4": {
+      "colour_one": "62FF39"
+     }
+    }
+   },
+   "mic_profile_name": "HyperX Cloud II",
+   "mic_status": {
+    "compressor": {
+     "attack": 7,
+     "makeup_gain": 4,
+     "ratio": 8,
+     "release": 9,
+     "threshold": -16
+    },
+    "equaliser": {
+     "frequency": {
+      "Equalizer125Hz": 125.0,
+      "Equalizer16KHz": 16000.0,
+      "Equalizer1KHz": 1000.0,
+      "Equalizer250Hz": 250.0,
+      "Equalizer2KHz": 2000.0,
+      "Equalizer31Hz": 31.5,
+      "Equalizer4KHz": 4000.0,
+      "Equalizer500Hz": 500.0,
+      "Equalizer63Hz": 63.0,
+      "Equalizer8KHz": 8000.0
+     },
+     "gain": {
+      "Equalizer125Hz": 2,
+      "Equalizer16KHz": -2,
+      "Equalizer1KHz": 0,
+      "Equalizer250Hz": 0,
+      "Equalizer2KHz": 1,
+      "Equalizer31Hz": -9,
+      "Equalizer4KHz": 3,
+      "Equalizer500Hz": -2,
+      "Equalizer63Hz": -6,
+      "Equalizer8KHz": 1
+     }
+    },
+    "equaliser_mini": {
+     "frequency": {
+      "Equalizer1KHz": 1000.0,
+      "Equalizer250Hz": 250.0,
+      "Equalizer3KHz": 3000.0,
+      "Equalizer500Hz": 500.0,
+      "Equalizer8KHz": 8000.0,
+      "Equalizer90Hz": 90.0
+     },
+     "gain": {
+      "Equalizer1KHz": 0,
+      "Equalizer250Hz": 0,
+      "Equalizer3KHz": 0,
+      "Equalizer500Hz": 0,
+      "Equalizer8KHz": 0,
+      "Equalizer90Hz": 0
+     }
+    },
+    "mic_gains": {
+     "Condenser": 30,
+     "Dynamic": 30,
+     "Jack": 30
+    },
+    "mic_type": "Jack",
+    "noise_gate": {
+     "attack": 0,
+     "attenuation": 100,
+     "enabled": true,
+     "release": 19,
+     "threshold": -38
+    }
+   },
+   "profile_name": "Default",
+   "router": {
+    "Chat": {
+     "BroadcastMix": false,
+     "ChatMic": false,
+     "Headphones": true,
+     "LineOut": true,
+     "Sampler": false,
+     "StreamMix2": false
+    },
+    "Console": {
+     "BroadcastMix": true,
+     "ChatMic": false,
+     "Headphones": true,
+     "LineOut": true,
+     "Sampler": false,
+     "StreamMix2": true
+    },
+    "Game": {
+     "BroadcastMix": true,
+     "ChatMic": false,
+     "Headphones": true,
+     "LineOut": true,
+     "Sampler": false,
+     "StreamMix2": true
+    },
+    "LineIn": {
+     "BroadcastMix": false,
+     "ChatMic": false,
+     "Headphones": true,
+     "LineOut": true,
+     "Sampler": true,
+     "StreamMix2": false
+    },
+    "Microphone": {
+     "BroadcastMix": true,
+     "ChatMic": true,
+     "Headphones": true,
+     "LineOut": false,
+     "Sampler": true,
+     "StreamMix2": true
+    },
+    "Music": {
+     "BroadcastMix": true,
+     "ChatMic": false,
+     "Headphones": true,
+     "LineOut": true,
+     "Sampler": false,
+     "StreamMix2": false
+    },
+    "Samples": {
+     "BroadcastMix": true,
+     "ChatMic": true,
+     "Headphones": true,
+     "LineOut": true,
+     "Sampler": false,
+     "StreamMix2": true
+    },
+    "System": {
+     "BroadcastMix": false,
+     "ChatMic": false,
+     "Headphones": true,
+     "LineOut": true,
+     "Sampler": false,
+     "StreamMix2": false
+    }
+   },
+   "sampler": {
+    "active_bank": "A",
+    "banks": {
+     "A": {
+      "BottomLeft": {
+       "function": "PlayNext",
+       "is_playing": false,
+       "is_recording": false,
+       "order": "Sequential",
+       "samples": []
+      },
+      "BottomRight": {
+       "function": "PlayNext",
+       "is_playing": false,
+       "is_recording": false,
+       "order": "Sequential",
+       "samples": []
+      },
+      "TopLeft": {
+       "function": "PlayNext",
+       "is_playing": false,
+       "is_recording": false,
+       "order": "Sequential",
+       "samples": [
+        {
+         "name": "airhorn.wav",
+         "start_pct": 0.0,
+         "stop_pct": 100.0
+        }
+       ]
+      },
+      "TopRight": {
+       "function": "PlayNext",
+       "is_playing": false,
+       "is_recording": false,
+       "order": "Sequential",
+       "samples": []
+      }
+     },
+     "B": {
+      "BottomLeft": {
+       "function": "PlayNext",
+       "is_playing": false,
+       "is_recording": false,
+       "order": "Sequential",
+       "samples": []
+      },
+      "BottomRight": {
+       "function": "PlayNext",
+       "is_playing": false,
+       "is_recording": false,
+       "order": "Sequential",
+       "samples": []
+      },
+      "TopLeft": {
+       "function": "PlayNext",
+       "is_playing": false,
+       "is_recording": false,
+       "order": "Sequential",
+       "samples": []
+      },
+      "TopRight": {
+       "function": "PlayNext",
+       "is_playing": false,
+       "is_recording": false,
+       "order": "Sequential",
+       "samples": []
+      }
+     },
+     "C": {
+      "BottomLeft": {
+       "function": "PlayNext",
+       "is_playing": false,
+       "is_recording": false,
+       "order": "Sequential",
+       "samples": []
+      },
+      "BottomRight": {
+       "function": "PlayNext",
+       "is_playing": false,
+       "is_recording": false,
+       "order": "Sequential",
+       "samples": []
+      },
+      "TopLeft": {
+       "function": "PlayNext",
+       "is_playing": false,
+       "is_recording": false,
+       "order": "Sequential",
+       "samples": []
+      },
+      "TopRight": {
+       "function": "PlayNext",
+       "is_playing": false,
+       "is_recording": false,
+       "order": "Sequential",
+       "samples": []
+      }
+     }
+    },
+    "clear_active": false,
+    "processing_state": {
+     "last_error": null,
+     "progress": null
+    },
+    "record_buffer": 0
+   },
+   "settings": {
+    "display": {
+     "compressor": "Simple",
+     "equaliser": "Simple",
+     "equaliser_fine": "Simple",
+     "gate": "Simple"
+    },
+    "enable_monitor_with_fx": false,
+    "fade_duration": 500,
+    "lock_faders": false,
+    "mute_hold_duration": 500,
+    "reset_sampler_on_clear": true,
+    "vc_mute_also_mute_cm": true,
+    "vod_mode": "Routable"
+   },
+   "shutdown_commands": [],
+   "sleep_commands": [],
+   "wake_commands": []
+  }
+ },
+ "paths": {
+  "icons_directory": "/tmp/goxlr/icons_directory",
+  "logs_directory": "/tmp/goxlr/logs_directory",
+  "mic_profile_directory": "/tmp/goxlr/mic_profile_directory",
+  "presets_directory": "/tmp/goxlr/presets_directory",
+  "profile_directory": "/tmp/goxlr/profile_directory",
+  "samples_directory": "/tmp/goxlr/samples_directory"
+ }
+}

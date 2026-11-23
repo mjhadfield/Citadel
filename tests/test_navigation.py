@@ -37,7 +37,7 @@ def test_defaults_match_the_built_in_rail(owner_client):
     pages = by_id(nav["shared"])
     assert pages["music"]["label"] == "Companion" and pages["music"]["icon"] == "disc"
     assert pages["home"]["phone"] and pages["house"]["phone"]
-    assert not pages["curate"]["phone"] and not pages["settings"]["phone"]
+    assert not pages["curate"]["phone"] and not pages["audio"]["phone"] and not pages["settings"]["phone"]
     assert all(p["rail"] for p in nav["shared"])
     assert state_nav(owner_client)["own"] is False
 
@@ -48,8 +48,8 @@ def test_rename_hide_and_reorder_show_in_config_and_state(owner_client):
     assert put(owner_client, pages).status_code == 200
     for got in (owner_client.get(f"{BASE}/config").json()["navigation"]["shared"], state_nav(owner_client)["pages"]):
         order = ids(got)
-        # Home first, the moved pages in their new order, pages left out after them, Curate + Settings last
-        assert order[:3] == ["home", "house", "news"] and order[-2:] == ["curate", "settings"]
+        # Home first, the moved pages in their new order, pages left out after them, Curate + Audio + Settings last
+        assert order[:3] == ["home", "house", "news"] and order[-3:] == ["curate", "audio", "settings"]
         assert set(order) == {p[0] for p in navigation.PAGES}
         pages_ = by_id(got)
         assert pages_["house"]["label"] == "Repairs" and pages_["house"]["default"] == "House"

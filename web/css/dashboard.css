@@ -217,6 +217,45 @@ html[data-theme="light"] body .readout dd[data-heat="3"] { text-shadow: none; } 
 }
 .badge-role { display: inline-flex; align-items: center; gap: 6px; }
 
+/* ---- GoXLR volume: Line out + Vinyl (volume.js), left of Day/Night ------------------------------------------------
+   Each button is an upright slider: it fills from the bottom to the level (--vol), drag on it or wheel to set; muted,
+   it empties and a slash crosses the icon. Its slider drops from it as one piece, the width of the button: the level,
+   the track, then Mute at the foot. Desktop only. */
+.vol-group { display: inline-flex; align-items: center; gap: 6px; }
+.vol-group[hidden] { display: none; }
+.vol-btn { --vol-fill: color-mix(in srgb, var(--accent) 34%, transparent);
+  position: relative; overflow: hidden; justify-content: center; width: 34px; height: 30px; padding: 0; touch-action: none; }
+.vol-btn > .i { position: relative; width: 16px; height: 16px; }
+.vol-btn__fill { position: absolute; left: 0; right: 0; bottom: 0; height: var(--vol, 0%); background: var(--vol-fill);
+  box-shadow: inset 0 1px 0 var(--accent-soft); pointer-events: none; transition: height .12s var(--ease); }
+.vol-btn.is-muted { color: var(--silver-mute); }
+.vol-btn.is-muted .vol-btn__fill { box-shadow: none; }
+.vol-btn.is-muted::after { content: ""; position: absolute; left: 7px; right: 7px; top: calc(50% - 1px); height: 2px; border-radius: 1px;
+  background: currentColor; transform: rotate(-40deg); }
+.vol-btn[disabled] { cursor: default; }
+html[data-theme="light"] .vol-btn { --vol-fill: color-mix(in srgb, var(--accent) 55%, transparent); }
+.volbar { display: flex; flex-direction: column; align-items: stretch; }
+.volbar[hidden] { display: none; }
+.volbar__pct { padding: 6px 0 4px; font: 11px/1 var(--font-mono); letter-spacing: .04em; text-align: center; color: var(--silver-hi); font-variant-numeric: tabular-nums; }
+.volbar.is-muted .volbar__pct { color: var(--silver-mute); }
+.volbar__track { position: relative; display: flex; justify-content: center; height: 176px; padding: 8px 0; cursor: ns-resize; touch-action: none; outline: none; }
+.volbar__rail { position: relative; width: 8px; height: 100%; overflow: hidden; border-radius: 4px; background: var(--well); box-shadow: inset 0 0 0 1px var(--edge); }
+.volbar__fill { position: absolute; left: 0; right: 0; bottom: 0; height: var(--vol, 0%); background: var(--accent); }
+.volbar__thumb { position: absolute; left: 50%; bottom: calc(8px + (100% - 16px) * var(--vol-n, 0)); width: 20px; height: 6px; margin: 0 0 -3px -10px;
+  border-radius: 3px; background: var(--silver-hi); box-shadow: 0 1px 4px var(--vignette); pointer-events: none; }
+.volbar__track:focus-visible .volbar__thumb { box-shadow: 0 0 0 2px var(--accent-soft); }
+.volbar__mute { display: grid; place-items: center; height: 30px; margin-top: 4px; padding: 0; border: 0; border-top: 1px solid var(--edge);
+  background: none; color: var(--silver); cursor: pointer; }
+.volbar__mute .i { width: 16px; height: 16px; }
+.volbar__mute:hover, .volbar__mute:focus-visible { color: var(--silver-hi); background: var(--accent-wash); outline: none; }
+.volbar__mute[aria-pressed="true"] { color: var(--accent-soft); }
+@media (min-width: 761px) {
+  .vol-btn[aria-expanded="true"] { color: var(--silver-hi); border-color: var(--edge-strong); border-bottom-color: transparent;
+    border-bottom-left-radius: 0; border-bottom-right-radius: 0; background: linear-gradient(var(--accent-wash) 0 0) var(--bg-2); }
+  .volbar.bmbar { width: var(--bm-w, 34px); min-width: 0; padding: 0; clip-path: polygon(0 0, 100% 0, 100% 100%, 8px 100%, 0 calc(100% - 8px)); }
+}
+@media (max-width: 760px) { .vol-group, .volbar { display: none !important; } }
+
 /* ---- Alert strip -------------------------------------------------------- */
 .alerts { display: flex; gap: 12px; margin-bottom: var(--gap); flex-wrap: wrap; }
 .alert {
