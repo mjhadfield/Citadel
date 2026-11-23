@@ -131,3 +131,16 @@ def _api_checks(owner_client, guest_client, d):
 def test_tests_never_reach_the_real_daemon():
     from app import config
     assert config.GOXLR_URL is None
+
+
+def test_a_read_straight_after_mute_sees_it_while_the_socket_is_up(fake):
+    """The header's Mute flickered back and forth: with the daemon's socket up, the SSE nudge after a mute re-read the
+    socket's cached status before the daemon's own patch had landed. A command now reads the result back at once."""
+    d, vol = fake
+    gx = vol.gx
+    asyncio.run(vol.view())
+    gx._last, gx.live = asyncio.run(gx._http_status()), True     # as if the socket were up, with no patch to come
+    asyncio.run(vol.mute("vinyl", True))
+    v = asyncio.run(vol.view())                                    # what the page's re-read gets
+    assert next(c for c in v["channels"] if c["id"] == "vinyl")["muted"]
+    gx.live = False

@@ -126,11 +126,13 @@ class GoXLR:
                 raise Unavailable(f"GoXLR daemon: {e}") from e
         if answer != "Ok":
             raise Unavailable(f"GoXLR daemon refused {next(iter(cmd))}: {answer}")
-        if not self.live:                         # no socket to tell us: read the result back so pages update
-            try:
-                self._changed(await self._http_status())
-            except Unavailable:
-                pass
+        # Read the result back now, socket or not. Without a socket nothing else would tell pages; with one, its patch
+        # arrives a moment later (REFRESH_S), and until then status() would hand out the old levels: the SSE nudge
+        # that follows a header Mute re-read them and flipped the button back, then forward again (2026-11-23).
+        try:
+            self._changed(await self._http_status())
+        except Unavailable:
+            pass
 
     async def mic_level(self, serial: str) -> float:
         """The microphone's live level (the daemon's own scale), asked over the socket."""

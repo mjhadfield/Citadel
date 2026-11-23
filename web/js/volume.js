@@ -14,6 +14,16 @@ function init() {
   const DRAG_PX = 2;                        // button drag: screen pixels per 1 % of slider travel
   let chans = [], openId = null, drag = null, suppressClick = false;
   const sending = new Map();                // id -> { want, busy }
+  let sent = 0;                             // changes sent so far: a re-read begun before the latest is out of date
+
+  async function refresh() {
+    const at = sent;
+    let v;
+    try { v = await api.get('/api/owner/volume'); } catch { group.hidden = true; close(true); return; }
+    // a Mute or a new level went out while this was on its way (e.g. the re-read Opening starts): it can only hold the
+    // old level, and drawing it flipped the button back until the change's own answer came in. That answer redraws.
+    if (at === sent) apply(v);
+  }
 
   const clamp = p => Math.max(0, Math.min(100, p));
   const posOf = c => (c.volume == null ? 0 : clamp(Math.round(100 * Math.pow(c.volume / 100, c.curve))));
@@ -21,11 +31,6 @@ function init() {
   const byId = id => chans.find(c => c.id === id);
   const label = c => `${c.name} · ${c.volume == null ? 'not answering' : c.muted ? 'muted' : `${c.volume}%`}`;
 
-  async function refresh() {
-    let v;
-    try { v = await api.get('/api/owner/volume'); } catch { group.hidden = true; close(true); return; }
-    apply(v);
-  }
   function apply(v) {
     group.hidden = !v.configured;
     if (!v.configured) { close(true); return; }
@@ -77,6 +82,7 @@ function init() {
     const s = sending.get(id) || { want: null, busy: false };
     sending.set(id, s);
     s.want = body;
+    sent++;
     if (!s.busy) pump(id, s);
   }
   async function pump(id, s) {
