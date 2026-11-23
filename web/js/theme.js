@@ -117,7 +117,7 @@ export function applySpec(spec = storedSpec(), m = mode(), t = theme()) {
 }
 
 const changed = () => document.dispatchEvent(new CustomEvent('theme:change', {
-  detail: { mode: mode(), theme: theme(), family: family(), style: style(), base: currentTheme(), skin: currentSkin() },
+  detail: { mode: mode(), theme: theme(), family: family(), style: style() },
 }));
 
 // Other pages on this origin (Settings iframe, open tabs) follow changes straight away.
@@ -222,8 +222,6 @@ export function syncStyles(customs, migratedPresets = {}) {
   }
 }
 
-const SHARED_TOKENS = TOKEN_NAMES.filter(k => !k.startsWith('--lc-') && !k.startsWith('--brg-') && !k.startsWith('--series-'));
-
 /** Contract v2 payload for framed apps using the Citadel Theme Kit (docs/features/embedded-theming.md).
  * Always includes every resolved shared + active-family colour token (including built-in styles),
  * and never includes --bg-image or its siblings. */
@@ -254,33 +252,14 @@ export function currentLook() {
   };
 }
 
-/** Legacy contract v1 payload (kept permanently for Odysseus, and for unmigrated kit apps during Phase 3 -> 4). */
+/** Contract v1 payload kept permanently for Odysseus (light/dark mode swap only; Mike, 2026-11-23). */
 export function currentLookV1() {
-  const sk = currentSkin();
-  const h = storedSpec()?.[mode()];
-  let vars = null;
-  let skinVars = null;
-  if (h) {
-    vars = Object.fromEntries(Object.entries(h.vars).filter(([k]) => !BG_VARS.includes(k) && !k.startsWith('--lc-') && !k.startsWith('--brg-') && !k.startsWith('--series-')));
-    const sv = Object.entries(h.vars).filter(([k]) => k.startsWith('--lc-') || k.startsWith('--brg-'));
-    if (sv.length) skinVars = Object.fromEntries(sv);
-  } else if (sk === 'borg') {
-    const cs = getComputedStyle(document.documentElement);
-    vars = Object.fromEntries(SHARED_TOKENS.map(k => [k, cs.getPropertyValue(k).trim()]).filter(([, v]) => v));
-  }
-  return { type: 'citadel-theme', theme: currentTheme(), skin: sk, vars, skinVars, bg: !!h?.bg, glow: h ? h.glow : true };
+  return { type: 'citadel-theme', theme: currentTheme() };
 }
 
-/** 'dark' or 'light' — the mode, in the words v1 embedded pages expect. */
+/** 'dark' or 'light' — the mode, for Odysseus's v1 query param and message. */
 export function currentTheme() {
   return document.documentElement.dataset.mode === 'day' ? 'light' : 'dark';
-}
-
-/** Legacy v1 skin id ('citadel' | 'lcars' | 'lcars2' | 'borg') for v1 embedded frames until Phase 3. */
-export function currentSkin() {
-  const t = document.documentElement.dataset.theme;
-  if (t === 'lcars25') return 'lcars2';
-  return t === 'lcars' || t === 'borg' ? t : 'citadel';
 }
 
 /** Active family ('citadel' | 'lcars' | 'borg') on <html>. */

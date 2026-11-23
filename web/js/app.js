@@ -4,7 +4,7 @@ import { cards, ui, selectedSlug } from './cards.js';
 import { vinylUi } from './content-cards.js';
 import { Shell } from './shell.js';
 import { $, $$, esc, gcalUrl, hostUrl, ico, safeUrl, tickClock, tickUptimes, toast } from './util.js';
-import { THEMES, currentLook, currentLookV1, currentSkin, currentTheme, family, mode, setMode, setStyle, setTheme, style, stylesForFamily, syncStyles, theme } from './theme.js';
+import { THEMES, currentLook, currentLookV1, currentTheme, family, mode, setMode, setStyle, setTheme, style, stylesForFamily, syncStyles, theme } from './theme.js';
 import * as music from './music.js';
 import * as news from './news.js';
 import * as stats from './stats.js';
@@ -104,7 +104,7 @@ async function dismissAlert(key) {
   if (!a) return;
   // LCARS: the reminder shrinks away first (lcars.css .is-going); the timeout covers reduced motion, where no animation runs
   const el = $(`[data-alert-dismiss="${CSS.escape(key)}"]`)?.closest('.alert');
-  if (el && currentSkin() === 'lcars') {
+  if (el && family() === 'lcars') {
     el.classList.add('is-going');
     await new Promise(done => { el.addEventListener('animationend', done, { once: true }); setTimeout(done, 400); });
   }
@@ -179,7 +179,7 @@ function setMusicSrc() {
   const url = pageUrl('for_music');
   if (!url) return;
   const sep = url.includes('?') ? '&' : '?';
-  musicFrame.src = `${url}${sep}theme=${currentTheme()}`;
+  musicFrame.src = `${url}${sep}citadel_mode=${mode()}&citadel_theme=${theme()}`;
   try { MUSIC_ORIGIN = new URL(url).origin; } catch { /* keep the default */ }
   musicSrcSet = true;
 }
@@ -198,23 +198,21 @@ function maintenanceOrigin() {
 }
 function tellFrames() {
   const v2 = currentLook();
-  const v1 = currentLookV1();
-  const postBoth = (frame, origin) => {
+  const postV2 = (frame, origin) => {
     if (!origin) return;
     frame.contentWindow?.postMessage(v2, origin);
-    frame.contentWindow?.postMessage(v1, origin);
   };
   if (musicSrcSet) {
-    postBoth(musicFrame, MUSIC_ORIGIN);
-    postBoth(musicFrame, maintenanceOrigin());
+    postV2(musicFrame, MUSIC_ORIGIN);
+    postV2(musicFrame, maintenanceOrigin());
   }
-  if (sqlSrcSet) postBoth(sqlFrame, sqlOrigin);
+  if (sqlSrcSet) postV2(sqlFrame, sqlOrigin);
   // Odysseus stays on contract v1 permanently (Mike, 2026-11-23).
-  if (aiSrcSet && aiOrigin) aiFrame.contentWindow?.postMessage(v1, aiOrigin);
-  if (houseSrcSet) postBoth(houseFrame, houseOrigin);
-  if (labelsSrcSet) postBoth(labelsFrame, labelsOrigin);
-  if (holodeckSrcSet) postBoth(holodeckFrame, holodeckOrigin);
-  if (curateSrcSet) postBoth(curateFrame, maintenanceOrigin());
+  if (aiSrcSet && aiOrigin) aiFrame.contentWindow?.postMessage(currentLookV1(), aiOrigin);
+  if (houseSrcSet) postV2(houseFrame, houseOrigin);
+  if (labelsSrcSet) postV2(labelsFrame, labelsOrigin);
+  if (holodeckSrcSet) postV2(holodeckFrame, holodeckOrigin);
+  if (curateSrcSet) postV2(curateFrame, maintenanceOrigin());
 }
 musicFrame.addEventListener('load', tellFrames);
 
@@ -227,7 +225,7 @@ function setCurateSrc() {
   if (curateSrcSet) return;
   const origin = maintenanceOrigin();
   if (!origin) return;
-  curateFrame.src = `${origin}/?theme=${currentTheme()}`;
+  curateFrame.src = `${origin}/?citadel_mode=${mode()}&citadel_theme=${theme()}`;
   curateSrcSet = true;
 }
 curateFrame.addEventListener('load', tellFrames);
@@ -237,7 +235,7 @@ function setSqlSrc() {
   const url = pageUrl('for_sql');
   if (!url) return;
   const sep = url.includes('?') ? '&' : '?';
-  sqlFrame.src = `${url}${sep}theme=${currentTheme()}`;
+  sqlFrame.src = `${url}${sep}citadel_mode=${mode()}&citadel_theme=${theme()}`;
   try { sqlOrigin = new URL(url).origin; } catch { sqlOrigin = null; }
   sqlSrcSet = true;
 }
@@ -267,7 +265,7 @@ function setHouseSrc() {
   const link = state.links.find(l => l.for_house);
   if (!link) return;
   const sep = link.url.includes('?') ? '&' : '?';
-  houseFrame.src = `${link.url}${sep}citadel_theme=${currentTheme()}`;
+  houseFrame.src = `${link.url}${sep}citadel_mode=${mode()}&citadel_theme=${theme()}`;
   try { houseOrigin = new URL(link.url).origin; } catch { houseOrigin = null; }
   houseSrcSet = true;
 }
@@ -281,7 +279,7 @@ function setLabelsSrc() {
   const link = state.links.find(l => l.for_labels);
   if (!link) return;
   const sep = link.url.includes('?') ? '&' : '?';
-  labelsFrame.src = `${link.url}${sep}citadel_theme=${currentTheme()}`;
+  labelsFrame.src = `${link.url}${sep}citadel_mode=${mode()}&citadel_theme=${theme()}`;
   try { labelsOrigin = new URL(link.url).origin; } catch { labelsOrigin = null; }
   labelsSrcSet = true;
 }
@@ -307,7 +305,7 @@ function setHolodeckSrc() {
     holodeckOrigin = parsed.origin;
   } catch { holodeckOrigin = null; }
   const sep = url.includes('?') ? '&' : '?';
-  holodeckFrame.src = `${url}${sep}citadel_theme=${currentTheme()}&citadel_skin=${currentSkin()}`;
+  holodeckFrame.src = `${url}${sep}citadel_mode=${mode()}&citadel_theme=${theme()}`;
   holodeckSrcSet = true;
 }
 holodeckFrame.addEventListener('load', tellFrames);
