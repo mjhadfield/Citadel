@@ -228,6 +228,7 @@ function tellFrames() {
   if (houseSrcSet) postV2(houseFrame, houseOrigin);
   if (labelsSrcSet) postV2(labelsFrame, labelsOrigin);
   if (holodeckSrcSet) postV2(holodeckFrame, holodeckOrigin);
+  if (labSrcSet) postV2(labFrame, labOrigin);
   if (curateSrcSet) postV2(curateFrame, maintenanceOrigin());
 }
 musicFrame.addEventListener('load', tellFrames);
@@ -326,17 +327,21 @@ function setHolodeckSrc() {
 }
 holodeckFrame.addEventListener('load', tellFrames);
 
-// And for the HomeLab page (Home Assistant on Probe-1, a link). Home Assistant keeps its own look, so like Casino
-// there's no theme hand-off.
+// And for the HomeLab page (Home Assistant on Probe-1, a link). Follows Citadel's theme like Labels: Home Assistant
+// loads a small bridge (~/Projects/HomeLab/home-assistant/citadel-theme) that turns the same message into its own
+// Citadel themes.
 const labFrame = $('#lab-frame');
-let labSrcSet = false;
+let labSrcSet = false, labOrigin = null;
 function setLabSrc() {
   if (labSrcSet) return;
   const link = state.links.find(l => l.for_lab);
   if (!link) return;
-  labFrame.src = link.url;
+  const sep = link.url.includes('?') ? '&' : '?';
+  labFrame.src = `${link.url}${sep}citadel_mode=${mode()}&citadel_theme=${theme()}`;
+  try { labOrigin = new URL(link.url).origin; } catch { labOrigin = null; }
   labSrcSet = true;
 }
+labFrame.addEventListener('load', tellFrames);
 
 // And for the Casino page (Casino World, a link). A Godot game with its own look, so no theme hand-off.
 const casinoFrame = $('#casino-frame');
