@@ -9,6 +9,7 @@ import * as music from './music.js';
 import * as news from './news.js';
 import * as stats from './stats.js';
 import * as audio from './audio.js';
+import * as routines from './routines.js';
 import * as motion from './motion.js';
 import './volume.js';                      // the header's GoXLR volume buttons (Line out, Vinyl)
 
@@ -509,7 +510,7 @@ async function pollMonitoring() {
 }
 
 // ---- view router (Home / News / Media / Companion / SQL DB / Music / Casino / Odysseus / House / Stats) --------------------------------------------------------------
-const VIEWS = ['home', 'news', 'media', 'music', 'sql', 'listen', 'casino', 'ai', 'house', 'labels', 'holodeck', 'lab', 'stats', 'curate', 'audio', 'settings'];
+const VIEWS = ['home', 'news', 'media', 'music', 'sql', 'listen', 'casino', 'ai', 'house', 'labels', 'holodeck', 'lab', 'routines', 'stats', 'curate', 'audio', 'settings'];
 // While an embedded page is showing, the phone keyboard shrinks the screen (interactive-widget=resizes-content) rather
 // than sliding over it, so the pinned page (dashboard.css, .main:has(...)) ends just above the keyboard and a chat box
 // at the bottom of it stays visible. Only on those pages: Home, News and Music keep the browser's default.
@@ -577,6 +578,7 @@ function route() {
   news.onView(v);                                   // the News page (news.js) loads its own stories when shown
   stats.onView(v);                                  // the Fleet page (stats.js): machine history from the collector on NZXT
   audio.onView(v);                                  // the Audio page (audio.js): the GoXLR, through the hub
+  routines.onView(v);                               // the Routines page (routines.js): Home Assistant's routine times
 }
 function markCurrent() {
   $$('.rail a[data-view], .tabbar a[data-view], #more-sheet a[data-view]').forEach(a => {

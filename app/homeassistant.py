@@ -38,6 +38,33 @@ def token() -> str | None:
         return None
 
 
+class Unavailable(Exception):
+    """Home Assistant couldn't be asked: no token, refused token, or not reachable. The message is for Mike to read."""
+
+
+async def request(method: str, path: str, body: dict[str, Any] | None = None) -> Any:
+    """One call to Home Assistant's REST API with the Citadel token. Never retries (a refused token is logged by Home
+    Assistant as a failed login, so a loop would look like an attack)."""
+    tok = token()
+    if not tok:
+        raise Unavailable("No Home Assistant token on this PC (HomeLab home-assistant/set-token.sh)")
+    headers = {"Authorization": f"Bearer {tok}", "User-Agent": f"Citadel/{__version__}"}
+    try:
+        async with httpx.AsyncClient(timeout=15, transport=TRANSPORT) as client:
+            resp = await client.request(method, f"{config.HA_URL}{path}", headers=headers, json=body)
+    except httpx.HTTPError as e:
+        raise Unavailable("Home Assistant isn't answering (Probe-1)") from e
+    if resp.status_code in (401, 403):
+        raise Unavailable("Home Assistant refused Citadel's token (make a new one with set-token.sh)")
+    if resp.status_code >= 400:
+        raise Unavailable(f"Home Assistant said {resp.status_code} {resp.reason_phrase}")
+    return resp.json() if resp.content else None
+
+
+async def service(domain: str, action: str, data: dict[str, Any]) -> None:
+    await request("POST", f"/api/services/{domain}/{action}", data)
+
+
 async def announce(message: str, target: str) -> None:
     """Chime and say `message` on the Echo(s) behind a notify entity. Raises on any refusal; never retries."""
     tok = token()

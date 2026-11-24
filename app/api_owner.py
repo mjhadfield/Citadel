@@ -215,6 +215,38 @@ async def get_audio_level(request: Request):
         raise HTTPException(503, "The GoXLR isn't answering") from None
 
 
+# ---- Routines page (app/routines.py; Home Assistant on Probe-1 holds the schedules) -------------------
+
+@router.get("/routines")
+async def get_routines():
+    from . import routines
+    from .homeassistant import Unavailable
+    try:
+        return await routines.view()
+    except Unavailable as e:
+        return {"configured": True, "available": False, "error": str(e), "routines": []}
+
+
+@router.post("/routines/{rid}")
+async def post_routine(rid: str, request: Request):
+    """One change to one routine ({"on": …} | {"time": "HH:MM"} | {"days": [...]} | {"skip": …} | {"run": true})."""
+    from pydantic import ValidationError
+    from . import routines
+    from .homeassistant import Unavailable
+    try:
+        change = routines.Change.model_validate(await request.json())
+        change.which()
+    except (ValidationError, ValueError) as e:
+        raise HTTPException(422, f"Not a routine change: {e}") from None
+    try:
+        await routines.change(rid, change)
+    except LookupError as e:
+        raise HTTPException(404, str(e).capitalize()) from None
+    except Unavailable as e:
+        raise HTTPException(503, str(e)) from None
+    return {"ok": True}
+
+
 # ---- project control ---------------------------------------------------------------------------
 
 def _project(slug: str, *, enabled_only: bool = True) -> dict[str, Any]:
