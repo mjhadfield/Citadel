@@ -100,6 +100,7 @@ async def lifespan(app: FastAPI):
     from .music.scrobble_job import job as scrobbles   # Music Companion's scheduled Last.fm import (no dashboard card)
     from .music.buying import job as buying            # the Music page's "Worth buying" prices from Discogs (no dashboard card)
     from .music.discover import job as discovering    # the Music page's Discover, redone overnight when stale (no dashboard card)
+    from .homeassistant import bin_job                  # "put the bins out" on the Echos, the evening before (no dashboard card)
 
     def on_update(wid: str) -> None:
         if wid in widgets:
@@ -107,7 +108,7 @@ async def lifespan(app: FastAPI):
         elif wid == buying.id:
             music_store.changed("buying")              # the Music page re-reads its prices
 
-    scheduler = Scheduler({**widgets, **maintenance.jobs(), scrobbles.id: scrobbles, buying.id: buying, discovering.id: discovering}, on_update)
+    scheduler = Scheduler({**widgets, **maintenance.jobs(), scrobbles.id: scrobbles, buying.id: buying, discovering.id: discovering, bin_job.id: bin_job}, on_update)
     mon = monitor.Monitor()
     machine_watch = machines.Machines(health)          # the other machines' stats over SSH (app/machines.py)
     rotator = Rotator()                              # rotating playlists on the Music page (app/music/rotator.py)

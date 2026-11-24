@@ -51,6 +51,10 @@ COLLECTOR_TOKEN_FILE = DATA_DIR / "collector_token"
 # file; the "Phoenix backup" maintenance job reads it, and its Run now starts the unit ("none" = never start it).
 BACKUP_STATUS = Path(_env("HUB_BACKUP_STATUS", str(Path.home() / ".local" / "state" / "citadel-backup" / "last.json")))
 BACKUP_UNIT = _env("HUB_BACKUP_UNIT", "citadel-backup.service")
+# Home Assistant on Probe-1 (~/Projects/HomeLab/home-assistant): spoken reminders on the Echos (app/homeassistant.py).
+# The token belongs to HA's non-admin "Citadel" user, saved by HomeLab's set-token.sh; no file = the job is "not set up".
+HA_URL = (_env("HUB_HA_URL", "http://192.168.0.79") or "").rstrip("/")
+HA_TOKEN_FILE = Path(_env("HUB_HA_TOKEN_FILE", str(Path.home() / ".config" / "home-assistant" / "token")))
 
 
 def ensure_dirs() -> None:

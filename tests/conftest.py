@@ -11,6 +11,7 @@ os.environ["HUB_NO_FETCH"] = "1"                                  # no live Musi
 os.environ["HUB_MUSIC_DB"] = os.path.join(_TMP, "no-music-db.sqlite")   # never seed from (or touch) the real Music Companion
 os.environ["HUB_BACKUP_STATUS"] = os.path.join(_TMP, "no-backup-status.json")   # never read the real Phoenix backup's status
 os.environ["HUB_BACKUP_UNIT"] = "none"                                          # and never start the real backup
+os.environ["HUB_HA_TOKEN_FILE"] = os.path.join(_TMP, "no-ha-token")                # never speak on the real Echos
 # Make sure no real secrets/settings leak into tests via the environment.
 for var in ("BINS_UPRN", "DIARY_ICAL_URL", "JELLYFIN_URL", "HUB_SECRET"):
     os.environ[var] = ""
