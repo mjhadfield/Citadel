@@ -637,6 +637,25 @@ async def open_remote(host_id: int):
     return {"ok": True, "already_open": not opened}
 
 
+@router.get("/browser")
+async def browser_here(request: Request):
+    """Whether this device can hand links to Brave on this PC: only a page open on this PC itself (Gaming's wallpaper)."""
+    return {"here": procs.is_this_pc(request.client.host if request.client else None)}
+
+
+@router.post("/browser/open")
+async def browser_open(body: schemas.OpenLinkIn, request: Request):
+    """Open a link in Mike's own Brave on this PC. Gaming's wallpaper runs in a Brave profile of its own, without his
+    logins, so its new-window links come here instead. Refused for any other machine: it would open on Gaming's screen."""
+    if not procs.is_this_pc(request.client.host if request.client else None):
+        raise HTTPException(409, "Links can only be passed to Brave from this PC itself.")
+    try:
+        await procs.open_in_browser(body.url)
+    except procs.ProcError as exc:
+        raise HTTPException(502, f"Couldn't open the link in Brave: {exc}")
+    return {"ok": True}
+
+
 @router.post("/remote/{host_id}/wake")
 async def wake_remote(host_id: int, request: Request):
     """Send the device a Wake-on-LAN packet, then ping it quickly until it answers so its tile turns green promptly."""

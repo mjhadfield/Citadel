@@ -31,6 +31,15 @@ def http_url(value: str, *, field: str = "url", allow_placeholders: bool = False
     return value.strip()
 
 
+class OpenLinkIn(BaseModel):
+    url: str = Field(max_length=2000)
+
+    @field_validator("url")
+    @classmethod
+    def _url(cls, v: str) -> str:
+        return http_url(v)
+
+
 class LinkIn(BaseModel):
     name: str = Field(min_length=1, max_length=60)
     subtitle: str = Field("", max_length=80)

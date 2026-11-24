@@ -9,9 +9,12 @@ Commands are argv lists and are never passed through a shell by us.
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import json
 import os
 import re
+import secrets
+import socket
 import time
 from typing import Any
 
@@ -148,6 +151,36 @@ async def open_viewer(host: dict[str, Any]) -> bool:
             return False
         raise ProcError(err.strip().splitlines()[-1] if err.strip() else f"systemd-run exited {rc}")
     return True
+
+
+def is_this_pc(address: str | None) -> bool:
+    """Whether a request came from this PC itself: loopback, or one of its own addresses (Gaming's wallpaper reaches
+    Citadel through the LAN address). An address belongs to this PC exactly when a socket can bind to it."""
+    try:
+        ip = ipaddress.ip_address(address or "")
+    except ValueError:
+        return False
+    ip = getattr(ip, "ipv4_mapped", None) or ip
+    if ip.is_loopback:
+        return True
+    try:
+        with socket.socket(socket.AF_INET6 if ip.version == 6 else socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.bind((str(ip), 0))
+        return True
+    except OSError:
+        return False
+
+
+async def open_in_browser(url: str) -> None:
+    """Open a link as a tab in Mike's own Brave (its default profile, where his logins are) on this PC's desktop.
+    Gaming's wallpaper runs in a profile of its own, so it hands its new-window links here. A transient unit, like a
+    viewer: when Brave isn't running yet, the Brave this starts must not live in hub.service's cgroup, where a hub
+    restart would close it. When it is running, the launcher passes the link on and exits at once."""
+    args = ["systemd-run", "--user", f"--unit=hub-open-{secrets.token_hex(4)}", "--collect", "--quiet",
+            "--description=Citadel: open a link in Brave"]
+    rc, _, err = await _run(*args, "--", "brave", url)
+    if rc != 0:
+        raise ProcError(err.strip().splitlines()[-1] if err.strip() else f"systemd-run exited {rc}")
 
 
 async def close_viewer(host_id: int) -> None:

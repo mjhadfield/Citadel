@@ -141,6 +141,22 @@ if (new URLSearchParams(location.search).has('wall')) {
     const allow = (f.getAttribute('allow') || '').split(';').map(s => s.trim()).filter(s => s && s !== 'fullscreen');
     f.setAttribute('allow', [...allow, "fullscreen 'none'"].join('; '));
   }
+  // Gaming's wallpaper runs in a Brave profile of its own, without Mike's logins, so its new-window links (Bookmarks,
+  // tiles, news) open as tabs in his own Brave instead: the hub runs `brave <url>` on this PC (Mike, 2026-11-23). Only a
+  // page on this PC itself may (NZXT's wallpaper keeps its own windows), so ask once first. Links inside framed apps
+  // belong to their own pages and still open in the wallpaper's profile.
+  api.get('/api/owner/browser').then(({ here }) => {
+    if (!here) return;
+    const handOver = e => {
+      if (e.type === 'auxclick' && e.button !== 1) return;
+      const a = e.target.closest?.('a[target="_blank"][href]');
+      if (!a || !/^https?:$/.test(a.protocol)) return;
+      e.preventDefault();
+      api.post('/api/owner/browser/open', { url: a.href }).catch(err => toast(`Couldn't open it in Brave: ${err.message}`));
+    };
+    document.addEventListener('click', handOver, true);
+    document.addEventListener('auxclick', handOver, true);
+  }).catch(() => {});
 }
 
 // The Media page's iframe is created once in the HTML and its src is set exactly once, here — never
