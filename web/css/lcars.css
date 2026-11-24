@@ -185,6 +185,30 @@ html[data-family="lcars"] .rail__logo { display: none; }
   html[data-family="lcars"] .rail a[data-view="home"] .i { width: 26px; height: 26px; }
   html[data-family="lcars"] .rail a[data-view="home"] + :is(a, .rail__group) { margin-top: var(--lc-body-top, 160px); }     /* the first page (or group heading) after Home, whichever (Settings → Navigation orders them) */
 }
+/* Classic LCARS only, desktop: "wide cards" (Mike, 2026-11-24, version A of the rail mockups). The same card, landscape:
+   icon beside the label, 38px rows (Home 48px), larger Antonio. Group headings are a short bar in the department colour
+   running into the name (the Ops spacer lays its ::before bar beside its ::after name). LCARS 25 keeps its own rail. */
+@media (min-width: 761px) {
+  html[data-family="lcars"][data-theme="lcars"] { --lc-rail: 168px; }
+  html[data-family="lcars"][data-theme="lcars"] .rail a[data-view] {
+    display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 12px; width: calc(var(--lc-rail) - 24px); min-height: 0; height: 38px; padding: 0 12px 0 14px;
+    font-size: 15px; letter-spacing: .1em; --r: 14px; }
+  html[data-family="lcars"][data-theme="lcars"] .rail a[data-view][hidden] { display: none; }
+  html[data-family="lcars"][data-theme="lcars"] .rail a[data-view] .i { width: 19px; height: 19px; }
+  html[data-family="lcars"][data-theme="lcars"] .rail__label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  html[data-family="lcars"][data-theme="lcars"] .rail a[aria-current]::before { left: -11px; top: 10px; bottom: 10px; }
+  html[data-family="lcars"][data-theme="lcars"] .rail a[data-view="home"] { height: 48px; font-size: 17px; }
+  html[data-family="lcars"][data-theme="lcars"] .rail a[data-view="home"] .i { width: 24px; height: 24px; }
+  html[data-family="lcars"][data-theme="lcars"] .rail .rail__group, html[data-family="lcars"][data-theme="lcars"] .rail .spacer {
+    display: flex; flex-direction: row; align-items: flex-end; gap: 8px; align-self: stretch; margin-left: 12px; margin-right: 12px; }
+  html[data-family="lcars"][data-theme="lcars"] .rail .rail__group, html[data-family="lcars"][data-theme="lcars"] .rail .spacer::after {
+    padding: 8px 0 4px; border-bottom: 0; font: 600 13px/1 var(--lc-font); letter-spacing: .16em; }
+  html[data-family="lcars"][data-theme="lcars"] .rail .spacer::after { margin: 0; padding-top: 0; align-self: flex-end; }
+  html[data-family="lcars"][data-theme="lcars"] .rail .rail__group::before, html[data-family="lcars"][data-theme="lcars"] .rail .spacer::before {
+    content: ""; flex: 1; height: 5px; margin-bottom: 8px; border-radius: 3px 0 0 3px; background: var(--grp-c); opacity: .8; }
+  html[data-family="lcars"][data-theme="lcars"] .rail .rail__group::before { margin-bottom: 4px; align-self: flex-end; }
+  html[data-family="lcars"][data-theme="lcars"] .rail .spacer::before { --grp-c: var(--silver-dim); }
+}
 
 /* phones: the bottom tab bar keeps its layout; the current page gets its colour */
 html[data-family="lcars"] .tabbar a, html[data-family="lcars"] .tabbar__more { font: 500 11px/1.1 var(--lc-font); letter-spacing: .12em; }

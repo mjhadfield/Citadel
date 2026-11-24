@@ -42,6 +42,46 @@
 .rail__group[data-group="science"] { --grp-c: var(--grp-science); }
 .rail__group[data-group="engineering"] { --grp-c: var(--grp-engineering); }
 
+/* Citadel theme, desktop: "department brackets" (Mike, 2026-11-24, version B of the rail mockups). Wider and shorter rows:
+   the icon sits in a small chamfered key beside its label, the current page's key lights solid, and a hairline bracket in
+   the department's colour ties each group's pages to its heading. A link's group is its data-group (index.html defaults,
+   renderNav keeps it in step with Settings → Navigation). LCARS and Borg restyle the rail in their own files. */
+@media (min-width: 761px) {
+  html[data-family="citadel"] .shell { grid-template-columns: 152px 1fr; }
+  html[data-family="citadel"] .rail { align-items: stretch; gap: 3px; padding: 18px 10px 18px 12px; }
+  html[data-family="citadel"] .rail__logo { align-self: center; }
+  html[data-family="citadel"] .rail a[data-view] {
+    --grp-c: var(--silver-dim);
+    display: flex; align-items: center; justify-content: flex-start; gap: 10px; width: auto; min-width: 0; height: 34px; padding: 0 8px 0 10px;
+    font: 500 10.5px/1 var(--font-mono); letter-spacing: .08em; }
+  html[data-family="citadel"] .rail a[data-view][hidden] { display: none; }
+  html[data-family="citadel"] .rail a[data-group="command"] { --grp-c: var(--grp-command); }
+  html[data-family="citadel"] .rail a[data-group="science"] { --grp-c: var(--grp-science); }
+  html[data-family="citadel"] .rail a[data-group="engineering"] { --grp-c: var(--grp-engineering); }
+  html[data-family="citadel"] .rail a[data-view] .i {
+    box-sizing: border-box; width: 28px; height: 26px; padding: 4px 5.5px; color: inherit;
+    background: color-mix(in srgb, var(--silver) 7%, transparent);
+    clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%); transition: background .2s, color .2s; }
+  html[data-family="citadel"] .rail__label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* the bracket: each grouped link draws its own stretch, reaching over the gaps to the next */
+  html[data-family="citadel"] .rail a[data-view]::before { content: none; }
+  html[data-family="citadel"] .rail a[data-group]:not([data-group=""])::before {
+    content: ""; position: absolute; left: 0; top: -3px; bottom: -3px; width: 1px;
+    background: color-mix(in srgb, var(--grp-c) 55%, transparent); box-shadow: none; }
+  html[data-family="citadel"] .rail a[data-view]:hover { color: var(--silver-hi); }
+  html[data-family="citadel"] .rail a[data-view]:hover .i { background: color-mix(in srgb, var(--silver) 14%, transparent); }
+  html[data-family="citadel"] .rail a[data-view][aria-current] { color: var(--silver-hi); background: linear-gradient(90deg, var(--accent-wash), transparent 85%); }
+  html[data-family="citadel"] .rail a[data-view][aria-current] .i { background: var(--accent); color: var(--bg); }
+  /* headings sit on the bracket's top corner (drawn as two background lines, so the Ops pseudo-element gets it too) */
+  html[data-family="citadel"] .rail__group, html[data-family="citadel"] .rail .spacer::after {
+    --mid: 16px;
+    margin: 0; padding: 12px 0 5px 12px; border-bottom: 0; text-align: left; font-size: 9px; letter-spacing: .14em;
+    background:
+      linear-gradient(color-mix(in srgb, var(--grp-c) 55%, transparent) 0 0) 0 var(--mid) / 6px 1px no-repeat,
+      linear-gradient(color-mix(in srgb, var(--grp-c) 55%, transparent) 0 0) 0 var(--mid) / 1px 100% no-repeat; }
+  html[data-family="citadel"] .rail .spacer::after { --mid: 4px; padding-top: 0; }
+}
+
 /* ---- Main --------------------------------------------------------------- */
 /* --main-pl / --main-pr are the side paddings, kept as variables so an embedded page's frame can reach past them */
 .main { --main-pl: 28px; --main-pr: 28px; padding: 20px var(--main-pr) 56px var(--main-pl); min-width: 0; }

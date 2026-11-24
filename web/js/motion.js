@@ -295,12 +295,36 @@ export const ambient = {
 };
 
 // ---- data cascade (Lively only): a column of numbers drifting up the rail's empty space ---------------------------------
+// LCARS gets plain readouts; Borg gets drone designations, unimatrix and cube numbers, hex, binary and block glyphs (Mike,
+// 2026-11-24). ASCII only, never < > & (the rows go in as HTML), at most 12 characters to fit borg.css's column.
+const rnd = n => Math.floor(Math.random() * n);
+const pad = (n, w) => String(n).padStart(w, '0');
+const pick = a => a[rnd(a.length)];
+const LCARS_ROW = () => (Math.random() < .5 ? pad(rnd(99), 2) : `${rnd(9)}-${pad(rnd(999), 3)}`);
+const BORG_GLYPHS = ['[#]-[#]', '|::|::|', '=#=#=#=', '#.##.#', '[:::]', '/\\/\\/\\', '+--+--+', '.:|:.', '||:||:||', '#=#', '[ ][#][ ]', '::#::'];
+const BORG_ROWS = [
+  [3, () => `${1 + rnd(9)} OF ${1 + rnd(9)}`],                                   // drone designation, "Seven of Nine" style
+  [2, () => `UMX-${pad(rnd(99), 2)}`],                                           // unimatrix
+  [1, () => `CUBE ${pad(rnd(999), 3)}`],
+  [1, () => `ADJ ${pad(rnd(99), 2)}.${rnd(10)}`],                                // tertiary adjunct
+  [2, () => `0x${rnd(65536).toString(16).toUpperCase().padStart(4, '0')}`],
+  [2, () => Array.from({ length: 8 }, () => rnd(2)).join('')],
+  [3, () => pick(BORG_GLYPHS)],
+];
+const BORG_ROW = () => {
+  let r = Math.random() * BORG_ROWS.reduce((t, [w]) => t + w, 0);
+  for (const [w, f] of BORG_ROWS) { if ((r -= w) < 0) return f(); }
+  return BORG_ROWS[0][1]();
+};
 function mountCascade(host) {
-  if (!host || host.querySelector('.mx-railnums')) return;
-  const n = () => (Math.random() < .5 ? String(Math.floor(Math.random() * 99)).padStart(2, '0')
-    : `${Math.floor(Math.random() * 9)}-${String(Math.floor(Math.random() * 999)).padStart(3, '0')}`);
+  if (!host) return;
+  const fam = root.dataset.family;
+  const old = host.querySelector('.mx-railnums');
+  if (old?.dataset.family === fam) return;
+  old?.remove();                                         // switched between LCARS and Borg: each has its own text
+  const n = fam === 'borg' ? BORG_ROW : LCARS_ROW;
   const rows = Array.from({ length: 40 }, () => `<span${Math.random() < .06 ? ' class="is-hi"' : ''}>${n()}</span>`).join('');
-  host.insertAdjacentHTML('beforeend', `<div class="mx-railnums" aria-hidden="true"><div>${rows}${rows}</div></div>`);
+  host.insertAdjacentHTML('beforeend', `<div class="mx-railnums" data-family="${fam}" aria-hidden="true"><div>${rows}${rows}</div></div>`);
 }
 
 /** Start: put the level on the page and follow changes (reduced motion, the theme, another page saving a level). */

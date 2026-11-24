@@ -606,6 +606,8 @@ function renderNav(nav) {
     $('.rail__label', a).textContent = p.label;
     a.title = p.label === p.default ? a.dataset.title : p.label;
     a.hidden = !p.rail;
+    // its group, for Citadel's department brackets (dashboard.css); the fixed pages at the foot are Ops, Home has none
+    a.dataset.group = p.movable ? (p.group || '') : (p.id === 'home' ? '' : 'ops');
     // in turn, so they end up in the saved order between Home and the gap. Hidden ones wait at the very end, out of the
     // way of LCARS lining up whichever page follows Home (lcars.css) and of the boot animation's one-after-another.
     if (!p.rail) railEnd.after(a); else if (p.movable) spacer.before(a);

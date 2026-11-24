@@ -58,7 +58,7 @@ html[data-family="borg"] {
   --brg-on:       #030604;   /* ink on solid glowing emerald/gold blocks */
 
   --brg-ease:     cubic-bezier(.16, .84, .32, 1);
-  --brg-rail:     90px;
+  --brg-rail:     170px;  /* the Conduit rail (Mike, 2026-11-24) */
   --brg-grid:     color-mix(in srgb, var(--brg-frame) 5.5%, transparent);
   --brg-glow:     color-mix(in srgb, var(--brg-node) 28%, transparent);
 }
@@ -238,6 +238,53 @@ html[data-family="borg"] .rail a[aria-current]::before {
 html[data-family="borg"] .rail a[aria-current]::after {
   opacity: 1;
   background: repeating-linear-gradient(180deg, var(--brg-axis) 0 2px, transparent 2px 4px, var(--brg-node) 4px 6px);
+}
+
+/* ---- Desktop rail: the Conduit (Mike, 2026-11-24, version B of the rail mockups) ---------------------------------
+   One cyan conduit runs down from the reticle. Each page is a ring node on it (::before, with a stub out to the page's
+   plate); the current page's node is the gold-cored target from the header axis. Plates keep the cut corner, drawn as two
+   background layers (outer = edge, inner = fill) because a clip-path would cut the node off. Group headings sit on the
+   conduit as square junctions in their department colour (backgrounds, so the Ops pseudo-element gets one too). */
+@media (min-width: 761px) {
+  html[data-family="borg"] .rail { align-items: stretch; gap: 2px; padding: 16px 4px 16px 0; isolation: isolate; }
+  html[data-family="borg"] .rail::before {
+    content: ""; position: absolute; left: 22px; top: 62px; bottom: 18px; width: 1px; z-index: -1; pointer-events: none;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--brg-cyan) 75%, transparent), color-mix(in srgb, var(--brg-cyan) 40%, transparent)); }
+  html[data-family="borg"] .rail__logo { align-self: flex-start; }
+  html[data-family="borg"] .rail a[data-view] {
+    --pl-b: transparent; --pl-f: transparent;
+    --nd-ring: color-mix(in srgb, var(--brg-frame) 85%, transparent); --nd-stub: color-mix(in srgb, var(--brg-frame) 70%, transparent);
+    display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px;
+    width: auto; min-width: 0; min-height: 0; height: 34px; margin-left: 38px; padding: 0 16px 0 8px;
+    font-size: 10.5px; line-height: 1; letter-spacing: .1em; border: 0; clip-path: none; box-shadow: none;
+    background:
+      linear-gradient(315deg, transparent 5.25px, var(--pl-f) 5.25px) 1px 1px / calc(100% - 2px) calc(100% - 2px) no-repeat,
+      linear-gradient(315deg, transparent 5.66px, var(--pl-b) 5.66px) 0 0 / 100% 100% no-repeat; }
+  html[data-family="borg"] .rail a[data-view][hidden] { display: none; }
+  html[data-family="borg"] .rail a[data-view] .i { width: 18px; height: 18px; }
+  html[data-family="borg"] .rail__label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  html[data-family="borg"] .rail a[data-view]:hover {
+    --pl-f: color-mix(in srgb, var(--brg-node) 11%, var(--surface)); --pl-b: color-mix(in srgb, var(--brg-node) 45%, transparent); --nd-ring: var(--brg-cyan); }
+  html[data-family="borg"] .rail a[data-view][aria-current] {
+    --pl-f: color-mix(in srgb, var(--brg-node) 16%, var(--surface-2)); --pl-b: color-mix(in srgb, var(--brg-node) 68%, transparent); }
+  html[data-family="borg"] .rail a[data-view]::before {
+    content: ""; position: absolute; left: -23px; top: 50%; bottom: auto; width: 23px; height: 16px; margin-top: -8px; box-shadow: none; pointer-events: none;
+    background:
+      radial-gradient(circle at 7.5px 50%, var(--bg) 0 4px, var(--nd-ring) 4.5px 5.8px, transparent 6.3px),
+      linear-gradient(var(--nd-stub) 0 0) 13px 50% / 10px 1px no-repeat; }
+  html[data-family="borg"] .rail a[data-view][aria-current]::before {
+    background:
+      radial-gradient(circle at 7.5px 50%, var(--brg-axis) 0 2.3px, var(--bg) 2.8px 3.8px, var(--brg-node) 4.2px 7px, transparent 7.5px),
+      linear-gradient(var(--brg-node) 0 0) 15px 50% / 8px 1px no-repeat;
+    filter: drop-shadow(0 0 4px var(--brg-glow)); }
+  html[data-family="borg"] .rail a[data-view]::after { top: 50%; right: 8px; margin-top: -6px; height: 12px; }
+  html[data-family="borg"] .rail__group, html[data-family="borg"] .rail .spacer::after {
+    --mid: 16.5px;
+    margin: 0 0 0 19px; padding: 12px 0 5px 19px; border-bottom: 0; text-align: left; font-size: 9px; letter-spacing: .14em;
+    background:
+      linear-gradient(var(--grp-c) 0 0) 0 calc(var(--mid) - 3.5px) / 7px 7px no-repeat,
+      linear-gradient(color-mix(in srgb, var(--grp-c) 60%, transparent) 0 0) 9px var(--mid) / 8px 1px no-repeat; }
+  html[data-family="borg"] .rail .spacer::after { --mid: 4.5px; padding-top: 0; }
 }
 
 /* ---- Wordmark, HUD labels, chips & status dots ----------------------------------------------------------------- */
@@ -813,7 +860,7 @@ html[data-family="borg"] .mx-seg > .mx-light {
 /* Lively: Unimatrix coordinate cascade in the rail spacer */
 html[data-family="borg"] .rail .spacer { position: relative; }
 html.mx-railnums[data-family="borg"] .mx-railnums {
-  display: block; position: absolute; left: 50%; top: 18px; bottom: 18px; width: 58px; transform: translateX(-50%); overflow: hidden; pointer-events: none;
+  display: block; position: absolute; left: 50%; top: 18px; bottom: 18px; width: 96px; white-space: pre; transform: translateX(-50%); overflow: hidden; pointer-events: none;
   font: 400 10px/1.6 var(--font-mono); letter-spacing: .06em; text-align: center; color: var(--brg-node); opacity: calc(var(--mx-amb) * .78);
   mask: linear-gradient(transparent, #000 22%, #000 78%, transparent);
   -webkit-mask: linear-gradient(transparent, #000 22%, #000 78%, transparent);
