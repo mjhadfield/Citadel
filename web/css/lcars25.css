@@ -23,17 +23,17 @@
 @media (min-width: 761px) {
   html[data-family="lcars"][data-theme="lcars25"] {
     --lcb-rail: 162px;
-    --lcb-arm: 10px;        /* the thin bar the Home corner throws across the top */
-    --lcb-deck: 34px;       /* the page's own row under it */
+    --lcb-arm: 10px;
+    --lcb-deck: 34px;
     --lcb-gap: 6px;
     --lcb-pad-top: 10px;
-    --lcb-core-h: 56px;     /* Home corner and Citadel corner share this height */
-    --lcb-r: 32px;          /* their outer radius */
+    --lcb-core-h: 56px;
+    --lcb-r: 32px;
     --lcb-cap-w: 140px;
-    --lcb-fil: 16px;        /* the concave fillet under the arm at each corner */
-    --lcb-lip: 64px;        /* the arm's last run, flush into the Citadel corner */
-    --lcb-row-inset: 20px;  /* the row's space either side: Home corner → row, row → start of the arm's last run */
-    --lcb-elb: var(--lc-hd-frame);   /* the elbow (Home corner + the start of the arm); amber while on Home */
+    --lcb-fil: 16px;
+    --lcb-lip: 64px;
+    --lcb-row-inset: 20px;
+    --lcb-elb: var(--lc-hd-frame);
     --lcb-arm-segs: linear-gradient(90deg,
       var(--lcb-elb) 0 5%, transparent 5% calc(5% + 5px),
       color-mix(in srgb, var(--lc-hd-frame) 45%, transparent) calc(5% + 5px) 40%, transparent 40% calc(40% + 5px),
@@ -81,7 +81,7 @@
     column-gap: 10px;
     row-gap: 0;
     align-items: center;
-    padding: 0 0 0 calc(var(--lcb-row-inset) - var(--main-pl));   /* .top starts --main-pl after the Home corner */
+    padding: 0 0 0 calc(var(--lcb-row-inset) - var(--main-pl));
     margin: 0 0 6px;
     position: relative;
   }
@@ -91,7 +91,7 @@
   html[data-family="lcars"][data-theme="lcars25"] .top::after {
     content: "";
     position: absolute;
-    left: calc(-1 * var(--main-pl) - 2px);   /* 2px under each corner: no hairline at the joins under the 1.2 zoom */
+    left: calc(-1 * var(--main-pl) - 2px);
     right: calc(var(--lcb-cap-w) - 2px);
     top: 0;
     bottom: auto;
@@ -133,7 +133,7 @@
     display: none;
   }
 
-  /* The Citadel corner: the Home corner mirrored */
+  /* The Citadel corner: the Home corner mirrored, with centred wordmark and device line */
   html[data-family="lcars"][data-theme="lcars25"] .top__brand {
     grid-column: 3;
     grid-row: 1 / 3;
@@ -142,12 +142,13 @@
     min-height: 0;
     height: var(--lcb-core-h);
     box-sizing: border-box;
-    padding: 12px 18px 0 14px;
+    padding: 12px 14px 0;
     border-radius: 0 var(--lcb-r) 0 0;
     background: var(--lc-hd-frame);
     color: var(--lc-on);
     display: flex;
     align-items: flex-start;
+    justify-content: center;
     gap: 0;
   }
   html[data-family="lcars"][data-theme="lcars25"] .top__brand .top__logo {
@@ -172,7 +173,7 @@
     z-index: 1;
     height: auto;
     margin: 0 0 9px;
-    padding: 0 12px 0 14px;
+    padding: 0 14px;
     border: 0;
     border-radius: 0;
     background: none;
@@ -182,6 +183,7 @@
     letter-spacing: .12em;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     white-space: nowrap;
     overflow: hidden;
@@ -197,14 +199,14 @@
     order: 0;
     min-height: var(--lcb-deck);
     align-self: center;
-    margin-top: var(--lcb-gap);   /* centred between the arm and the page's frame line (.top's bottom margin) */
+    margin-top: var(--lcb-gap);
     align-items: center;
     gap: 8px;
   }
   /* Home: the bookmarks take what they need and the readout the rest (no size containment here, or the auto
      column measures the bookmarks as nothing; the container query is only the Music page's player's) */
   html[data-family="lcars"][data-theme="lcars25"]:not([data-page="home"]) .top__mid {
-    margin-right: calc(var(--lcb-lip) + var(--lcb-row-inset) - 10px);   /* same space before the arm's last run as after the Home corner (10px = column-gap) */
+    margin-right: calc(var(--lcb-lip) + var(--lcb-row-inset) - 10px);
   }
   html[data-family="lcars"][data-theme="lcars25"][data-page="home"] .top__mid {
     grid-column: 1;
@@ -216,7 +218,7 @@
     padding: 0;
     order: 2;
     overflow: visible;
-    mask-image: none;   /* sized to its contents here, so the scroll fade would only fade the last button */
+    mask-image: none;
   }
   html[data-family="lcars"][data-theme="lcars25"] .sc {
     height: 26px;
@@ -375,7 +377,7 @@
     justify-content: center;
     gap: 20px;
     height: 28px;
-    margin: var(--lcb-gap) calc(var(--lcb-lip) + var(--lcb-row-inset) - 10px) 0 0;   /* centred like .top__mid */
+    margin: var(--lcb-gap) calc(var(--lcb-lip) + var(--lcb-row-inset) - 10px) 0 0;
     padding: 0 16px;
     border-radius: 3px;
     background: color-mix(in srgb, var(--surface-2) 86%, var(--bg));
@@ -406,7 +408,7 @@
   html[data-family="lcars"][data-theme="lcars25"] .readout dd {
     font-size: 17px;
     line-height: 1;
-    font-variant-numeric: tabular-nums;   /* digits keep their width, so the readings don't shift as they change */
+    font-variant-numeric: tabular-nums;
   }
 
   /* Reminders: a row under the header's (collapses to nothing when empty) */
@@ -590,7 +592,7 @@
     height: var(--lcb-core-h);
     min-height: var(--lcb-core-h);
     margin: 0;
-    padding: 9px 11px 9px 20px;   /* clear of the 32px curve */
+    padding: 9px 11px 9px 20px;
     border: 0;
     border-radius: var(--lcb-r) 0 0 0;
     display: flex;
@@ -653,7 +655,7 @@
   html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view="home"]::after {
     content: "";
     position: absolute;
-    left: calc(100% - 1px);   /* 1px under the corner and the arm: no seam */
+    left: calc(100% - 1px);
     right: auto;
     top: calc(var(--lcb-arm) - 1px);
     bottom: auto;
@@ -671,8 +673,6 @@
   /* Rail nav pills: right-capped, numbered, an even 8px from the rail spine on the left and the page spine on the right */
   html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view]:not([data-view="home"]),
   html[data-family="lcars"][data-theme="lcars25"] .rail a.rail__settings {
-    /* An even 8px from the rail's spine (ends 17px) and the page's spine (starts --lcb-rail + --main-pl + 2px = 172px):
-       pills run 25px → 164px, i.e. 2px in from the rail's padding on the left and 8px past it on the right */
     width: calc(100% + 8px);
     min-width: 0;
     min-height: 32px;
@@ -822,43 +822,56 @@
   }
 
   html[data-family="lcars"][data-theme="lcars25"] .view.is-active {
+    --lcb-vr: 16px;
     border: 0;
     border-radius: 0;
     padding: 10px 0 10px 18px;
-    background: var(--lcb-segs-bot) 14px 100% / calc(100% - 14px) 3px no-repeat;
+    background: var(--lcb-segs-bot) var(--lcb-vr) 100% / calc(100% - var(--lcb-vr)) 3px no-repeat;
   }
 
-  /* 7px segmented vertical spine down the left edge of the viewport */
+  /* 7px segmented vertical spine with tapered rounded corners into the 3px top and bottom rails */
   html[data-family="lcars"][data-theme="lcars25"] .view.is-active::before {
     content: "";
     position: absolute;
     left: 2px;
     top: 0;
     bottom: 0;
-    width: 7px;
+    width: var(--lcb-vr);
     height: auto;
     border: 0;
-    border-radius: 4px 2px 2px 4px;
+    border-radius: 0;
     pointer-events: none;
-    background: linear-gradient(180deg,
-      var(--lc-hd-frame) 0 38%,
-      transparent 38% calc(38% + 4px),
-      var(--lc-hd-2) calc(38% + 4px) 62%,
-      transparent 62% calc(62% + 4px),
-      color-mix(in srgb, var(--lc-6) 52%, transparent) calc(62% + 4px) 82%,
-      transparent 82% calc(82% + 4px),
-      var(--lc-hd-3) calc(82% + 4px) 100%);
+    background:
+      linear-gradient(var(--lc-hd-frame), var(--lc-hd-frame)) 0 0 / 100% calc(var(--lcb-vr) + 1px) no-repeat,
+      linear-gradient(var(--lc-hd-3), var(--lc-hd-3)) 0 100% / 100% calc(var(--lcb-vr) + 1px) no-repeat,
+      linear-gradient(180deg,
+        var(--lc-hd-frame) 0 38%,
+        transparent 38% calc(38% + 4px),
+        var(--lc-hd-2) calc(38% + 4px) 62%,
+        transparent 62% calc(62% + 4px),
+        color-mix(in srgb, var(--lc-6) 52%, transparent) calc(62% + 4px) 82%,
+        transparent 82% calc(82% + 4px),
+        var(--lc-hd-3) calc(82% + 4px) 100%) 0 var(--lcb-vr) / 7px calc(100% - 2 * var(--lcb-vr)) no-repeat;
+    mask:
+      linear-gradient(#000, #000) 0 calc(var(--lcb-vr) - 1px) / 7px calc(100% - 2 * var(--lcb-vr) + 2px) no-repeat,
+      linear-gradient(#000, #000) calc(var(--lcb-vr) - 1px) 0 / 1px 3px no-repeat,
+      linear-gradient(#000, #000) calc(var(--lcb-vr) - 1px) 100% / 1px 3px no-repeat,
+      radial-gradient(calc(var(--lcb-vr) - 7px) calc(var(--lcb-vr) - 3px) at var(--lcb-vr) calc(100% - var(--lcb-vr)), transparent calc(100% - .5px), #000 calc(100% + .5px)) 0 0 / 100% 100% no-repeat,
+      radial-gradient(circle var(--lcb-vr) at 100% 0, #000 calc(100% - .5px), transparent calc(100% + .5px)) 0 100% / var(--lcb-vr) var(--lcb-vr) no-repeat,
+      radial-gradient(calc(var(--lcb-vr) - 7px) calc(var(--lcb-vr) - 3px) at 100% 100%, transparent calc(100% - .5px), #000 calc(100% + .5px)) 0 0 / var(--lcb-vr) var(--lcb-vr) no-repeat,
+      radial-gradient(circle var(--lcb-vr) at 100% 100%, #000 calc(100% - .5px), transparent calc(100% + .5px)) 0 0 / var(--lcb-vr) var(--lcb-vr) no-repeat;
+    mask-composite: add, add, add, intersect, add, intersect, add;
   }
 
   /* 3px segmented top framing rail (aligned with motion.js SEGS.body) */
   html[data-family="lcars"][data-theme="lcars25"] .view.is-active::after {
     content: "";
     position: absolute;
-    left: 14px;
+    left: var(--lcb-vr);
     right: 0;
     top: 0;
     height: 3px;
-    border-radius: 1.5px;
+    border-radius: 0 1.5px 1.5px 0;
     pointer-events: none;
     background: var(--lcb-segs-top);
   }
@@ -873,7 +886,7 @@
   }
   html[data-family="lcars"][data-theme="lcars25"] .view.is-active:has(> .frame-shell)::after {
     right: 0;
-    border-radius: 1.5px;
+    border-radius: 0 1.5px 1.5px 0;
   }
   html[data-family="lcars"][data-theme="lcars25"] .frame-shell {
     inset: 6px 0 6px 14px;
