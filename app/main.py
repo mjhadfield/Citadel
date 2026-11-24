@@ -37,7 +37,9 @@ for _noisy in ("httpx", "httpcore"):
 # Odysseus (Odysseus page, :7011 — its own framing rules are widened for Citadel by a proxy in ~/Projects/Odysseus) and
 # Home Improvements (House page, :8670 — its frame-ancestors lists Citadel's origins, config.CITADEL_ORIGINS there),
 # ZebraLab (Labels page, :8710 — same Citadel theme sync and frame-ancestors),
-# Holodeck (Holodeck page, :8720 — also allows loopback origins so Gaming's browser stays in a secure context for Gamepad API), and
+# Holodeck (Holodeck page, :8720 — also allows loopback origins so Gaming's browser stays in a secure context for Gamepad API),
+# Home Assistant (HomeLab page, Probe-1 at .79 — it serves on port 80 and 8123 only redirects there; its Settings →
+# System → Network → HTTP server → More options → "Send X-Frame-Options" must be off, or browsers refuse the frame), and
 # Casino World (Casino page, https :8661 — self-signed, so a browser must have accepted its certificate once) —
 # fixed addresses, hardcoded here the same way the image hosts above are; if any changes in Settings, this needs
 # a matching edit. i.scdn.co is Spotify's artwork CDN (the Music page's player bar). The last seven image hosts are the News
@@ -50,7 +52,7 @@ for _noisy in ("httpx", "httpcore"):
 CSP = ("default-src 'self'; img-src 'self' data: https://cdn.shopify.com https://imagescdn.juno.co.uk https://static.wixstatic.com https://coverartarchive.org https://archive.org https://*.archive.org https://i.scdn.co "
        "https://ichef.bbci.co.uk https://i.guim.co.uk https://e3.365dm.com https://cdn.arstechnica.net https://www.newscientist.com https://www.quantamagazine.org https://www.sciencenews.org https://knowablemagazine.org https://th-thumbnailer.cdn-si-edu.com; "
        "style-src 'self' 'unsafe-inline'; script-src 'self'; "
-       "connect-src 'self'; font-src 'self'; frame-src 'self' http://192.168.0.70:8096 http://192.168.0.66:8642 http://192.168.0.66:8643 http://192.168.0.66:8644 http://192.168.0.66:7011 http://192.168.0.66:8670 http://192.168.0.66:8710 http://192.168.0.66:8720 http://127.0.0.1:8720 http://localhost:8720 https://192.168.0.66:8661; frame-ancestors 'self'; base-uri 'none'; form-action 'self'")
+       "connect-src 'self'; font-src 'self'; frame-src 'self' http://192.168.0.70:8096 http://192.168.0.66:8642 http://192.168.0.66:8643 http://192.168.0.66:8644 http://192.168.0.66:7011 http://192.168.0.66:8670 http://192.168.0.66:8710 http://192.168.0.66:8720 http://127.0.0.1:8720 http://localhost:8720 http://192.168.0.79 http://192.168.0.79:8123 https://192.168.0.66:8661; frame-ancestors 'self'; base-uri 'none'; form-action 'self'")
 
 
 class NoCacheStatic(StaticFiles):

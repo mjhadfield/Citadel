@@ -47,6 +47,7 @@ PAGES: tuple[tuple[str, str, bool, bool, str, str], ...] = (
     ("holodeck", "Holodeck", False, True, "gamepad", "science"),
     ("labels", "Labels", False, True, "printer", "engineering"),
     ("house", "House", True, True, "tool", "engineering"),
+    ("lab", "HomeLab", False, True, "bulb", "engineering"),
     ("ai", "Odysseus", True, True, "spark", "engineering"),
     ("curate", "Curate", False, False, "tag", ""),
     ("audio", "Audio", False, False, "mixer", ""),

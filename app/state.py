@@ -124,6 +124,7 @@ def links_state(health: Health, guest_only: bool = False) -> list[dict[str, Any]
             "for_media": bool(r["for_media"]), "for_music": bool(r["for_music"]), "for_sql": bool(r["for_sql"]),
             "for_ai": bool(r["for_ai"]), "for_house": bool(r["for_house"]), "for_casino": bool(r["for_casino"]),
             "for_labels": bool(r["for_labels"]), "for_holodeck": bool(r["for_holodeck"]),
+            "for_lab": bool(r["for_lab"]),
             "up": (h["ok"] if h else None),   # None = no health check configured / not probed yet
         })
     return out

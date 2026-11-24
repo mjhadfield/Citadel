@@ -262,7 +262,7 @@ def _link_cfg(r: sqlite3.Row) -> dict[str, Any]:
             "pinned": r["pin_order"] is not None, "for_media": bool(r["for_media"]), "for_music": bool(r["for_music"]), "for_sql": bool(r["for_sql"]),
             "for_ai": bool(r["for_ai"]), "for_house": bool(r["for_house"]),
             "for_casino": bool(r["for_casino"]), "for_labels": bool(r["for_labels"]),
-            "for_holodeck": bool(r["for_holodeck"])}
+            "for_holodeck": bool(r["for_holodeck"]), "for_lab": bool(r["for_lab"])}
 
 
 def _project_cfg(r: sqlite3.Row) -> dict[str, Any]:
@@ -420,6 +420,15 @@ def _apply_for_holodeck(con: sqlite3.Connection, link_id: Any, for_holodeck: boo
     con.execute("UPDATE links SET for_holodeck = 1 WHERE id = ?", (link_id,))
 
 
+def _apply_for_lab(con: sqlite3.Connection, link_id: Any, for_lab: bool) -> None:
+    """Same idea as _apply_for_labels, for the HomeLab page's iframe (Home Assistant)."""
+    if not for_lab:
+        con.execute("UPDATE links SET for_lab = 0 WHERE id = ?", (link_id,))
+        return
+    con.execute("UPDATE links SET for_lab = 0 WHERE id != ?", (link_id,))
+    con.execute("UPDATE links SET for_lab = 1 WHERE id = ?", (link_id,))
+
+
 def _apply_page(con: sqlite3.Connection, slug: str, column: str, on: bool | None) -> None:
     """A project as the Companion (for_music) or SQL DB (for_sql) page's source. One source per page across links
     and projects together, so choosing a project here takes the job from whichever link or project had it."""
@@ -448,6 +457,7 @@ async def create_link(body: schemas.LinkIn, request: Request):
         _apply_for_casino(con, cur.lastrowid, body.for_casino)
         _apply_for_labels(con, cur.lastrowid, body.for_labels)
         _apply_for_holodeck(con, cur.lastrowid, body.for_holodeck)
+        _apply_for_lab(con, cur.lastrowid, body.for_lab)
     notify.config()
     asyncio.create_task(request.app.state.health.sweep_now())
     return {"id": cur.lastrowid}
@@ -475,6 +485,7 @@ async def update_link(link_id: int, body: schemas.LinkIn, request: Request):
             _apply_for_casino(con, link_id, body.for_casino)
             _apply_for_labels(con, link_id, body.for_labels)
             _apply_for_holodeck(con, link_id, body.for_holodeck)
+            _apply_for_lab(con, link_id, body.for_lab)
     if not n:
         raise HTTPException(404, "no such link")
     notify.config()

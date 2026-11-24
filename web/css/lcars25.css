@@ -329,6 +329,7 @@
   html[data-family="lcars"][data-theme="lcars25"][data-page="house"] .top__ctx,
   html[data-family="lcars"][data-theme="lcars25"][data-page="audio"] .top__ctx { --lc-c: var(--lc-3); }
   html[data-family="lcars"][data-theme="lcars25"][data-page="media"] .top__ctx,
+  html[data-family="lcars"][data-theme="lcars25"][data-page="lab"] .top__ctx,
   html[data-family="lcars"][data-theme="lcars25"][data-page="casino"] .top__ctx { --lc-c: var(--lc-4); }
   html[data-family="lcars"][data-theme="lcars25"][data-page="music"] .top__ctx,
   html[data-family="lcars"][data-theme="lcars25"][data-page="holodeck"] .top__ctx,
