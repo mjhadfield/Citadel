@@ -80,6 +80,7 @@ html[data-family="lcars"] .rail [data-view="house"] { --lc-c: var(--lc-3); }
 html[data-family="lcars"] .rail [data-view="labels"] { --lc-c: var(--lc-2); }
 html[data-family="lcars"] .rail [data-view="holodeck"] { --lc-c: var(--lc-5); }
 html[data-family="lcars"] .rail [data-view="lab"] { --lc-c: var(--lc-4); }
+html[data-family="lcars"] .rail [data-view="routines"] { --lc-c: var(--lc-1); }
 html[data-family="lcars"] .rail [data-view="stats"] { --lc-c: var(--lc-1); }
 html[data-family="lcars"] .rail [data-view="curate"] { --lc-c: var(--lc-2); }
 html[data-family="lcars"] .rail [data-view="audio"] { --lc-c: var(--lc-3); }
@@ -160,9 +161,9 @@ html[data-family="lcars"] .rail a[data-view], html[data-family="lcars"] .rail a.
 html[data-family="lcars"] .rail a[data-view] .i, html[data-family="lcars"] .rail a.rail__settings .i { width: 22px; height: 22px; }
 html[data-family="lcars"] .rail a::after {
   content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
-  --lit: color-mix(in srgb, var(--lc-c) 62%, transparent);
+  --lit: color-mix(in srgb, var(--nav-c, var(--lc-c)) 62%, transparent);
   --hl: color-mix(in srgb, var(--silver) 24%, transparent);
-  --fill: color-mix(in srgb, var(--lc-c) 10%, var(--surface));
+  --fill: color-mix(in srgb, var(--nav-c, var(--lc-c)) 10%, var(--surface));
   border: 1px solid transparent; border-left-width: 3px; border-radius: var(--r) 0 var(--r) var(--r);
   background:
     linear-gradient(to bottom left, transparent calc(50% - .7px), var(--hl) calc(50% - .7px) calc(50% + .7px), transparent calc(50% + .7px)) top right / var(--c) var(--c) no-repeat border-box,
@@ -172,7 +173,8 @@ html[data-family="lcars"] .rail a::after {
   opacity: 0; transform: scaleX(.9); transform-origin: left center; transition: opacity .2s var(--lc-ease), transform .28s var(--lc-ease); }
 html[data-family="lcars"] .rail a:is(:hover, :focus-visible, [aria-current])::after { opacity: 1; transform: none; }
 html[data-family="lcars"] .rail a[aria-current]::after { --lit: var(--lc-c); --fill: color-mix(in srgb, var(--lc-c) 18%, var(--surface)); }
-html[data-family="lcars"] .rail a:active::after { --fill: color-mix(in srgb, var(--lc-c) 32%, var(--surface)); }
+html[data-family="lcars"] .rail a:active::after { --fill: color-mix(in srgb, var(--nav-c, var(--lc-c)) 32%, var(--surface)); }
+html[data-family="lcars"] .rail a[aria-current]:active::after { --fill: color-mix(in srgb, var(--lc-c) 32%, var(--surface)); }
 html[data-family="lcars"] .rail a:hover { color: var(--silver-hi); }
 html[data-family="lcars"] .rail a[aria-current] { color: var(--lc-c); }
 html[data-family="lcars"] .rail a[aria-current]::before { left: -11px; top: 14px; bottom: 14px; width: 4px; background: var(--lc-c); box-shadow: none; border-radius: 0 4px 4px 0; }
@@ -195,6 +197,7 @@ html[data-family="lcars"] .rail__logo { display: none; }
     font-size: 15px; letter-spacing: .1em; --r: 14px; }
   html[data-family="lcars"][data-theme="lcars"] .rail a[data-view][hidden] { display: none; }
   html[data-family="lcars"][data-theme="lcars"] .rail a[data-view] .i { width: 19px; height: 19px; }
+  html[data-family="lcars"][data-theme="lcars"] .rail a[data-view]:not([aria-current]) .i { color: var(--nav-c, currentColor); }
   html[data-family="lcars"][data-theme="lcars"] .rail__label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   html[data-family="lcars"][data-theme="lcars"] .rail a[aria-current]::before { left: -11px; top: 10px; bottom: 10px; }
   html[data-family="lcars"][data-theme="lcars"] .rail a[data-view="home"] { height: 48px; font-size: 17px; }

@@ -335,6 +335,7 @@
   html[data-family="lcars"][data-theme="lcars25"][data-page="holodeck"] .top__ctx,
   html[data-family="lcars"][data-theme="lcars25"][data-page="settings"] .top__ctx { --lc-c: var(--lc-5); }
   html[data-family="lcars"][data-theme="lcars25"][data-page="listen"] .top__ctx,
+  html[data-family="lcars"][data-theme="lcars25"][data-page="routines"] .top__ctx,
   html[data-family="lcars"][data-theme="lcars25"][data-page="stats"] .top__ctx { --lc-c: var(--lc-1); }
   html[data-family="lcars"][data-theme="lcars25"][data-page="ai"] .top__ctx { --lc-c: var(--lc-6); }
   html[data-family="lcars"][data-theme="lcars25"][data-page="labels"] .top__ctx,
@@ -685,9 +686,10 @@
     align-items: center;
     justify-content: flex-start;
     gap: 6px;
+    --pc: var(--nav-c, var(--silver-dim));   /* the page's department colour (dashboard.css); grey for Ops */
     border-radius: 4px 14px 14px 4px;
-    background: color-mix(in srgb, var(--lc-c) 9%, var(--surface));
-    border-left: 2.5px solid color-mix(in srgb, var(--lc-c) 60%, transparent);
+    background: color-mix(in srgb, var(--pc) 9%, var(--surface));
+    border-left: 2.5px solid color-mix(in srgb, var(--pc) 60%, transparent);
     color: var(--silver);
     font: 500 13px/1 var(--lc-font);
     letter-spacing: .05em;
@@ -705,7 +707,7 @@
   html[data-family="lcars"][data-theme="lcars25"] .rail a.rail__settings .i {
     width: 15px;
     height: 15px;
-    color: var(--lc-c);
+    color: var(--pc);
     flex: none;
   }
   html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view]:not([data-view="home"]) .rail__label,
@@ -741,27 +743,22 @@
   }
   html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view]:not([data-view="home"]):hover,
   html[data-family="lcars"][data-theme="lcars25"] .rail a.rail__settings:hover {
-    background: color-mix(in srgb, var(--lc-c) 22%, var(--surface-2));
+    background: color-mix(in srgb, var(--pc) 17%, var(--surface-2));
     color: var(--silver-hi);
   }
+  /* Current page: a darker wash of the department colour with a full-strength left edge (Mike, 2026-11-24) */
   html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view]:not([data-view="home"])[aria-current],
   html[data-family="lcars"][data-theme="lcars25"] .rail a.rail__settings[aria-current] {
-    background: var(--lc-c);
-    color: var(--lc-on);
-    border-left-color: transparent;
+    background: color-mix(in srgb, var(--pc) 28%, var(--surface));
+    color: var(--silver-hi);
+    border-left-color: var(--pc);
     font-weight: 600;
-    box-shadow: inset 3px 0 0 rgba(255, 255, 255, .45), 0 0 12px color-mix(in srgb, var(--lc-c) 28%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pc) 40%, transparent);
   }
-  html[data-family="lcars"][data-theme="lcars25"][data-mode="day"] .rail a[data-view]:not([data-view="home"])[aria-current],
-  html[data-family="lcars"][data-theme="lcars25"][data-mode="day"] .rail a.rail__settings[aria-current] {
-    box-shadow: inset 3px 0 0 rgba(255, 255, 255, .32);
-  }
-  html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view]:not([data-view="home"])[aria-current] .i,
-  html[data-family="lcars"][data-theme="lcars25"] .rail a.rail__settings[aria-current] .i,
   html[data-family="lcars"][data-theme="lcars25"] .rail a[data-view]:not([data-view="home"])[aria-current]::after,
   html[data-family="lcars"][data-theme="lcars25"] .rail a.rail__settings[aria-current]::after {
-    color: var(--lc-on);
-    opacity: .88;
+    color: var(--silver);
+    opacity: .9;
   }
 
   /* Subtle OPS divider anchored at the foot of the spacer above Curate/Audio/Settings */

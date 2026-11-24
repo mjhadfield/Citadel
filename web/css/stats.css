@@ -49,6 +49,13 @@ html[data-family="lcars"] .rs-m[aria-pressed="true"] { border-color: var(--lc-fr
 html[data-family="lcars"] .rs-m__head b { font: 500 18px/1 var(--lc-font); letter-spacing: .1em; text-transform: uppercase; }
 html[data-family="lcars"] .rs-meter i span, html[data-family="lcars"] .rs-spark path { background: var(--lc-frame); stroke: var(--lc-frame); }
 html[data-family="lcars"] .rs-meter.is-hot i span { background: var(--warn); }
+/* LCARS 25: the machine buttons are its 6px tiles with a top cap, like the panels beside them (lcars25.css .card), not
+   classic LCARS's rounded left elbow (Mike, 2026-11-24). The picked machine lights its whole edge and takes a wash. */
+html[data-family="lcars"][data-theme="lcars25"] .rs-m { border-radius: 6px; border: 1px solid color-mix(in srgb, var(--lc-frame) 28%, var(--edge));
+  border-top: 2px solid var(--lc-frame); transition: border-color .18s var(--lc-ease), background .18s var(--lc-ease); }
+html[data-family="lcars"][data-theme="lcars25"] .rs-m:hover { border-color: color-mix(in srgb, var(--lc-frame) 64%, var(--edge)); border-top-color: var(--lc-frame); }
+html[data-family="lcars"][data-theme="lcars25"][data-mode="day"] .rs-m:not([aria-pressed="true"]):not(:hover) { border-color: color-mix(in srgb, var(--lc-frame) 40%, var(--edge)); border-top-color: var(--lc-frame); }
+html[data-family="lcars"][data-theme="lcars25"] .rs-m[aria-pressed="true"] { border-color: var(--lc-frame); background: color-mix(in srgb, var(--lc-frame) 12%, var(--surface)); }
 
 /* ---- the picked machine ---- */
 .rs-detail { display: grid; gap: var(--gap); align-content: start; min-width: 0; }

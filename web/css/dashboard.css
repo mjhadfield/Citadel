@@ -41,6 +41,14 @@
 .rail__group[data-group="command"] { --grp-c: var(--grp-command); }
 .rail__group[data-group="science"] { --grp-c: var(--grp-science); }
 .rail__group[data-group="engineering"] { --grp-c: var(--grp-engineering); }
+/* Each page on the rail wears its department's colour too (--nav-c): every theme colours the icon and the hover with it,
+   LCARS 25 its pill as well (Mike, 2026-11-24). Unset for Ops and groups added in Settings, so those keep the
+   theme's own colours. */
+.rail a[data-group="command"] { --nav-c: var(--grp-command); }
+.rail a[data-group="science"] { --nav-c: var(--grp-science); }
+.rail a[data-group="engineering"] { --nav-c: var(--grp-engineering); }
+/* Home wears the style's own primary colour instead (Citadel, LCARS and Borg; LCARS 25 draws Home its own way) */
+html:not([data-theme="lcars25"]) .rail a[data-view="home"] { --nav-c: var(--accent); }
 
 /* Citadel theme, desktop: "department brackets" (Mike, 2026-11-24, version B of the rail mockups). Wider and shorter rows:
    the icon sits in a small chamfered key beside its label, the current page's key lights solid, and a hairline bracket in
@@ -59,7 +67,7 @@
   html[data-family="citadel"] .rail a[data-group="science"] { --grp-c: var(--grp-science); }
   html[data-family="citadel"] .rail a[data-group="engineering"] { --grp-c: var(--grp-engineering); }
   html[data-family="citadel"] .rail a[data-view] .i {
-    box-sizing: border-box; width: 28px; height: 26px; padding: 4px 5.5px; color: inherit;
+    box-sizing: border-box; width: 28px; height: 26px; padding: 4px 5.5px; color: var(--nav-c, currentColor);
     background: color-mix(in srgb, var(--silver) 7%, transparent);
     clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%); transition: background .2s, color .2s; }
   html[data-family="citadel"] .rail__label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -69,7 +77,7 @@
     content: ""; position: absolute; left: 0; top: -3px; bottom: -3px; width: 1px;
     background: color-mix(in srgb, var(--grp-c) 55%, transparent); box-shadow: none; }
   html[data-family="citadel"] .rail a[data-view]:hover { color: var(--silver-hi); }
-  html[data-family="citadel"] .rail a[data-view]:hover .i { background: color-mix(in srgb, var(--silver) 14%, transparent); }
+  html[data-family="citadel"] .rail a[data-view]:hover .i { background: color-mix(in srgb, var(--nav-c, var(--silver)) 18%, transparent); }
   html[data-family="citadel"] .rail a[data-view][aria-current] { color: var(--silver-hi); background: linear-gradient(90deg, var(--accent-wash), transparent 85%); }
   html[data-family="citadel"] .rail a[data-view][aria-current] .i { background: var(--accent); color: var(--bg); }
   /* headings sit on the bracket's top corner (drawn as two background lines, so the Ops pseudo-element gets it too) */

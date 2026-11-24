@@ -262,9 +262,10 @@ html[data-family="borg"] .rail a[aria-current]::after {
       linear-gradient(315deg, transparent 5.66px, var(--pl-b) 5.66px) 0 0 / 100% 100% no-repeat; }
   html[data-family="borg"] .rail a[data-view][hidden] { display: none; }
   html[data-family="borg"] .rail a[data-view] .i { width: 18px; height: 18px; }
+  html[data-family="borg"] .rail a[data-view]:not([aria-current]) .i { color: var(--nav-c, currentColor); }
   html[data-family="borg"] .rail__label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   html[data-family="borg"] .rail a[data-view]:hover {
-    --pl-f: color-mix(in srgb, var(--brg-node) 11%, var(--surface)); --pl-b: color-mix(in srgb, var(--brg-node) 45%, transparent); --nd-ring: var(--brg-cyan); }
+    --pl-f: color-mix(in srgb, var(--nav-c, var(--brg-node)) 11%, var(--surface)); --pl-b: color-mix(in srgb, var(--nav-c, var(--brg-node)) 45%, transparent); --nd-ring: var(--brg-cyan); }
   html[data-family="borg"] .rail a[data-view][aria-current] {
     --pl-f: color-mix(in srgb, var(--brg-node) 16%, var(--surface-2)); --pl-b: color-mix(in srgb, var(--brg-node) 68%, transparent); }
   html[data-family="borg"] .rail a[data-view]::before {
@@ -274,7 +275,7 @@ html[data-family="borg"] .rail a[aria-current]::after {
       linear-gradient(var(--nd-stub) 0 0) 13px 50% / 10px 1px no-repeat; }
   html[data-family="borg"] .rail a[data-view][aria-current]::before {
     background:
-      radial-gradient(circle at 7.5px 50%, var(--brg-axis) 0 2.3px, var(--bg) 2.8px 3.8px, var(--brg-node) 4.2px 7px, transparent 7.5px),
+      radial-gradient(circle at 7.5px 50%, var(--nav-c, var(--brg-axis)) 0 2.3px, var(--bg) 2.8px 3.8px, var(--brg-node) 4.2px 7px, transparent 7.5px),
       linear-gradient(var(--brg-node) 0 0) 15px 50% / 8px 1px no-repeat;
     filter: drop-shadow(0 0 4px var(--brg-glow)); }
   html[data-family="borg"] .rail a[data-view]::after { top: 50%; right: 8px; margin-top: -6px; height: 12px; }
