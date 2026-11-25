@@ -500,7 +500,9 @@ function renderAll() {
 // through there instead would mean every tick triggers a full dashboard refresh (including two systemctl calls
 // for project status) just for one tile. The server-side reading itself is a background loop now too (see
 // app/monitor.py) — this fetch just reads its latest cached value, no live sensor read in the request at all.
-const monVisible = () => $('#monitoring')?.offsetParent !== null;
+// Not offsetParent: an expanded card is position: fixed, whose offsetParent is null wherever the viewport contains it
+// (every screen ≤1500px), so the open Monitoring card froze. getClientRects() is empty only when it isn't rendered.
+const monVisible = () => ($('#monitoring')?.getClientRects().length ?? 1) > 0;
 async function pollMonitoring() {
   if (!state || document.hidden || VIEWS.includes(location.hash.slice(1)) && location.hash !== '#home') return;   // the tile is on Home only
   try { monitoring = await api.get('/api/owner/monitoring'); } catch { /* keep the last good reading, don't blank the tile over one dropped request */ }

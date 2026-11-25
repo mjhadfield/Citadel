@@ -144,7 +144,9 @@ function paintGauge(g, force = false) {
   if (force || g.sgl !== gl) { g.sgl = gl; g.el.style.setProperty('--gl', gl); }   // the lead's glow: none on an empty gauge
 }
 function trackGauges(scope) {
-  if (scope.offsetParent === null) return;   // hidden card (e.g. .card--popout on wide screens): never animate off-screen gauges
+  // hidden card (e.g. .card--popout on wide screens): never animate off-screen gauges. Not offsetParent, which is also
+  // null for a position: fixed element such as an expanded card.
+  if (!scope.getClientRects().length) return;
   const now = performance.now();
   let needStep = false;
   scope.querySelectorAll('.bar__track').forEach(el => {
