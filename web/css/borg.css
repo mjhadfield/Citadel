@@ -434,26 +434,30 @@ html[data-family="borg"] .alert--now .alert__when { background: var(--bad); colo
    ========================================================================== */
 html[data-family="borg"] .card {
   --c: 13px;
-  padding: 1px;
-  background: linear-gradient(135deg,
+  --card-bg: linear-gradient(135deg,
     color-mix(in srgb, var(--brg-frame) 72%, transparent) 0%,
     color-mix(in srgb, var(--brg-cyan) 34%, transparent) 42%,
     color-mix(in srgb, var(--brg-frame) 22%, transparent) 78%,
     color-mix(in srgb, var(--brg-axis) 58%, transparent) 100%);
+  --card-fill: linear-gradient(180deg, color-mix(in srgb, var(--brg-frame) 5%, var(--surface-2)) 0, var(--surface) 64px, var(--surface) 100%);
+  padding: 1px;
+  background: none;
+}
+html[data-family="borg"] .card::before {
   clip-path: polygon(var(--c) 0, 100% 0, 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, 0 100%, 0 var(--c));
-  transition: background .25s var(--brg-ease), filter .25s var(--brg-ease);
+}
+html[data-family="borg"] .card::after {
+  clip-path: polygon(calc(var(--c) - .5px) 0, 100% 0, 100% calc(100% - var(--c) + .5px), calc(100% - var(--c) + .5px) 100%, 0 100%, 0 calc(var(--c) - .5px));
 }
 html[data-family="borg"] .card:hover {
-  background: linear-gradient(135deg,
+  --card-bg: linear-gradient(135deg,
     var(--brg-node) 0%,
     color-mix(in srgb, var(--brg-cyan) 55%, transparent) 45%,
     color-mix(in srgb, var(--brg-node) 44%, transparent) 78%,
     var(--brg-axis) 100%);
 }
-html[data-family="borg"] .card__in {
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--brg-frame) 5%, var(--surface-2)) 0, var(--surface) 64px, var(--surface) 100%);
-  clip-path: polygon(calc(var(--c) - .5px) 0, 100% 0, 100% calc(100% - var(--c) + .5px), calc(100% - var(--c) + .5px) 100%, 0 100%, 0 calc(var(--c) - .5px));
+html[data-family="borg"] .card:not(.is-max) .card__in.is-fade::after {
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--c) + .5px), calc(100% - var(--c) + .5px) 100%, 0 100%);
 }
 /* top tactical accent bar: short gold crosshair segment running into phosphor emerald */
 html[data-family="borg"] .card__in::before {
@@ -515,6 +519,7 @@ html[data-family="borg"] #grid > .card.is-max {
   background: linear-gradient(135deg, var(--brg-node), color-mix(in srgb, var(--brg-cyan) 65%, transparent) 50%, var(--brg-axis));
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--brg-node) 35%, transparent), 0 24px 64px var(--vignette), 0 0 40px -10px var(--brg-glow);
 }
+html[data-family="borg"] #grid > .card.is-max::before, html[data-family="borg"] #grid > .card.is-max::after { content: none; }
 html[data-family="borg"] #grid > .card.is-max .card__in { clip-path: none; background: var(--surface); }
 html[data-family="borg"] #grid > .card.is-max .card__in::before { display: none; }
 html[data-family="borg"] #grid > .card.is-max .card__head {
@@ -574,13 +579,18 @@ html[data-family="borg"] .bar__track {
   background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--brg-frame) 15%, transparent) 0 6px, transparent 6px 8px);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brg-frame) 20%, transparent);
 }
+/* Drawn with layered gap stripes rather than CSS mask so .bar__fill::before sheen stays off GPU mask render passes (2026-11-25). */
 html[data-family="borg"] .bar__fill {
   border-radius: 0;
-  background: linear-gradient(90deg, var(--accent-deep), var(--brg-node));
-  -webkit-mask: repeating-linear-gradient(90deg, #000 0 6px, transparent 6px 8px);
-  mask: repeating-linear-gradient(90deg, #000 0 6px, transparent 6px 8px);
+  background:
+    repeating-linear-gradient(90deg, transparent 0 6px, var(--surface) 6px 8px),
+    linear-gradient(90deg, var(--accent-deep), var(--brg-node));
 }
-html[data-family="borg"] .bar__fill--hot { background: linear-gradient(90deg, var(--brg-axis), var(--bad)); }
+html[data-family="borg"] .bar__fill--hot {
+  background:
+    repeating-linear-gradient(90deg, transparent 0 6px, var(--surface) 6px 8px),
+    linear-gradient(90deg, var(--brg-axis), var(--bad));
+}
 html[data-family="borg"] .mon-temp { font-family: var(--font-display); font-weight: 700; color: var(--brg-node); }
 html[data-family="borg"][data-mode="day"] .mon-temp { color: var(--silver-hi); }
 html[data-family="borg"] .mon-temp--warm { color: var(--warn); }
@@ -608,20 +618,21 @@ html[data-family="borg"] .cover {
   clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
 }
 
-/* Launchpad & Remote Access tiles */
-html[data-family="borg"] .tile {
+/* Launchpad & Remote Access tiles (chamfer sits on ::before so animated dots aren't wrapped in clip-path) */
+html[data-family="borg"] .tile { border: 0; background: none; clip-path: none; }
+html[data-family="borg"] .tile::before {
   border: 1px solid color-mix(in srgb, var(--brg-frame) 26%, transparent);
   border-left: 3px solid color-mix(in srgb, var(--brg-node) 65%, transparent);
   background: color-mix(in srgb, var(--brg-frame) 5%, var(--surface-2));
   clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
 }
-html[data-family="borg"] .tile:hover {
+html[data-family="borg"] .tile:hover { transform: none; }
+html[data-family="borg"] .tile:hover::before {
   border-color: var(--brg-node); border-left-color: var(--brg-axis);
   background: color-mix(in srgb, var(--brg-node) 14%, var(--surface-2));
-  transform: none;
 }
 html[data-family="borg"] .tile > .i { color: var(--brg-node); }
-html[data-family="borg"] .tile--primary { border-left-color: var(--brg-axis); background: color-mix(in srgb, var(--brg-frame) 10%, var(--surface-2)); }
+html[data-family="borg"] .tile--primary::before { border-left-color: var(--brg-axis); background: color-mix(in srgb, var(--brg-frame) 10%, var(--surface-2)); }
 
 /* ==========================================================================
    News & Music tabs, segmented switches, playlists & player bar
@@ -800,8 +811,8 @@ html[data-family="borg"][data-motion="lively"] { --mx-amb: .48; --mx-breathe: 3.
 @keyframes brg-ping { from { transform: scale(1); opacity: .9; } to { transform: scale(3.2); opacity: 0; } }
 @keyframes brg-ack { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes brg-sheen { 0% { transform: translateX(-100%); } 30%, 100% { transform: translateX(260%); } }
+@keyframes brg-cue { from { opacity: 1; } to { opacity: 0; } }
 @keyframes brg-pulse { to { background-position: 140% center, left center; } }
-@keyframes brg-trickle { from { transform: translateX(-100%); } to { transform: translateX(var(--mx-run, 400%)); } }
 @keyframes brg-drift { to { transform: translateY(-50%); } }
 
 /* Boot & page-change crosshair pulse */
@@ -825,8 +836,13 @@ html.brg-boot[data-family="borg"] #grid > .card:nth-child(8) { --brg-d: 380ms; }
 }
 
 /* Alive effects from motion.js */
-html.mx-heatfade[data-family="borg"] .readout dd { transition: color 1.2s var(--mx-ease), text-shadow 1.2s var(--mx-ease); }
-html[data-family="borg"] .readout dd.is-cue { color: var(--brg-axis); text-shadow: 0 0 10px color-mix(in srgb, var(--brg-axis) 55%, transparent); }
+html.mx-heatfade[data-family="borg"] .readout dd { transition: color 1.2s var(--mx-ease); }
+html[data-family="borg"] .readout dd { position: relative; }
+html[data-family="borg"] .readout dd.is-cue::before {
+  content: attr(data-v); position: absolute; inset: 0; pointer-events: none;
+  color: var(--brg-axis); text-shadow: 0 0 10px color-mix(in srgb, var(--brg-axis) 55%, transparent);
+  animation: brg-cue var(--mx-cue) var(--mx-ease) both; animation-delay: calc(var(--mx-i, 0) * 80ms);
+}
 html[data-family="borg"] .dot--ok { animation: none; }
 html.mx-breathe[data-family="borg"] .dot--ok { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.2px color-mix(in srgb, var(--ok) 55%, transparent), 0 0 6px color-mix(in srgb, var(--ok) 40%, transparent); }
 html.mx-breathe[data-family="borg"] .dot--ok::before { content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none; background: inherit;
@@ -840,15 +856,14 @@ html.mx-ping[data-family="borg"] .dot.is-ping::after {
 html[data-family="borg"] #grid > .card:not(.is-max) { position: relative; }
 html[data-family="borg"] .mx-ack {
   position: absolute; inset: 0 auto 0 0; width: 160px; pointer-events: none; z-index: 2; opacity: 0;
+  clip-path: polygon(var(--c) 0, 100% 0, 100% 100%, 0 100%, 0 var(--c));
   background: linear-gradient(90deg, var(--brg-node) 0 3px, color-mix(in srgb, var(--brg-node) 22%, transparent) 3px, transparent 100%);
 }
 html.mx-ack[data-family="borg"] .card.is-ack > .mx-ack { animation: brg-ack .85s var(--mx-ease) 1; }
 html.mx-gauge[data-family="borg"] .bar__fill { width: var(--gw, var(--v)); overflow: hidden; }
 html.mx-gauge[data-family="borg"] .bar__track::before {
   content: ""; position: absolute; inset: 0 auto 0 0; width: var(--gp, 0%);
-  background: color-mix(in srgb, var(--brg-axis) 38%, transparent);
-  -webkit-mask: repeating-linear-gradient(90deg, #000 0 6px, transparent 6px 8px);
-  mask: repeating-linear-gradient(90deg, #000 0 6px, transparent 6px 8px);
+  background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--brg-axis) 38%, transparent) 0 6px, transparent 6px 8px);
 }
 html.mx-gauge[data-family="borg"] .bar__fill::before {
   content: ""; position: absolute; inset: 0 auto 0 0; width: 38%;
@@ -860,7 +875,6 @@ html[data-family="borg"] .mx-seg { position: absolute; top: 0; bottom: 0; overfl
 html[data-family="borg"] .mx-seg > .mx-light {
   position: absolute; top: 0; bottom: 0; left: 0; width: var(--mx-w, 120px);
   background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--brg-node) calc(var(--mx-amb) * 140%), transparent), transparent);
-  animation: brg-trickle var(--mx-dur, 1.5s) linear 1 both;
 }
 /* Lively: Unimatrix coordinate cascade in the rail spacer */
 html[data-family="borg"] .rail .spacer { position: relative; }

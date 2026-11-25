@@ -966,6 +966,10 @@ html[data-family="lcars"][data-theme="lcars25"] .card {
   overflow: hidden;
   transition: border-color .18s var(--lc-ease);
 }
+html[data-family="lcars"][data-theme="lcars25"] .card::before,
+html[data-family="lcars"][data-theme="lcars25"] .card::after {
+  content: none;
+}
 html[data-family="lcars"][data-theme="lcars25"] .card:hover {
   border-color: color-mix(in srgb, var(--lc-c) 64%, var(--edge));
 }
@@ -976,8 +980,12 @@ html[data-family="lcars"][data-theme="lcars25"][data-mode="day"] .card:hover {
   border-color: var(--lc-c);
 }
 html[data-family="lcars"][data-theme="lcars25"] .card__in {
+  background: var(--card-fill);
   border-radius: 5px;
   clip-path: none;
+}
+html[data-family="lcars"][data-theme="lcars25"] .card:not(.is-max) .card__in.is-fade::after {
+  border-radius: 0 0 5px 5px;
 }
 
 /* Non-Home cards (News, Music, Fleet, Audio) get a clean symmetrical top cap */
@@ -990,6 +998,7 @@ html[data-family="lcars"][data-theme="lcars25"] .mx-ack {
   inset: 0 0 auto 0;
   width: auto;
   height: 52px;
+  border-radius: 0;
   background: linear-gradient(180deg, color-mix(in srgb, var(--lc-c, var(--lc-frame)) 24%, transparent), transparent 100%);
 }
 

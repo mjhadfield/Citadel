@@ -382,22 +382,31 @@ html[data-mode="day"] .vol-btn { --vol-fill: color-mix(in srgb, var(--accent) 55
 .proj__act { display: flex; gap: 6px; align-items: center; }
 
 /* ---- Link tiles --------------------------------------------------------- */
+/* Chamfer sits on ::before behind the tile's content so animated .dot--ok children don't trigger per-frame clip-path
+   GPU mask passes (components.css .card, 2026-11-25). */
 .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 .tile {
+  position: relative; isolation: isolate;
   display: flex; align-items: center; gap: 10px; padding: 12px; width: 100%;
-  border: 1px solid var(--edge); background: rgba(255, 255, 255, .015);
-  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
-  transition: border-color .2s, background .2s, transform .2s var(--ease);
+  border: 0; background: none;
+  transition: transform .2s var(--ease);
   cursor: pointer; text-align: left;
 }
-.tile:hover { border-color: var(--edge-strong); background: var(--accent-wash); transform: translateY(-1px); }
+.tile::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  border: 1px solid var(--edge); background: rgba(255, 255, 255, .015);
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+  transition: border-color .2s, background .2s;
+}
+.tile:hover { transform: translateY(-1px); }
+.tile:hover::before { border-color: var(--edge-strong); background: var(--accent-wash); }
 button.tile:disabled { cursor: default; opacity: .6; transform: none; }
 .tile .i { color: var(--accent-soft); width: 20px; height: 20px; }
 .tile > div { min-width: 0; }
 .tile b { display: block; font-weight: 600; color: var(--silver-hi); line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tile small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono); font-size: 10.5px; color: var(--silver-dim); }
 .tile .dot { margin-left: auto; }
-.tile--primary { border-color: var(--edge-strong); background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 18%, transparent), color-mix(in srgb, var(--accent) 4%, transparent)); }
+.tile--primary::before { border-color: var(--edge-strong); background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 18%, transparent), color-mix(in srgb, var(--accent) 4%, transparent)); }
 
 /* ---- Feed items (releases / radar / news) ------------------------------- */
 .tabs { display: inline-flex; gap: 2px; }
@@ -418,10 +427,10 @@ button.tile:disabled { cursor: default; opacity: .6; transform: none; }
 
 
 /* ---- System bars -------------------------------------------------------- */
-.bar { margin-bottom: 14px; }
+.bar { margin-bottom: 14px; contain: layout style; }
 .bar__top { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 12px; margin-bottom: 6px; color: var(--silver-mute); }
 .bar__top b { color: var(--silver-hi); font-weight: 400; }
-.bar__track { position: relative; height: 6px; background: var(--surface-3);
+.bar__track { position: relative; height: 6px; contain: layout style; background: var(--surface-3);
   background-image: repeating-linear-gradient(90deg, transparent 0 9px, color-mix(in srgb, var(--bg) 80%, transparent) 9px 10px); }
 .bar__fill { position: absolute; inset: 0 auto 0 0; width: var(--v); background: linear-gradient(90deg, var(--accent-deep), var(--accent-hi)); }
 .bar__fill--hot { background: linear-gradient(90deg, #7c2d12, var(--warn)); }
@@ -572,7 +581,16 @@ button.tile:disabled { cursor: default; opacity: .6; transform: none; }
 .card__tools { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .card__head { cursor: zoom-in; }
 .card__head .btn { cursor: pointer; }
-.card__body.is-clipped:not(.at-end) { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 44px), transparent); }
+/* Non-expanded cards fade their clipped foot with a static gradient overlay instead of mask-image: a CSS mask on
+   .card__body wrapped animated status dots in a per-frame GPU mask render pass (2026-11-25). Expanded modals keep
+   mask-image (LCARS 25 uses .card__in::after for its right spine there). */
+.card:not(.is-max) .card__in.is-fade::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 44px; pointer-events: none; z-index: 1;
+  background: linear-gradient(to bottom, transparent, var(--surface));
+  clip-path: polygon(0 0, 100% 0, 100% 100%, calc(var(--c) - 0.4px) 100%, 0 calc(100% - var(--c) + 0.4px));
+}
+.card.is-max .card__body.is-clipped:not(.at-end) { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 44px), transparent); }
+#grid > .card:not(.is-max), .readout { contain: layout style; }
 
 .maxbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 14px 16px 2px; }
 /* the filter chips; on phones they fold behind one filter button (shell.js data-fbtn) and drop down when it's tapped */
@@ -605,7 +623,7 @@ body.has-max::before { content: ""; position: fixed; inset: 0; z-index: 80; back
   position: fixed; z-index: 90; --c: 22px;
   inset: clamp(16px, 4vh, 56px) clamp(16px, 5vw, 120px);
   max-width: 1900px; margin-inline: auto;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--silver) 38%, transparent), color-mix(in srgb, var(--accent-hi) 50%, transparent) 45%, color-mix(in srgb, var(--silver) 14%, transparent));
+  --card-bg: linear-gradient(135deg, color-mix(in srgb, var(--silver) 38%, transparent), color-mix(in srgb, var(--accent-hi) 50%, transparent) 45%, color-mix(in srgb, var(--silver) 14%, transparent));
 }
 .card.is-max .card__head { cursor: default; padding: 16px 24px 0; }
 .card.is-max .card__in::before { margin-left: 24px; width: 56px; }
@@ -853,7 +871,7 @@ body.has-max::before { content: ""; position: fixed; inset: 0; z-index: 80; back
 .pinbtn.is-on .i { fill: currentColor; }
 .tilewrap .pinbtn { position: absolute; top: 4px; right: 14px; z-index: 1; }
 .tilewrap:hover .pinbtn, .proj:hover .pinbtn, .pinbtn:focus-visible { opacity: 1; }
-.tile--pinned { border-color: color-mix(in srgb, var(--accent-hi) 32%, transparent); }
+.tile--pinned::before { border-color: color-mix(in srgb, var(--accent-hi) 32%, transparent); }
 @media (hover: none) { .pinbtn { opacity: .55; } .pinbtn.is-on { opacity: 1; } }
 
 

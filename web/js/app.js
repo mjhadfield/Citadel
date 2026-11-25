@@ -27,7 +27,7 @@ let monitoring = null;
 let machines = null, monTicks = 0;
 async function pollMachines() {
   try { machines = (await api.get('/api/owner/machines')).machines; } catch { /* keep the last list */ }
-  renderCard('monitoring');
+  if (monVisible()) renderCard('monitoring');
 }
 
 function renderCard(id) {
@@ -471,6 +471,14 @@ function openMonitoring(e) {
 $('#readout').addEventListener('click', openMonitoring);
 $('#readout').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openMonitoring(e); } });
 
+// Lazy first-visit loaders for embedded iframes: each sets its src once (never reassigned on later refreshes, so
+// navigating away and back keeps playback/session state), without loading all 10 apps in the background on ?wall#home.
+const FRAME_LOADERS = {
+  media: setMediaSrc, music: setMusicSrc, sql: setSqlSrc, ai: setAiSrc,
+  house: setHouseSrc, labels: setLabelsSrc, holodeck: setHolodeckSrc,
+  lab: setLabSrc, casino: setCasinoSrc, curate: setCurateSrc,
+};
+
 // True while renderAll redraws the cards from new state, so LCARS can show which cards' data changed (motion.js); not
 // for redraws from opening, filtering or searching a card, or Monitoring's own 2 s poll.
 let freshData = false;
@@ -480,16 +488,7 @@ function renderAll() {
   freshData = true;
   try { cards.forEach(c => renderCard(c.id)); } finally { freshData = false; }
   renderAlerts();
-  setMediaSrc();
-  setMusicSrc();
-  setSqlSrc();
-  setAiSrc();
-  setHouseSrc();
-  setLabelsSrc();
-  setHolodeckSrc();
-  setLabSrc();
-  setCasinoSrc();
-  setCurateSrc();
+  FRAME_LOADERS[lastView]?.();
   renderNav(state.navigation);
   music.onState(state);
   $('#host-label').textContent = `${state.host} · ${location.hostname}`;
@@ -501,11 +500,12 @@ function renderAll() {
 // through there instead would mean every tick triggers a full dashboard refresh (including two systemctl calls
 // for project status) just for one tile. The server-side reading itself is a background loop now too (see
 // app/monitor.py) — this fetch just reads its latest cached value, no live sensor read in the request at all.
+const monVisible = () => $('#monitoring')?.offsetParent !== null;
 async function pollMonitoring() {
   if (!state || document.hidden || VIEWS.includes(location.hash.slice(1)) && location.hash !== '#home') return;   // the tile is on Home only
   try { monitoring = await api.get('/api/owner/monitoring'); } catch { /* keep the last good reading, don't blank the tile over one dropped request */ }
   if (monTicks++ % 15 === 0) pollMachines();
-  renderCard('monitoring');
+  if (monVisible()) renderCard('monitoring');
   renderReadout();
 }
 
@@ -566,6 +566,7 @@ function route() {
   const v = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'home';
   if (v === 'settings' && lastView !== 'settings') openSettings();
   lastView = v;
+  if (state) FRAME_LOADERS[v]?.();
   viewportMeta.content = FRAME_VIEWS.includes(v) ? `${VIEWPORT}, interactive-widget=resizes-content` : VIEWPORT;
   document.documentElement.dataset.page = v;         // the header's middle slot follows it (shortcuts, or the Music page's player)
   $$('.view').forEach(el => el.classList.toggle('is-active', el.dataset.view === v));
@@ -828,7 +829,7 @@ const railRO = new ResizeObserver(() => layoutRail());
 railRO.observe($('.top'));
 railRO.observe(railConsole);   // LCARS 25: the GoXLR volumes arrive after first paint and add a row to the console
 addEventListener('resize', layoutRail);
-addEventListener('resize', () => { placeBookmarks(); placeStyles(); });
+addEventListener('resize', () => { placeBookmarks(); placeStyles(); if (monVisible()) renderCard('monitoring'); });
 addEventListener('hashchange', () => requestAnimationFrame(layoutRail));
 document.fonts?.ready.then(layoutRail);
 document.addEventListener('theme:change', () => { tellFrames(); syncLookButtons(); placeLcars(); if (isDropOpen(styleBar)) { styleBar.classList.remove('is-opening'); renderStyles(); placeStyles(); } });
@@ -858,7 +859,7 @@ async function load() {
     startedSeen = s.started;
     state = s; syncStyles(s.appearance?.styles, s.appearance?.migrated_presets); syncLookButtons(); renderAll();
     // the first fill: the boot began at first paint (theme-init.js); let it finish, then take the class off
-    if (!booted) { booted = true; setTimeout(() => document.documentElement.classList.remove('lc-boot', 'brg-boot'), 1800); }
+    if (!booted) { booted = true; setTimeout(() => { document.documentElement.classList.remove('lc-boot', 'brg-boot'); $('.sweep')?.remove(); }, 1800); }
   }).catch(e => console.error(e)).finally(() => { loading = null; });
   return loading;
 }
