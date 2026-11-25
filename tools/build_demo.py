@@ -31,7 +31,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
@@ -58,6 +58,7 @@ NOT_HERE = {
     "holodeck": ("gamepad", "Holodeck is my local retro games library and browser emulator."),
     "lab": ("bulb", "HomeLab is my Home Assistant smart home controller, on my home network only."),
     "curate": ("tag", "Curate is Music Companion's private maintenance tool on my home network."),
+    "sql": ("server", "SQL DB is Music Companion's local database explorer on my home network."),
 }
 # Behind each "not available" notice: a screenshot of the real page, blurred past reading. The originals are Mike's own
 # captures in data/demo-shots/<view>.png|jpg (git-ignored, never copied out); only the small blurred copy is published.
@@ -117,6 +118,32 @@ def key_of(path: str) -> str:
 
 # ---- 1. a scratch copy, and the app running on it -----------------------------------------------------------------------
 
+def demo_routines(rt_mod: Any, at: datetime) -> dict[str, Any]:
+    """Synthetic sample routines for the Routines page, anchored to the snapshot time (never touches Home Assistant)."""
+    def one(rid: str, name: str, on: bool, hhmm: str, days: list[str], skip: bool, last_days_ago: int | None) -> dict[str, Any]:
+        nxt, skipped = rt_mod.next_runs(at, on, hhmm, days, skip)
+        last = None
+        if last_days_ago is not None:
+            h, m = map(int, hhmm.split(":"))
+            d = at.date() - timedelta(days=last_days_ago)
+            last = datetime(d.year, d.month, d.day, h, m, tzinfo=at.tzinfo).isoformat()
+        return {
+            "id": rid, "name": name, "on": on, "available": True, "time": hhmm, "days": days,
+            "can_days": True, "skip": skip, "can_skip": True, "can_run": True, "running": False,
+            "last_run": last,
+            "next_run": nxt.isoformat() if nxt else None,
+            "skipped_run": skipped.isoformat() if skipped else None,
+        }
+    return {
+        "configured": True, "available": True,
+        "routines": [
+            one("morning_routine", "Morning routine", True, "07:45", ["mon", "tue", "wed", "thu", "fri"], False, 1),
+            one("evening_winddown", "Evening wind-down", True, "22:30", ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], True, 1),
+            one("weekend_wake", "Weekend wake", False, "09:15", ["sat", "sun"], False, 4),
+        ],
+    }
+
+
 def make_scratch() -> Path:
     scratch = Path(tempfile.mkdtemp(prefix="citadel-demo-"))
     src = sqlite3.connect(f"file:{LIVE_DATA / 'hub.sqlite'}?mode=ro", uri=True)
@@ -174,13 +201,29 @@ def snapshot(scratch: Path) -> tuple[dict[str, Any], list[dict[str, Any]], list[
         get("/api/owner/music/gigs")
         for path in SETTINGS_GETS:
             get(path)
-        # The Audio page: the GoXLR as captured for the tests (tests/fixtures/goxlr_status.json, serial replaced), shaped
-        # by the real app/audio.py; the demo never talks to a GoXLR, so its level meter stays still and every change
-        # gets the read-only toast.
-        from app import audio
+        # The Audio page and header volume buttons: the GoXLR as captured for the tests
+        # (tests/fixtures/goxlr_status.json, serial replaced), shaped by the real app/audio.py and app/volume.py;
+        # the demo never talks to a GoXLR, so its level meter stays still and every change gets the read-only toast.
+        from app import audio, routines as rt_mod, volume as vol_mod
         gx = json.loads((ROOT / "tests" / "fixtures" / "goxlr_status.json").read_text())
         serial, mixer = next(iter(gx["mixers"].items()))
-        out["/api/owner/audio"] = {**audio.view(serial, mixer, gx), "configured": True, "live": True}
+        out["/api/owner/audio"] = {**audio.view(serial, mixer, gx), "configured": True, "live": True,
+                                   "unsaved": {"profile": False, "mic_profile": False}}
+        vols = (mixer.get("levels") or {}).get("volumes") or {}
+        # Fixture has LineOut/LineIn at 0 (muted); show Line out at a realistic listening level beside muted Vinyl.
+        demo_vols = {"lineout": vol_mod.to_pct(vols.get("LineOut", 0)) or 72, "vinyl": vol_mod.to_pct(vols.get("LineIn", 0))}
+        out["/api/owner/volume"] = {
+            "configured": True, "available": True,
+            "channels": [
+                {"id": cid, "name": ch.name, "curve": ch.curve,
+                 "volume": (v := demo_vols[cid]),
+                 "muted": v == 0, "restore": v or 55}
+                for cid, ch in vol_mod.CHANNELS.items()
+            ],
+        }
+        # Routines page: synthetic sample routines anchored to the snapshot clock (never contacts Home Assistant).
+        snap_now = datetime.fromisoformat(out["/api/owner/state"]["now"])
+        out["/api/owner/routines"] = demo_routines(rt_mod, snap_now)
         # No Spotify call for the player: the demo just shows "Nothing playing".
         out["/api/owner/music/player"] = {"ready": True, "active": False, "playing": False}
 
@@ -372,13 +415,15 @@ def copy_frontend(out: Path, snap_label: str) -> None:
     edit("js/music.js",
          ("/static/img/", "img/"),
          (", ['buying', 'Worth buying', 'bag']]", "]"))          # Discogs' terms restrict republishing prices
+    edit("css/music.css", ('url("/static/img/', 'url("../img/'))
     edit("js/content-cards.js", ("startsWith('/covers/')", "startsWith('covers/')"))
     edit("js/motion.js", ("import('/static/js/motion.js')", "import('./js/motion.js')"))   # a comment, but the check below reads it
     edit("js/app.js", ('src="/backgrounds/', 'src="backgrounds/'),
          ("let MUSIC_ORIGIN = 'http://192.168.0.66:8642';", f"let MUSIC_ORIGIN = '{COMPANION_URL.split('/', 3)[0]}//{COMPANION_URL.split('/', 3)[2]}';"))
-    # Settings' example placeholders are this house's own: a LAN address and the radar's coordinates
+    # Settings' example placeholders are this house's own: a LAN address and the radar's coordinates; backgrounds are relative too
     edit("js/settings.js", ('placeholder="e.g. 192.168.0.70:8096"', 'placeholder="e.g. 10.0.0.20:8096"'),
-         ("input('latlong', s.latlong, 'placeholder=\"53.4808,-2.2426\"')", "input('latlong', s.latlong, 'placeholder=\"51.5074,-0.1278\"')"))
+         ("input('latlong', s.latlong, 'placeholder=\"53.4808,-2.2426\"')", "input('latlong', s.latlong, 'placeholder=\"51.5074,-0.1278\"')"),
+         ('src="/backgrounds/', 'src="backgrounds/'))
     # Settings is the static settings.html here: the frame opens it, keeping any ?add=…#section a link asked for
     edit("js/app.js",
          ("if (l.pathname === '/settings') at = l.pathname + l.search + l.hash;", "if (l.pathname.endsWith('/settings.html')) at = 'settings.html' + l.search + l.hash;"),
@@ -390,11 +435,14 @@ def copy_frontend(out: Path, snap_label: str) -> None:
     html = must_replace(html, '"/static/', '"', "index.html")
     html = must_replace(html, '<script src="js/theme-init.js"></script>',
                         '<script src="demo.js"></script>\n<script src="js/theme-init.js"></script>', "index.html", 1)
-    html = must_replace(html, '<link rel="stylesheet" href="css/news.css">',
-                        '<link rel="stylesheet" href="css/news.css">\n<link rel="stylesheet" href="demo.css">', "index.html", 1)
+    html = must_replace(html, '<link rel="stylesheet" href="css/borg.css">',
+                        '<link rel="stylesheet" href="css/borg.css">\n<link rel="stylesheet" href="demo.css">', "index.html", 1)
     html = must_replace(html, '<title>Citadel</title>', '<title>Citadel · online demo</title>', "index.html", 1)
+    snap_short = snap_label.rsplit(" ", 1)[0]
     html = must_replace(html, '<span class="hud" id="host-label"></span>',
-                        f'<span class="hud" id="host-label"></span><span class="chip demo-chip" title="A frozen copy of my home dashboard: nothing here is live or saved">Snapshot · {snap_label} · read-only</span>',
+                        f'<span class="hud" id="host-label"></span><span class="chip demo-chip" title="A frozen copy of my home dashboard ({snap_label}): nothing here is live or saved">'
+                        f'<span class="demo-chip__full">Snapshot · {snap_label} · read-only</span>'
+                        f'<span class="demo-chip__short" aria-hidden="true">Demo · {snap_short}</span></span>',
                         "index.html", 1)
     shots = blur_shots(out)
     for view, (icon, why) in NOT_HERE.items():
@@ -416,7 +464,7 @@ def copy_frontend(out: Path, snap_label: str) -> None:
     sx = (WEB / "settings.html").read_text()
     sx = must_replace(sx, '"/static/', '"', "settings.html")
     sx = must_replace(sx, '<script src="js/theme-init.js"></script>', '<script src="demo.js"></script>\n<script src="js/theme-init.js"></script>', "settings.html", 1)
-    sx = must_replace(sx, '<link rel="stylesheet" href="css/lcars-settings.css">', '<link rel="stylesheet" href="css/lcars-settings.css">\n<link rel="stylesheet" href="demo.css">', "settings.html", 1)
+    sx = must_replace(sx, '<link rel="stylesheet" href="css/borg-settings.css">', '<link rel="stylesheet" href="css/borg-settings.css">\n<link rel="stylesheet" href="demo.css">', "settings.html", 1)
     sx = must_replace(sx, '<a class="btn" href="/">', '<a class="btn" href="index.html">', "settings.html", 1)
     sx = must_replace(sx, '<div class="sx">', '<div class="sx">\n  <div class="demo-banner" role="note"><b>Read-only snapshot</b>'
                       f'<span>These are my real settings as they were on {snap_label}, with anything private redacted. Look around freely: '
@@ -469,7 +517,7 @@ def rewrite_paths(obj: Any, files: set[str]) -> Any:
     if isinstance(obj, dict):
         out = {k: rewrite_paths(v, files) for k, v in obj.items()}
         bg = out.get("background")
-        if isinstance(bg, dict) and isinstance(bg.get("file"), str):
+        if isinstance(bg, dict) and isinstance(bg.get("file"), str) and bg["file"]:
             files.add(f"backgrounds/{bg['file']}")
         return out
     if isinstance(obj, list):
