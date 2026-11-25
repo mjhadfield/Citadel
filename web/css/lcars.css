@@ -932,9 +932,9 @@ html[data-family="lcars"] .pl-tile.pl-tile--new:hover { background: color-mix(in
 /* ==========================================================================
    The player bar (#mu-bar, music.css): one LCARS block in the Music page's colour, like a bookmark. A rounded end-cap on
    the left holds the artwork; the buttons are pills, Play is the solid one; the progress bar is a segmented gauge.
-   Spotify's artwork keeps its 4px corners and the Spotify logo stays as it is (Spotify's design rules).
+   Spotify's artwork keeps its 4px corners; its logo takes the bar's colour.
    ========================================================================== */
-html[data-family="lcars"] .mu-bar { --lc-c: var(--lc-1); --cap: color-mix(in srgb, var(--lc-c) 34%, transparent); --body: color-mix(in srgb, var(--lc-c) 9%, transparent);
+html[data-family="lcars"] .mu-bar { --lc-c: var(--lc-1); --sp-c: var(--lc-c); --cap: color-mix(in srgb, var(--lc-c) 34%, transparent); --body: color-mix(in srgb, var(--lc-c) 9%, transparent);
   border: 0; border-radius: 21px; padding: 0 8px 0 0; font-family: var(--lc-font);
   background: linear-gradient(90deg, var(--cap) 0 56px, var(--body) 0); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lc-c) 30%, transparent); }
 html[data-family="lcars"] .mu-bar .np { gap: 18px; }

@@ -4,6 +4,7 @@ Errors from outside services come back as 502 with a plain-words message the pag
 from __future__ import annotations
 
 import html
+import logging
 import shlex
 from typing import Any, Literal
 
@@ -17,6 +18,8 @@ from .music.services import all_services, setlistfm
 from .music.services import spotify as sp
 from .music.services.base import ServiceError
 from .scheduler import parse_hhmm
+
+log = logging.getLogger("hub.music")
 
 router = APIRouter(prefix="/api/owner/music", dependencies=[Depends(auth.require_owner)])
 public = APIRouter()
@@ -236,7 +239,10 @@ async def _play(body: PlayIn) -> dict[str, Any]:
 
 
 @router.post("/play")
-async def play(body: PlayIn):
+async def play(body: PlayIn, request: Request):
+    dev = auth.current_device(request) or {}
+    log.info("Play asked by %s (%s): %s", dev.get("name", "?"), request.client.host if request.client else "?",
+             body.model_dump(exclude_defaults=True))
     return await _guard(_play(body))
 
 

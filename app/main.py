@@ -10,7 +10,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import api_content, api_maintenance, api_music, api_news, api_owner, api_screens, auth, config, content, coverart, db, logbook, machines, maintenance, monitor, musicbrainz, notify, procs, seed, state
+from . import api_content, api_maintenance, api_music, api_news, api_owner, api_screens, auth, config, content, coverart, db, logbook, machines, maintenance, monitor, musicbrainz, netlog, notify, procs, seed, state
 from .health import Health
 from .music import store as music_store
 from .music.rotator import Rotator
@@ -23,7 +23,8 @@ from . import goxlr as _goxlr
 from . import audio as _audio
 
 log = logging.getLogger("hub")
-# httpx logs every request URL at INFO. Calendar addresses are secrets, so those loggers stay quiet.
+# httpx logs every request URL at INFO. Calendar addresses are secrets, so those loggers stay quiet; while the app runs,
+# NetLog (app/netlog.py) lets httpx's request lines through rewritten: query strings dropped, the rest redacted.
 for _noisy in ("httpx", "httpcore"):
     logging.getLogger(_noisy).setLevel(logging.WARNING)
 
@@ -84,6 +85,8 @@ async def lifespan(app: FastAPI):
     for name in db.migrate():
         log.info("applied migration %s", name)
     logbook.install()                                # from here on, warnings and errors land in the event log (Settings → Maintenance)
+    app.state.netlog = netlog.NetLog()               # every outbound HTTP request in the journal as "hub.net" (app/netlog.py)
+    app.state.netlog.start()
     if (added := seed.seed()) and any(added.values()):
         log.info("seeded %s", added)
     if (upgraded := _appearance.migrate_storage()):
@@ -147,6 +150,7 @@ async def lifespan(app: FastAPI):
         await musicbrainz.client.close()
         await coverart.client.close()
         await spotify_client.close()
+        app.state.netlog.stop()
 
 
 app = FastAPI(title="Citadel", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)

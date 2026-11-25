@@ -348,20 +348,63 @@
   }
 
   /* Compact Spotify player in the row on #listen */
+  /* One line throughout, so nothing spills out of the 32px row: the title, then the artist and album, each cut short
+     with an ellipsis (Mike, 2026-11-24). */
   html[data-family="lcars"][data-theme="lcars25"] .mu-bar {
     order: 1;
     height: 32px;
     border-radius: 16px;
+    gap: 14px;
+    padding-right: 4px;
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .mu-bar .np {
+    gap: 10px;
   }
   html[data-family="lcars"][data-theme="lcars25"] .mu-bar .np .art {
     width: 24px;
     height: 24px;
+    margin-left: 6px;
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .mu-bar .np__main {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    min-width: 0;
+    white-space: nowrap;
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .mu-bar .np__t,
+  html[data-family="lcars"][data-theme="lcars25"] .mu-bar .np__a {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.2;
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .mu-bar .np__t {
+    flex: 0 1 auto;
+    font-size: 15px;
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .mu-bar .np__a {
+    flex: 0 3 auto;
+    font-size: 12.5px;
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .mu-bar .btn--icon {
+    width: 26px;
+    height: 26px;
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .mu-bar .ctl {
+    gap: 12px;
   }
   html[data-family="lcars"][data-theme="lcars25"] .mu-bar .ctl__b .btn--play {
+    width: 42px;
     height: 24px;
   }
   html[data-family="lcars"][data-theme="lcars25"] .mu-bar .dev__btn {
     height: 24px;
+  }
+  html[data-family="lcars"][data-theme="lcars25"] .mu-bar .side__sp .sp-logo {
+    height: 16px;
+    min-width: 0;
   }
 
   /* The readout (Home): a recessed trough filling the rest of the row */
