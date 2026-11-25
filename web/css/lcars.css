@@ -795,16 +795,28 @@ html.mx-heatfade[data-family="lcars"] .readout dd { transition: color 1.5s var(-
 @keyframes mx-cue-day { from { color: var(--lc-1); } }
 html[data-family="lcars"] .readout dd.is-cue { animation: mx-cue var(--mx-cue) var(--mx-ease) both; animation-delay: calc(var(--mx-i, 0) * 80ms); }
 html[data-family="lcars"][data-mode="day"] .readout dd.is-cue { animation-name: mx-cue-day; }
-/* the hottest level breathes slowly instead of sitting there glowing (Night: a glow only reads on a dark ground) */
-@keyframes mx-hot { 0%, 100% { text-shadow: 0 0 4px color-mix(in srgb, var(--heat-3) 25%, transparent); } 50% { text-shadow: 0 0 14px color-mix(in srgb, var(--heat-3) 70%, transparent); } }
-html.mx-heatfade[data-family="lcars"]:not([data-mode="day"]) .readout dd[data-heat="3"]:not(.is-cue) { animation: mx-hot 4s ease-in-out infinite; animation-delay: var(--ph, 0ms); }
+/* the hottest level breathes slowly instead of sitting there glowing (Night: a glow only reads on a dark ground).
+   The number keeps a faint glow; the strong one is a copy of the number (data-v, motion.js) whose opacity breathes.
+   Every looping effect here moves only opacity or transform, which the compositor runs without repainting the page:
+   an animated text-shadow or box-shadow repainted every frame, and kept a Home wallpaper at ~60 % GPU (2026-11-25). */
+@keyframes mx-hot { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+html.mx-heatfade[data-family="lcars"]:not([data-mode="day"]) .readout dd[data-heat="3"] { position: relative; }
+html.mx-heatfade[data-family="lcars"]:not([data-mode="day"]) .readout dd[data-heat="3"]:not(.is-cue) { text-shadow: 0 0 4px color-mix(in srgb, var(--heat-3) 25%, transparent); }
+html.mx-heatfade[data-family="lcars"]:not([data-mode="day"]) .readout dd[data-heat="3"]:not(.is-cue)::after {
+  content: attr(data-v); position: absolute; inset: 0; color: transparent; pointer-events: none;
+  text-shadow: 0 0 14px color-mix(in srgb, var(--heat-3) 70%, transparent);
+  animation: mx-hot 4s ease-in-out infinite; animation-delay: var(--ph, 0ms); }
 
 /* status dots: LCARS replaces the shared opacity pulse; OK breathes a halo, each dot in its own phase (motion.js --ph) */
 html[data-family="lcars"] .dot--ok { animation: none; }
-@keyframes mx-breathe {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 0%, transparent), 0 0 5px color-mix(in srgb, var(--ok) 45%, transparent); }
-  50% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 16%, transparent), 0 0 10px color-mix(in srgb, var(--ok) 70%, transparent); } }
-html.mx-breathe[data-family="lcars"] .dot--ok { animation: mx-breathe var(--mx-breathe) ease-in-out infinite; animation-delay: var(--ph, 0ms); }
+/* the dot holds the out-breath; its ::before holds the in-breath halo and fades in and out (opacity only, see mx-hot).
+   The ::before is filled with the dot's own colour: on its own GPU layer it can sit a fraction of a pixel off the dot
+   (the one-screen grid is scaled), and an empty centre then showed the card through it as a dark crescent. */
+@keyframes mx-breathe { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+html.mx-breathe[data-family="lcars"] .dot--ok { box-shadow: 0 0 5px color-mix(in srgb, var(--ok) 45%, transparent); }
+html.mx-breathe[data-family="lcars"] .dot--ok::before { content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none; background: inherit;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 16%, transparent), 0 0 10px color-mix(in srgb, var(--ok) 70%, transparent);
+  animation: mx-breathe var(--mx-breathe) ease-in-out infinite; animation-delay: var(--ph, 0ms); }
 /* warn: a slow amber double-blip; down: steady, never animated */
 @keyframes mx-blip { 0%, 14%, 28%, 100% { opacity: 1; } 7%, 21% { opacity: .35; } }
 html.mx-warnblip[data-family="lcars"] .dot--warn { animation: mx-blip 3s linear infinite; animation-delay: var(--ph, 0ms); }
@@ -838,9 +850,10 @@ html.mx-gauge[data-family="lcars"] .bar__track::before { content: ""; position: 
 @keyframes mx-lead { 0%, 100% { opacity: .2; } 50% { opacity: .75; } }
 html.mx-gauge[data-family="lcars"] .bar__fill::after { content: ""; position: absolute; top: 0; bottom: 0; right: 0; width: 8px; border-radius: 0 2px 2px 0; background: var(--silver-hi);
   animation: mx-lead 3.6s ease-in-out infinite; animation-delay: var(--ph, 0ms); }
-@keyframes mx-halo { 0%, 100% { opacity: calc(var(--gl, 1) * .15); } 50% { opacity: calc(var(--gl, 1) * .7); } }
+/* --gl (how much there is to glow) scales the halo's colour, not the keyframes: a var() in keyframes kept it off the compositor */
+@keyframes mx-halo { 0%, 100% { opacity: .15; } 50% { opacity: .7; } }
 html.mx-gauge[data-family="lcars"]:not([data-mode="day"]) .bar__track::after { content: ""; position: absolute; top: 50%; left: var(--gw, var(--v)); width: 26px; height: 22px;
-  margin: -11px 0 0 -17px; pointer-events: none; background: radial-gradient(closest-side, color-mix(in srgb, var(--silver-hi) 55%, transparent), transparent);
+  margin: -11px 0 0 -17px; pointer-events: none; background: radial-gradient(closest-side, color-mix(in srgb, var(--silver-hi) calc(var(--gl, 1) * 55%), transparent), transparent);
   animation: mx-halo 3.6s ease-in-out infinite; animation-delay: var(--ph, 0ms); }
 @keyframes mx-sheen { 0% { transform: translateX(-100%); } 30%, 100% { transform: translateX(260%); } }
 html.mx-gauge[data-family="lcars"] .bar__fill::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 40%;

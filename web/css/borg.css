@@ -793,8 +793,9 @@ html[data-family="borg"][data-motion="lively"] { --mx-amb: .48; --mx-breathe: 3.
 
 @keyframes brg-in { from { opacity: 0; transform: translateY(6px); } }
 @keyframes brg-axis { from { transform: scaleX(0); } }
-@keyframes brg-ring { 0%, 100% { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.2px color-mix(in srgb, var(--ok) 55%, transparent), 0 0 6px color-mix(in srgb, var(--ok) 40%, transparent); }
-  50% { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4.2px color-mix(in srgb, var(--ok) 85%, transparent), 0 0 14px color-mix(in srgb, var(--ok) 75%, transparent); } }
+/* opacity only (lcars.css, mx-hot): the dot holds the out-breath ring, its ::before the in-breath ring, which fades in and
+   out, filled with the dot's colour so a fraction-of-a-pixel layer offset can't show a gap (lcars.css, mx-breathe) */
+@keyframes brg-ring { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
 @keyframes brg-blip { 0%, 14%, 28%, 100% { opacity: 1; } 7%, 21% { opacity: .35; } }
 @keyframes brg-ping { from { transform: scale(1); opacity: .9; } to { transform: scale(3.2); opacity: 0; } }
 @keyframes brg-ack { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0; } }
@@ -827,7 +828,10 @@ html.brg-boot[data-family="borg"] #grid > .card:nth-child(8) { --brg-d: 380ms; }
 html.mx-heatfade[data-family="borg"] .readout dd { transition: color 1.2s var(--mx-ease), text-shadow 1.2s var(--mx-ease); }
 html[data-family="borg"] .readout dd.is-cue { color: var(--brg-axis); text-shadow: 0 0 10px color-mix(in srgb, var(--brg-axis) 55%, transparent); }
 html[data-family="borg"] .dot--ok { animation: none; }
-html.mx-breathe[data-family="borg"] .dot--ok { animation: brg-ring var(--mx-breathe) ease-in-out infinite; animation-delay: var(--ph, 0ms); }
+html.mx-breathe[data-family="borg"] .dot--ok { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.2px color-mix(in srgb, var(--ok) 55%, transparent), 0 0 6px color-mix(in srgb, var(--ok) 40%, transparent); }
+html.mx-breathe[data-family="borg"] .dot--ok::before { content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none; background: inherit;
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4.2px color-mix(in srgb, var(--ok) 85%, transparent), 0 0 14px color-mix(in srgb, var(--ok) 75%, transparent);
+  animation: brg-ring var(--mx-breathe) ease-in-out infinite; animation-delay: var(--ph, 0ms); }
 html.mx-warnblip[data-family="borg"] .dot--warn { animation: brg-blip 3s linear infinite; animation-delay: var(--ph, 0ms); }
 html.mx-ping[data-family="borg"] .dot.is-ping::after {
   content: ""; position: absolute; inset: 0; border-radius: 50%; border: 1.5px solid var(--brg-node);

@@ -122,9 +122,12 @@ function ack(card) {
 // Two first-order lags in a row: no kink when a reading arrives, about half way there in 1.5 s, nearly there by 4 s.
 // It paints --gw (the smoothed width) and --gp (the recent high, held a moment then let go: the afterglow) on the
 // track; lcars.css draws them. A gauge not seen for a while starts at its reading rather than from somewhere stale.
-const GAUGE = { tau: .9, hold: 1.2, fade: 1.1, stale: 10000 };
+// Cheap enough for an always-on wallpaper (2026-11-25): readings land every 2 s, so the drift hardly ever rests. It steps
+// about 25 times a second (tick), writes a gauge only when it has moved a visible amount (step, in % of the track) and
+// rests within `snap` of the reading; every frame at a 0.02 % tolerance kept a Home wallpaper redrawing at 60-75 fps.
+const GAUGE = { tau: .9, hold: 1.2, fade: 1.1, stale: 10000, tick: 40, step: .1, snap: .1 };
 const gauges = new Map();
-let gaugeRaf = 0, gaugeT = 0;
+let gaugeOn = false, gaugeT = 0;
 // unique per gauge: the card, then the machine panel / column / section it's in, then its label (every machine has a
 // "CPU" and a "RAM", so the label alone sent one machine's gauge to another's reading on every render)
 function gaugeKey(track) {
@@ -133,6 +136,7 @@ function gaugeKey(track) {
     track.closest('.bar')?.querySelector('.bar__top > span')?.textContent].map(s => (s || '').trim()).join('|');
 }
 function paintGauge(g) {
+  g.pb = g.b; g.ppk = g.pk;
   g.el.style.setProperty('--gw', `${g.b.toFixed(2)}%`);
   g.el.style.setProperty('--gp', `${g.pk.toFixed(2)}%`);
   g.el.style.setProperty('--gl', Math.min(1, g.b / 4).toFixed(2));        // the lead's glow: none on an empty gauge
@@ -146,7 +150,7 @@ function trackGauges(scope) {
     Object.assign(g, { t, el, seen: now });
     paintGauge(g);
   });
-  if (!gaugeRaf) { gaugeT = 0; gaugeRaf = requestAnimationFrame(stepGauges); }
+  if (!gaugeOn) { gaugeOn = true; gaugeT = 0; requestAnimationFrame(stepGauges); }
 }
 function stepGauges(ts) {
   const dt = gaugeT ? Math.min(.1, (ts - gaugeT) / 1000) : 0, k = 1 - Math.exp(-dt / GAUGE.tau);
@@ -158,10 +162,11 @@ function stepGauges(ts) {
     if (g.b >= g.pk) { g.pk = g.b; g.hold = GAUGE.hold; }
     else if (g.hold > 0) g.hold -= dt;
     else g.pk += (g.b - g.pk) * (1 - Math.exp(-dt / GAUGE.fade));
-    if (Math.abs(g.t - g.b) < .02 && g.pk - g.b < .05) { g.a = g.b = g.pk = g.t; } else busy = true;
-    paintGauge(g);
+    const rest = Math.abs(g.t - g.b) < GAUGE.snap && g.pk - g.b < 2 * GAUGE.snap;
+    if (rest) g.a = g.b = g.pk = g.t; else busy = true;
+    if (rest || Math.abs(g.b - g.pb) >= GAUGE.step || Math.abs(g.pk - g.ppk) >= GAUGE.step) paintGauge(g);
   }
-  gaugeRaf = busy ? requestAnimationFrame(stepGauges) : 0;
+  if (busy) setTimeout(() => requestAnimationFrame(stepGauges), GAUGE.tick); else gaugeOn = false;
 }
 
 // ---- readout -----------------------------------------------------------------------------------------------------------
@@ -191,7 +196,7 @@ export function updateReadout(el, cells) {
     if (heat === '0') delete dd.dataset.heat; else dd.dataset.heat = heat;
     const changed = was && was.text !== c.text;
     if (isOn('roll') && changed && c.fmt && c.n != null && was.n != null) roll(dd, was.n, c.n, c.fmt);
-    else { cancelAnimationFrame(rolls.get(dd)); dd.textContent = c.text; }
+    else { clearTimeout(rolls.get(dd)); setText(dd, c.text); }
     const moved = changed && c.n != null && was.n != null ? Math.abs(c.n - was.n) : 0;
     if (isOn('roll') && changed && ((CUE[c.k] && moved >= CUE[c.k]) || heatWas !== heat)) {
       dd.style.setProperty('--mx-i', isOn('ripple') ? cues : 0);
@@ -203,15 +208,22 @@ export function updateReadout(el, cells) {
   phaseAll(el);
 }
 
+// The text (and data-v, the copy lcars.css glows a hot number with) is written only when it changes, at most every
+// ROLL_TICK ms: a number rolling at the display's frame rate relaid the page every frame for no visible gain.
+const ROLL_TICK = 50;
+function setText(dd, s) {
+  if (dd.textContent !== s) dd.textContent = s;
+  if (dd.dataset.v !== s) dd.dataset.v = s;
+}
 function roll(dd, from, to, fmt) {
-  cancelAnimationFrame(rolls.get(dd));
+  clearTimeout(rolls.get(dd));
   const ms = parseFloat(getComputedStyle(root).getPropertyValue('--mx-roll')) || 700, t0 = performance.now();
-  const step = t => {
-    const p = Math.min(1, (t - t0) / ms), e = 1 - (1 - p) ** 3;
-    dd.textContent = p < 1 ? fmt(from + (to - from) * e) : fmt(to);
-    if (p < 1) rolls.set(dd, requestAnimationFrame(step));
+  const step = () => {
+    const p = Math.min(1, (performance.now() - t0) / ms), e = 1 - (1 - p) ** 3;
+    setText(dd, p < 1 ? fmt(from + (to - from) * e) : fmt(to));
+    if (p < 1) rolls.set(dd, setTimeout(step, ROLL_TICK));
   };
-  rolls.set(dd, requestAnimationFrame(step));
+  rolls.set(dd, setTimeout(step, ROLL_TICK));
 }
 
 // ---- ambient -----------------------------------------------------------------------------------------------------------
