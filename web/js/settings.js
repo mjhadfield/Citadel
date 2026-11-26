@@ -205,6 +205,19 @@ function shortcutsCard() {
       <div class="form-actions">${act('refresh-widget', 'Refresh icons', 'data-id="shortcuts"')}<button class="btn btn--solid" type="submit">Save</button></div></form>`);
 }
 
+function weatherCard() {
+  const s = cfg.widgets.weather?.settings;
+  if (!s) return '';
+  return card('Weather — 5-day forecast',
+    'Open-Meteo (no API key needed). Leave location blank to reuse Gig Radar’s coordinates.',
+    `${statusLine(live?.weather, 'weather')}<form class="form" data-form="weather" style="padding:0 18px 12px">
+      <div class="form-grid">
+        ${field('Location (latitude, longitude)', input('latlong', s.latlong, 'placeholder="Leave blank to use Gig Radar’s location"'))}
+        ${field('Place label (optional)', input('place', s.place, 'maxlength="60" placeholder="e.g. Salford"'))}
+      </div>
+      <div class="form-actions">${act('refresh-widget', 'Sync now', 'data-id="weather"')}<button class="btn btn--solid" type="submit">Save</button></div></form>`);
+}
+
 function binsCard() {
   const s = cfg.widgets.bins.settings;
   const hours = Array.from({ length: 24 }, (_, h) => [h, `${String(h).padStart(2, '0')}:00`]);
@@ -878,7 +891,7 @@ function aboutTab() {
 function render() {
   if (editing?.kind !== 'style') { syncStyles(cfg.appearance.styles, cfg.appearance.migrated_presets); applySpec(); }   // ends any live preview; picks up edits made elsewhere
   $('#tabs').innerHTML = TABS.map(([id, label, icon]) => `<button role="tab" data-tab="${id}" aria-selected="${id === tab}"${id === 'maintenance' && needsAttention() ? ' class="has-attn"' : ''}>${ico(icon)}${esc(label)}</button>`).join('');
-  panel.innerHTML = { links: linksTab, projects: projectsTab, remote: remoteTab, widgets: () => shortcutsCard() + binsCard() + notificationsCard() + diaryCard(), appearance: appearanceTab, navigation: navigationTab, music: () => gigsCard() + artistsCard() + releasesCard() + vinylCard() + purchasesCard() + radarCard(), listen: musicPageTab, news: newsTab, screens: () => screensCard() + pairCard() + devicesCard() + enrolCard(), maintenance: maintenanceTab, about: aboutTab }[tab]();
+  panel.innerHTML = { links: linksTab, projects: projectsTab, remote: remoteTab, widgets: () => shortcutsCard() + weatherCard() + binsCard() + notificationsCard() + diaryCard(), appearance: appearanceTab, navigation: navigationTab, music: () => gigsCard() + artistsCard() + releasesCard() + vinylCard() + purchasesCard() + radarCard(), listen: musicPageTab, news: newsTab, screens: () => screensCard() + pairCard() + devicesCard() + enrolCard(), maintenance: maintenanceTab, about: aboutTab }[tab]();
   motion.phaseAll(panel);
 }
 
@@ -1176,6 +1189,8 @@ panel.addEventListener('submit', e => {
       icon_mode: r.querySelector('[name=sc_mode]').value, icon: r.querySelector('[name=sc_icon]').value, image: r.querySelector('[name=sc_image]').value.trim(),
     })).filter(x => x.url || x.label);                                        // an untouched "Add shortcut" row is ignored
     run(() => api.put('/api/owner/widgets/shortcuts/settings', { show: on(f, 'sc_show'), shortcuts }), 'Shortcuts saved — fetching icons');
+  } else if (kind === 'weather') {
+    run(() => api.put('/api/owner/widgets/weather/settings', { latlong: val(f, 'latlong'), place: val(f, 'place') }), 'Weather saved — syncing');
   } else if (kind === 'bins') {
     run(() => api.put('/api/owner/widgets/bins/settings', { uprn: val(f, 'uprn'), put_out_hour: Number(val(f, 'put_out_hour')),
       alert_streams: Object.keys(cfg.streams).filter(k => on(f, `stream_${k}`)) }), 'Bins saved — syncing');

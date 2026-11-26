@@ -373,6 +373,8 @@ def censor_settings(path: str, data: Any) -> Any:
             w["bins"]["settings"]["uprn"] = REDACTED
         if "radar" in w:
             w["radar"]["settings"]["latlong"] = REDACTED
+        if "weather" in w and w["weather"]["settings"].get("latlong"):
+            w["weather"]["settings"]["latlong"] = REDACTED
         if "diary" in w:
             w["diary"]["settings"]["calendars"] = [{**c, "name": "Calendar"} for c in w["diary"]["settings"].get("calendars", [])]
         if "shortcuts" in w:

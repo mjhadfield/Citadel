@@ -5,8 +5,8 @@
 import { esc, ico, safeUrl, hostUrl, fmtDay, relDays, hhmm, bytes, duration, uptimeText, isoOf, parseDate } from './util.js';
 import { contentCards } from './content-cards.js';
 
-/** UI state that lives in the browser rather than the server (in-flight start/stop, selected log). */
-export const ui = { pending: {}, selected: null, logText: '' };
+/** UI state that lives in the browser rather than the server (in-flight start/stop, selected log, open hourly weather day). */
+export const ui = { pending: {}, selected: null, logText: '', wxDay: null };
 
 const COLOURS = { violet: 'var(--accent-hi)', silver: 'var(--silver)', indigo: '#6d5bd0' };
 const staleChip = w => (w.error ? ' <span class="chip chip--warn">stale</span>' : '');
@@ -16,16 +16,94 @@ const empty = (icon, title, text, chip = '') =>
 export const pinButton = (kind, id, pinned) =>
   `<button class="pinbtn${pinned ? ' is-on' : ''}" data-pin="${kind}" data-id="${esc(id)}" data-to="${!pinned}" aria-label="${pinned ? 'Unpin' : 'Pin to top'}" title="${pinned ? 'Unpin' : 'Pin to top'}">${ico('pin')}</button>`;
 
-// ---- Now: clock + the only two bin collections that matter ---------------------------------------------
+// ---- Now: clock, 5-day weather forecast, and the next bin collections in one row -----------------------
+
+const WX_DOW = new Intl.DateTimeFormat('en-GB', { weekday: 'short' });
 
 function binRow(item, streams, hour) {
   if (!item) return '<li class="note">No upcoming collection found.</li>';
   const s = streams[item.stream] || { title: item.stream, sub: '', colour: '#6b7280' };
   const chip = item.in_days === 0 ? '<span class="chip chip--today">Today</span>'
     : item.in_days === 1 && hour >= 17 ? '<span class="chip chip--today">Tonight</span>' : '';
-  return `<li class="bin" style="--sw:${esc(s.colour)}"><span class="bin__swatch"></span>
-    <div><div class="bin__name">${esc(s.title)}${chip}</div><div class="bin__sub">${esc(s.sub)}</div></div>
-    <div class="bin__when">${esc(fmtDay(item.date))}<br>${esc(relDays(item.in_days))}</div></li>`;
+  const when = `${fmtDay(item.date)} · ${relDays(item.in_days)}`;
+  return `<li class="bin" style="--sw:${esc(s.colour)}" title="${esc(s.title)}${s.sub ? ` (${s.sub})` : ''} — ${esc(when)}"><span class="bin__swatch"></span>
+    <div class="bin__main"><div class="bin__name"><span>${esc(s.title)}</span>${chip}</div><div class="bin__when">${esc(when)}</div></div></li>`;
+}
+
+function weatherHourly(day, hours, today, nowHour) {
+  const dayLabel = day.date === today ? `Today · ${fmtDay(day.date)}` : fmtDay(day.date);
+  const summary = [
+    day.label,
+    day.max != null && day.min != null ? `${day.max}° / ${day.min}°` : '',
+    day.wind != null ? `wind up to ${day.wind} mph` : '',
+  ].filter(Boolean).join(' · ');
+  const cells = hours.map(h => {
+    const hr = Number((h.time || '').slice(0, 2));
+    const isNow = day.date === today && hr === nowHour;
+    const isPast = day.date === today && hr < nowHour;
+    const rain = h.rain_pct != null && h.rain_pct >= 10 ? `${h.rain_pct}%` : '';
+    const tip = `${h.time}: ${h.label}, ${h.temp != null ? `${h.temp}°C` : '—'}${h.rain_pct != null ? `, ${h.rain_pct}% rain` : ''}${h.wind != null ? `, wind ${h.wind} mph` : ''}`;
+    return `<div class="wx__hr${isNow ? ' is-now' : ''}${isPast ? ' is-past' : ''}" title="${esc(tip)}">
+      <span class="wx__ht">${esc(h.time)}</span>
+      ${ico(h.icon)}
+      <b class="wx__htemp">${h.temp != null ? `${esc(h.temp)}°` : '—'}</b>
+      <span class="wx__hrain">${esc(rain)}</span>
+    </div>`;
+  }).join('');
+  return `<div class="wx__hourly" role="region" aria-label="Hourly forecast for ${esc(dayLabel)}">
+    <div class="wx__hhead">
+      <div class="wx__htitle"><span>Hourly · ${esc(dayLabel)}</span>${summary ? `<small>${esc(summary)}</small>` : ''}</div>
+      <button type="button" class="btn btn--icon wx__hclose" data-wx-close aria-label="Close hourly forecast" title="Close hourly forecast">${ico('x')}</button>
+    </div>
+    <div class="wx__hours">${cells}</div>
+  </div>`;
+}
+
+function weatherBlock(w, today, nowHour, expanded) {
+  if (!w) return '';
+  if (!w.configured) {
+    return `<div class="now__label now__label--wx hud"><span>Weather</span></div>
+      <div class="note">Add a location in Settings → Widgets to see the forecast.</div>`;
+  }
+  const d = w.data;
+  if (!d?.days?.length) {
+    return `<div class="now__label now__label--wx hud"><span>Weather</span></div>
+      <div class="note">${w.error ? `Couldn't read the forecast: ${esc(w.error)}` : 'Fetching forecast…'}</div>`;
+  }
+  const cur = d.current;
+  const heading = d.place ? `Weather · ${d.place}` : 'Weather';
+  const curTip = cur ? [cur.feels != null ? `Feels like ${cur.feels}°C` : '', cur.wind != null ? `Wind ${cur.wind} mph` : ''].filter(Boolean).join(' · ') : '';
+  const curExtra = expanded && curTip ? `<span class="wx__extra"> · ${esc(curTip)}</span>` : '';
+  const curHtml = cur
+    ? `<span class="wx__now" title="${esc(curTip)}">${ico(cur.icon)}<b>${esc(cur.temp)}°</b><span>${esc(cur.label)}</span>${curExtra}</span>`
+    : '';
+  const list = expanded && d.extended?.length ? d.extended : d.days.slice(0, 5);
+  const hourlyMap = d.hourly || {};
+  const cells = list.map((day, i) => {
+    const isToday = day.date === today || (i === 0 && !list.some(x => x.date === today));
+    const dow = isToday ? 'Today' : WX_DOW.format(parseDate(day.date));
+    const hi = day.max != null ? `${day.max}°` : '—';
+    const lo = day.min != null ? `${day.min}°` : '—';
+    const rain = day.rain_pct != null && day.rain_pct >= 10 ? `${day.rain_pct}%` : '';
+    const hasHourly = Array.isArray(hourlyMap[day.date]) && hourlyMap[day.date].length > 0;
+    const isSelected = expanded && hasHourly && ui.wxDay === day.date;
+    const tip = `${fmtDay(day.date)}: ${day.label}, ${hi} / ${lo}${day.rain_pct != null ? `, ${day.rain_pct}% rain` : ''}${day.wind != null ? `, wind ${day.wind} mph` : ''}${hasHourly ? ' — click for hourly forecast' : ''}`;
+    const inner = `<span class="wx__dow">${esc(dow)}</span>
+      ${ico(day.icon)}
+      <span class="wx__temps"><b class="wx__hi">${esc(hi)}</b><span class="wx__lo">${esc(lo)}</span></span>
+      ${expanded ? `<span class="wx__cond">${esc(day.label)}</span><span class="wx__rain">${day.rain_pct != null ? `${esc(day.rain_pct)}% rain` : ''}${day.wind != null ? `${day.rain_pct != null ? ' · ' : ''}${esc(day.wind)} mph` : ''}</span>`
+        : `<span class="wx__rain">${esc(rain)}</span>`}`;
+    const cls = `wx__day${hasHourly ? ' wx__day--btn' : ''}${isToday ? ' is-today' : ''}${isSelected ? ' is-selected' : ''}`;
+    if (hasHourly) {
+      return `<button type="button" class="${cls}" data-wx-day="${esc(day.date)}" aria-pressed="${isSelected}" title="${esc(tip)}">${inner}</button>`;
+    }
+    return `<div class="${cls}" title="${esc(tip)}">${inner}</div>`;
+  }).join('');
+  const selDay = expanded && ui.wxDay ? list.find(x => x.date === ui.wxDay) : null;
+  const selHours = selDay ? hourlyMap[selDay.date] : null;
+  const hourlyHtml = selDay && selHours?.length ? weatherHourly(selDay, selHours, today, nowHour) : '';
+  return `<div class="now__label now__label--wx hud"><span>${esc(heading)}</span>${curHtml}</div>
+    <div class="wx__days${expanded ? ' wx__days--full' : ''}">${cells}</div>${hourlyHtml}`;
 }
 
 // Full screen lists each collection day once (the two "next" rows above are hidden there), so the first domestic, blue
@@ -67,10 +145,12 @@ function collectionCalendars(data, todayIso) {
   return `<div class="calm more" hidden>${months}<div class="cal__legend">${legend}</div></div>`;
 }
 
-function now(s) {
+function now(s, ctx) {
   const w = s.widgets.bins;
+  const wx = s.widgets.weather;
   const hour = new Date(s.now).getHours();
   const today = s.now.slice(0, 10);
+  const expanded = !!ctx?.expanded;
   let list, extra = '';
   if (!w.configured) {
     list = '<li class="note">Add your council property reference in settings to see bin days.</li>';
@@ -83,11 +163,15 @@ function now(s) {
       + d.upcoming.slice(0, 14).map(u => schedRow(u, d, firsts, hour)).join('');
     extra = collectionCalendars(d, today);
   }
+  const metaParts = [];
+  if (wx?.fetched_at) metaParts.push(`weather ${esc(hhmm(wx.fetched_at))}${staleChip(wx)}`);
+  if (w.fetched_at) metaParts.push(`bins ${esc(hhmm(w.fetched_at))}${staleChip(w)}`);
   return {
-    meta: w.fetched_at ? `bins synced ${esc(hhmm(w.fetched_at))}${staleChip(w)}` : 'bins',
+    meta: metaParts.join(' · ') || 'bins',
     body: `<div class="now__clock"><div class="clock__time" data-clock></div>
       <div class="clock__date"><span data-dow></span><span data-dmy></span></div></div>
-      ${extra}<div class="now__label hud">Next collections</div><ul class="rows">${list}</ul>`,
+      ${weatherBlock(wx, today, hour, expanded)}
+      <div class="now__label hud">Next collections</div><ul class="rows rows--bins">${list}</ul>${extra}`,
   };
 }
 

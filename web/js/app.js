@@ -1050,6 +1050,24 @@ document.addEventListener('click', async e => {
     }
     return;
   }
+  const wxDay = e.target.closest('[data-wx-day]');
+  if (wxDay) {
+    const picked = wxDay.dataset.wxDay;
+    const card = $('#now');
+    if (card.classList.contains('is-max')) {
+      ui.wxDay = ui.wxDay === picked ? null : picked;
+      renderCard('now');
+    } else {
+      ui.wxDay = picked;
+      shell.toggle(card);
+    }
+    return;
+  }
+  if (e.target.closest('[data-wx-close]')) {
+    ui.wxDay = null;
+    renderCard('now');
+    return;
+  }
   const row = e.target.closest('.proj[data-select]');                      // pick a project to view its log (expanded view)
   if (row && $('#projects').classList.contains('is-max')) {
     ui.selected = row.dataset.slug;
@@ -1102,6 +1120,7 @@ async function pollLogs() {
   } catch { /* transient */ }
 }
 document.addEventListener('card:max', e => {
+  if (e.detail.id === 'now' && !e.detail.on) { ui.wxDay = null; return; }
   if (e.detail.id !== 'projects') return;
   clearInterval(logTimer);
   if (e.detail.on) { ui.logText = ''; pollLogs(); logTimer = setInterval(pollLogs, 3000); }
