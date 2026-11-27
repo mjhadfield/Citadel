@@ -118,6 +118,55 @@ def key_of(path: str) -> str:
 
 # ---- 1. a scratch copy, and the app running on it -----------------------------------------------------------------------
 
+def demo_controls() -> dict[str, Any]:
+    """Synthetic sample rooms and lights for the Controls page (never touches Home Assistant)."""
+    full = {"brightness": True, "color_temp": True, "color": True}
+    amb = {"brightness": True, "color_temp": True, "color": False}
+    rooms = [
+        {"id": "office", "entity_id": "light.office", "name": "Office", "is_group": True, "on": True, "available": True,
+         "brightness": 72, "color_mode": "color_temp", "color_temp_kelvin": 3500, "min_kelvin": 2000, "max_kelvin": 6500, "rgb": [255, 196, 137],
+         "supports": full,
+         "lights": [
+             {"entity_id": "light.lamp", "name": "Lamp", "on": True, "available": True,
+              "brightness": 55, "color_mode": "xy", "color_temp_kelvin": None, "min_kelvin": 2000, "max_kelvin": 6500, "rgb": [255, 152, 56], "supports": full},
+             {"entity_id": "light.office_main", "name": "Office Main", "on": True, "available": True,
+              "brightness": 85, "color_mode": "color_temp", "color_temp_kelvin": 3500, "min_kelvin": 2000, "max_kelvin": 6500, "rgb": [255, 196, 137], "supports": full},
+         ],
+         "scenes": [{"entity_id": "scene.office_concentrate", "name": "Concentrate"}, {"entity_id": "scene.office_relax", "name": "Relax"}, {"entity_id": "scene.office_dimmed", "name": "Dimmed"}]},
+        {"id": "living_room", "entity_id": "light.living_room", "name": "Living room", "is_group": True, "on": True, "available": True,
+         "brightness": 58, "color_mode": "color_temp", "color_temp_kelvin": 2700, "min_kelvin": 2000, "max_kelvin": 6500, "rgb": [255, 169, 87],
+         "supports": full,
+         "lights": [{"entity_id": "light.living_room_main", "name": "Living Room Main", "on": True, "available": True,
+                     "brightness": 58, "color_mode": "color_temp", "color_temp_kelvin": 2700, "min_kelvin": 2000, "max_kelvin": 6500, "rgb": [255, 169, 87], "supports": full}],
+         "scenes": [{"entity_id": "scene.living_room_cinema", "name": "Cinema"}, {"entity_id": "scene.living_room_relax", "name": "Relax"}, {"entity_id": "scene.living_room_bright", "name": "Bright"}]},
+        {"id": "bedroom", "entity_id": "light.bedroom", "name": "Bedroom", "is_group": True, "on": False, "available": True,
+         "brightness": None, "color_mode": None, "color_temp_kelvin": None, "min_kelvin": 2000, "max_kelvin": 6500, "rgb": None,
+         "supports": full,
+         "lights": [{"entity_id": "light.bedroom_main", "name": "Bedroom Main", "on": False, "available": True,
+                     "brightness": None, "color_mode": None, "color_temp_kelvin": None, "min_kelvin": 2000, "max_kelvin": 6500, "rgb": None, "supports": full}],
+         "scenes": [{"entity_id": "scene.bedroom_morning", "name": "Morning"}, {"entity_id": "scene.bedroom_nightlight", "name": "Nightlight"}]},
+        {"id": "study", "entity_id": "light.study", "name": "Study", "is_group": True, "on": True, "available": True,
+         "brightness": 65, "color_mode": "xy", "color_temp_kelvin": None, "min_kelvin": 2000, "max_kelvin": 6500, "rgb": [139, 92, 246],
+         "supports": full,
+         "lights": [{"entity_id": "light.study_main", "name": "Study Main", "on": True, "available": True,
+                     "brightness": 65, "color_mode": "xy", "color_temp_kelvin": None, "min_kelvin": 2000, "max_kelvin": 6500, "rgb": [139, 92, 246], "supports": full}],
+         "scenes": [{"entity_id": "scene.study_read", "name": "Read"}, {"entity_id": "scene.study_savanna", "name": "Savanna"}]},
+        {"id": "gym", "entity_id": "light.gym", "name": "Gym", "is_group": True, "on": False, "available": True,
+         "brightness": None, "color_mode": None, "color_temp_kelvin": None, "min_kelvin": 2000, "max_kelvin": 6500, "rgb": None,
+         "supports": full,
+         "lights": [{"entity_id": "light.gym_main", "name": "Gym Main", "on": False, "available": True,
+                     "brightness": None, "color_mode": None, "color_temp_kelvin": None, "min_kelvin": 2000, "max_kelvin": 6500, "rgb": None, "supports": full}],
+         "scenes": [{"entity_id": "scene.gym_energise", "name": "Energise"}]},
+        {"id": "box_room", "entity_id": "light.box_room", "name": "Box room", "is_group": True, "on": False, "available": True,
+         "brightness": None, "color_mode": None, "color_temp_kelvin": None, "min_kelvin": 2200, "max_kelvin": 6500, "rgb": None,
+         "supports": amb,
+         "lights": [{"entity_id": "light.box_room_main", "name": "Box Room Main", "on": False, "available": True,
+                     "brightness": None, "color_mode": None, "color_temp_kelvin": None, "min_kelvin": 2200, "max_kelvin": 6500, "rgb": None, "supports": amb}],
+         "scenes": []},
+    ]
+    return {"configured": True, "available": True, "summary": {"on": 4, "total": 7, "rooms_on": 3, "rooms_total": 6}, "rooms": rooms, "zones": []}
+
+
 def demo_routines(rt_mod: Any, at: datetime) -> dict[str, Any]:
     """Synthetic sample routines for the Routines page, anchored to the snapshot time (never touches Home Assistant)."""
     def one(rid: str, name: str, on: bool, hhmm: str, days: list[str], skip: bool, last_days_ago: int | None) -> dict[str, Any]:
@@ -221,9 +270,10 @@ def snapshot(scratch: Path) -> tuple[dict[str, Any], list[dict[str, Any]], list[
                 for cid, ch in vol_mod.CHANNELS.items()
             ],
         }
-        # Routines page: synthetic sample routines anchored to the snapshot clock (never contacts Home Assistant).
+        # Routines & Controls pages: synthetic sample data (never contacts Home Assistant).
         snap_now = datetime.fromisoformat(out["/api/owner/state"]["now"])
         out["/api/owner/routines"] = demo_routines(rt_mod, snap_now)
+        out["/api/owner/controls"] = demo_controls()
         # No Spotify call for the player: the demo just shows "Nothing playing".
         out["/api/owner/music/player"] = {"ready": True, "active": False, "playing": False}
 

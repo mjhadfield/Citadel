@@ -247,6 +247,79 @@ async def post_routine(rid: str, request: Request):
     return {"ok": True}
 
 
+# ---- Controls page (app/controls.py; Home Assistant lights & scenes on Probe-1) -----------------------
+
+@router.get("/controls")
+async def get_controls(request: Request):
+    from . import controls
+    from .homeassistant import Unavailable
+    cache = getattr(request.app.state, "controls", None)
+    try:
+        return await controls.view(cache)
+    except Unavailable as e:
+        return {"configured": True, "available": False, "error": str(e),
+                "summary": {"on": 0, "total": 0, "rooms_on": 0, "rooms_total": 0}, "rooms": [], "zones": []}
+
+
+@router.post("/controls/light/{entity_id}")
+async def post_controls_light(entity_id: str, request: Request):
+    """Change one light or room group (on/off, brightness 1..100, kelvin, rgb, optional transition)."""
+    from pydantic import ValidationError
+    from . import controls
+    from .homeassistant import Unavailable
+    try:
+        change = controls.LightChange.model_validate(await request.json())
+    except (ValidationError, ValueError) as e:
+        raise HTTPException(422, f"Not a light command: {e}") from None
+    cache = getattr(request.app.state, "controls", None)
+    try:
+        await controls.set_light(entity_id, change, cache)
+    except LookupError as e:
+        raise HTTPException(404, str(e).capitalize()) from None
+    except Unavailable as e:
+        raise HTTPException(503, str(e)) from None
+    return {"ok": True}
+
+
+@router.post("/controls/scene/{entity_id}")
+async def post_controls_scene(entity_id: str, request: Request):
+    """Activate one Hue scene in Home Assistant."""
+    from . import controls
+    from .homeassistant import Unavailable
+    cache = getattr(request.app.state, "controls", None)
+    try:
+        await controls.activate_scene(entity_id, cache)
+    except LookupError as e:
+        raise HTTPException(404, str(e).capitalize()) from None
+    except Unavailable as e:
+        raise HTTPException(503, str(e)) from None
+    return {"ok": True}
+
+
+@router.post("/controls/all-off")
+async def post_controls_all_off(request: Request):
+    """Turn off every currently-on managed room/light in Home Assistant."""
+    from . import controls
+    from .homeassistant import Unavailable
+    cache = getattr(request.app.state, "controls", None)
+    try:
+        return await controls.all_off(cache)
+    except Unavailable as e:
+        raise HTTPException(503, str(e)) from None
+
+
+@router.put("/controls/order")
+async def put_controls_order(request: Request):
+    """Save the owner's preferred display order for rooms on the Controls page."""
+    from pydantic import ValidationError
+    from . import controls
+    try:
+        body = controls.OrderIn.model_validate(await request.json())
+    except (ValidationError, ValueError) as e:
+        raise HTTPException(422, f"Not a room order: {e}") from None
+    return {"ok": True, "order": controls.save_order(body.order)}
+
+
 # ---- project control ---------------------------------------------------------------------------
 
 def _project(slug: str, *, enabled_only: bool = True) -> dict[str, Any]:

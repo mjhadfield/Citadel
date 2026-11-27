@@ -141,7 +141,7 @@ def test_default_groups(owner_client):
     groups = {p["id"]: p["group"] for p in nav["pages"]}
     assert [i for i in ids(nav["pages"]) if groups[i] == "command"] == ["stats", "news", "music"]       # Fleet, News, Companion
     assert [i for i in ids(nav["pages"]) if groups[i] == "science"] == ["listen", "media", "casino", "holodeck"]
-    assert [i for i in ids(nav["pages"]) if groups[i] == "engineering"] == ["labels", "house", "lab", "routines", "ai"]
+    assert [i for i in ids(nav["pages"]) if groups[i] == "engineering"] == ["labels", "house", "lab", "controls", "routines", "ai"]
     assert groups["home"] == groups["curate"] == groups["settings"] == ""
     assert state_nav(owner_client)["groups"] == nav["groups"]
 
@@ -151,7 +151,7 @@ def test_a_set_saved_before_groups_keeps_its_order_within_the_default_groups(own
                                                ["news", "media", "music", "listen", "casino", "ai", "house", "stats", "labels", "holodeck"]]})
     order = ids(state_nav(owner_client)["pages"])
     assert order == ["home", "news", "music", "stats", "media", "listen", "casino", "holodeck", "ai", "house", "labels",
-                     "lab", "routines", "curate", "audio", "settings"]
+                     "lab", "controls", "routines", "curate", "audio", "settings"]
 
 
 def test_moving_a_page_to_another_group_and_ungrouping(owner_client):

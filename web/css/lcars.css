@@ -80,6 +80,7 @@ html[data-family="lcars"] .rail [data-view="house"] { --lc-c: var(--lc-3); }
 html[data-family="lcars"] .rail [data-view="labels"] { --lc-c: var(--lc-2); }
 html[data-family="lcars"] .rail [data-view="holodeck"] { --lc-c: var(--lc-5); }
 html[data-family="lcars"] .rail [data-view="lab"] { --lc-c: var(--lc-4); }
+html[data-family="lcars"] .rail [data-view="controls"] { --lc-c: var(--lc-2); }
 html[data-family="lcars"] .rail [data-view="routines"] { --lc-c: var(--lc-1); }
 html[data-family="lcars"] .rail [data-view="stats"] { --lc-c: var(--lc-1); }
 html[data-family="lcars"] .rail [data-view="curate"] { --lc-c: var(--lc-2); }

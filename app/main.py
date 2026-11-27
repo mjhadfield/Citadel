@@ -21,6 +21,7 @@ from .widgets import discover
 from . import volume as _volume
 from . import goxlr as _goxlr
 from . import audio as _audio
+from . import controls as _controls
 
 log = logging.getLogger("hub")
 # httpx logs every request URL at INFO. Calendar addresses are secrets, so those loggers stay quiet; while the app runs,
@@ -119,6 +120,7 @@ async def lifespan(app: FastAPI):
     app.state.machines = machine_watch
     app.state.goxlr = _goxlr.GoXLR(config.GOXLR_URL)      # the one connection to the GoXLR daemon (Audio page + header volume)
     app.state.audio_unsaved = _audio.Unsaved()            # the Audio page's "unsaved changes" marks (app/audio.py)
+    app.state.controls = _controls.ControlsState()        # the Controls page's known HA light/scene allow-list (app/controls.py)
     app.state.volume = _volume.Volume(goxlr=app.state.goxlr)    # the header's GoXLR volume buttons; mutes them once per boot
     music_store.learn_secrets()
     await health.start()

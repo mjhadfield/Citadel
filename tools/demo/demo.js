@@ -211,11 +211,109 @@
     });
   }
 
+  // ---- Controls: interactive in-memory sandbox over data/controls.json (nothing leaves the browser) -----------------
+  var demoCtrl = null;
+  function ctrlState() {
+    if (!demoCtrl) demoCtrl = saved('controls').then(function (t) { return t ? JSON.parse(t) : null; });
+    return demoCtrl;
+  }
+  function ctrlSummary(st) {
+    var on = 0, total = 0, roomsOn = 0;
+    (st.rooms || []).forEach(function (r) {
+      if (r.lights && r.lights.length) {
+        total += r.lights.length;
+        on += r.lights.filter(function (b) { return b.on; }).length;
+      } else {
+        total += 1;
+        if (r.on) on += 1;
+      }
+      if (r.on) roomsOn += 1;
+    });
+    st.summary = { on: on, total: total, rooms_on: roomsOn, rooms_total: (st.rooms || []).length };
+  }
+  function ctrlApply(item, body) {
+    if (body.on === false) { item.on = false; return; }
+    item.on = true;
+    if (body.brightness != null) item.brightness = body.brightness;
+    else if (!item.brightness && item.supports && item.supports.brightness) item.brightness = 100;
+    if (body.kelvin != null) { item.color_mode = 'color_temp'; item.color_temp_kelvin = body.kelvin; item.rgb = null; }
+    if (body.rgb != null) { item.color_mode = 'xy'; item.rgb = body.rgb.slice(0, 3); item.color_temp_kelvin = null; }
+  }
+  function controlsReply(url, method, init) {
+    var sub = url.pathname.replace(/^\/api\/owner\/controls/, '');
+    return ctrlState().then(function (st) {
+      if (!st) return reply(503, { detail: NOT_HERE });
+      if (method === 'GET' && !sub) return reply(200, st);
+      if (method === 'PUT' && sub === '/order') {
+        var ob = {};
+        try { ob = init && init.body ? JSON.parse(init.body) : {}; } catch (e) {}
+        var ord = Array.isArray(ob.order) ? ob.order : [];
+        st.rooms.sort(function (a, b) {
+          var ia = ord.indexOf(a.entity_id), ib = ord.indexOf(b.entity_id);
+          return (ia < 0 ? 1e6 : ia) - (ib < 0 ? 1e6 : ib);
+        });
+        return reply(200, { ok: true, order: ord });
+      }
+      if (method !== 'POST') return reply(409, { detail: READ_ONLY });
+      var body = {};
+      try { body = init && init.body ? JSON.parse(init.body) : {}; } catch (e) {}
+      if (sub === '/all-off') {
+        var n = 0;
+        (st.rooms || []).forEach(function (r) {
+          if (r.on) n += 1;
+          r.on = false;
+          (r.lights || []).forEach(function (b) { b.on = false; });
+        });
+        ctrlSummary(st);
+        return reply(200, { ok: true, turned_off: n });
+      }
+      if (sub.indexOf('/light/') === 0) {
+        var eid = decodeURIComponent(sub.slice('/light/'.length));
+        var room = (st.rooms || []).find(function (r) { return r.entity_id === eid; });
+        if (room) {
+          ctrlApply(room, body);
+          (room.lights || []).forEach(function (b) { ctrlApply(b, body); });
+          ctrlSummary(st);
+          return reply(200, { ok: true });
+        }
+        var owner = (st.rooms || []).find(function (r) { return (r.lights || []).some(function (b) { return b.entity_id === eid; }); });
+        if (owner) {
+          var bulb = owner.lights.find(function (b) { return b.entity_id === eid; });
+          ctrlApply(bulb, body);
+          var lit = owner.lights.filter(function (b) { return b.on; });
+          owner.on = lit.length > 0;
+          if (lit.length) owner.brightness = Math.round(lit.reduce(function (s, b) { return s + (b.brightness || 100); }, 0) / lit.length);
+          ctrlSummary(st);
+          return reply(200, { ok: true });
+        }
+        return reply(404, { detail: 'No such light' });
+      }
+      if (sub.indexOf('/scene/') === 0) {
+        var seid = decodeURIComponent(sub.slice('/scene/'.length));
+        var presets = { relax: { brightness: 50, kelvin: 2400 }, concentrate: { brightness: 100, kelvin: 4800 },
+                        energise: { brightness: 100, kelvin: 5800 }, nightlight: { brightness: 15, kelvin: 2100 },
+                        cinema: { brightness: 25, rgb: [110, 62, 220] }, dimmed: { brightness: 30, kelvin: 2500 },
+                        bright: { brightness: 100, kelvin: 3500 }, morning: { brightness: 75, kelvin: 5500 },
+                        read: { brightness: 80, kelvin: 3200 }, savanna: { brightness: 65, rgb: [255, 118, 52] } };
+        var sroom = (st.rooms || []).find(function (r) { return (r.scenes || []).some(function (sc) { return sc.entity_id === seid; }); });
+        if (!sroom) return reply(404, { detail: 'No such scene' });
+        var sc = sroom.scenes.find(function (x) { return x.entity_id === seid; });
+        var p = presets[String(sc.name || '').toLowerCase()] || { brightness: 70, kelvin: 3000 };
+        ctrlApply(sroom, p);
+        (sroom.lights || []).forEach(function (b) { ctrlApply(b, p); });
+        ctrlSummary(st);
+        return reply(200, { ok: true });
+      }
+      return reply(409, { detail: READ_ONLY });
+    });
+  }
+
   window.fetch = function (input, init) {
     var url;
     try { url = new URL(typeof input === 'string' ? input : input.url, location.href); } catch (e) { return realFetch(input, init); }
     if (url.origin !== location.origin || url.pathname.indexOf('/api/') !== 0) return realFetch(input, init);
     var method = String((init && init.method) || (typeof input === 'object' && input.method) || 'GET').toUpperCase();
+    if (url.pathname === '/api/owner/controls' || url.pathname.indexOf('/api/owner/controls/') === 0) return controlsReply(url, method, init);
     // 409, not 403: Citadel's api.js reloads the page on a 403 (it means "this device was revoked").
     if (method !== 'GET') return reply(409, { detail: READ_ONLY });
     if (/\/api\/owner\/(machines|stats\/(machines|series|spikes|disks))$/.test(url.pathname)) return fleetReply(url);
