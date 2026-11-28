@@ -167,7 +167,7 @@ VNC_ADDRESS_RE = re.compile(r"^[A-Za-z0-9\[][A-Za-z0-9.\-:\[\]]{0,252}$")
 class RemoteHostIn(BaseModel):
     name: str = Field(min_length=1, max_length=40)
     address: str = Field(min_length=1, max_length=253)
-    viewer: Literal["krdc", "tigervnc"] = "krdc"   # KRDC scales to its window; TigerVNC for servers KRDC can't log in to
+    viewer: Literal["krdc", "tigervnc", "none"] = "krdc"   # KRDC scales to its window; TigerVNC for servers KRDC can't log in to; none = monitoring only
     ssh_user: str = Field("", max_length=32)       # blank = not watched by Monitoring (app/machines.py)
     always_on: bool = False                        # off for a while = a reminder
     mac: str = Field("", max_length=32)            # Wake-on-LAN: blank = the tile can't wake it (app/wol.py)

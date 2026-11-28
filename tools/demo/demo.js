@@ -200,7 +200,9 @@
       if (path === '/machines' || path === '/stats/machines') {
         var rows = list.filter(function (m) { return path === '/stats/machines' || m.rid != null; }).map(function (m) {
           var l = latest(m);
-          return { id: path === '/machines' ? m.rid : m.id, name: m.name, up: m.up, always_on: m.always_on, at: l.at, stats: l.stats, error: null };
+          var row = { id: path === '/machines' ? m.rid : m.id, name: m.name, up: m.up, always_on: m.always_on, at: l.at, stats: l.stats, error: null };
+          if (path === '/stats/machines') row.spec = m.spec || null;
+          return row;
         });
         return reply(200, path === '/machines' ? { machines: rows } : { machines: rows, collector: { ok: true, error: null, at: nowS() } });
       }

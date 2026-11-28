@@ -220,10 +220,75 @@ def pi_power(text: str | None) -> dict | None:
 
 
 def os_name() -> str | None:
-    for line in (maybe("/etc/os-release") or "").splitlines():
-        if line.startswith("PRETTY_NAME="):
-            return line.split("=", 1)[1].strip().strip('"')
+    rel = dict(l.split("=", 1) for l in (maybe("/etc/os-release") or "").splitlines() if "=" in l)
+    rel = {k: v.strip().strip('"') for k, v in rel.items()}
+    if rel.get("ID") == "debian" and maybe("/etc/rpi-issue") is not None:     # Raspberry Pi OS says it's plain Debian
+        return f"Raspberry Pi OS (Debian {rel['VERSION_ID']})" if rel.get("VERSION_ID") else "Raspberry Pi OS"
+    return rel.get("PRETTY_NAME")
+
+
+def cpuinfo(key: str) -> str | None:
+    """The first `key : value` line of /proc/cpuinfo (x86 says "model name"; a Pi says "Model" and "CPU part")."""
+    for line in (maybe("/proc/cpuinfo") or "").splitlines():
+        k, _, v = line.partition(":")
+        if k.strip() == key and v.strip():
+            return v.strip()
     return None
+
+
+def gpus_lspci(text: str | None) -> list[dict]:
+    """Graphics cards from `lspci -mm`: `08:00.0 "VGA compatible controller" "NVIDIA Corporation" "GA102 [GeForce RTX
+    3080 Ti]" -ra1 …`. Citadel tidies the names (app/machines.py)."""
+    import shlex
+    out = []
+    for line in (text or "").splitlines():
+        try:
+            parts = shlex.split(line)
+        except ValueError:
+            continue
+        if len(parts) >= 4 and any(w in parts[1] for w in ("VGA", "3D", "Display")):
+            out.append({"vendor": parts[2], "device": parts[3]})
+    return out
+
+
+def memory_modules(text: str | None) -> list[dict]:
+    """The memory sticks, from udev's copy of the firmware's table (`udevadm info -p /sys/devices/virtual/dmi/id`: its
+    dmi_memory_id reads it at boot, so no root is needed, unlike dmidecode). Empty slots are left out. An old BIOS may
+    say "Other" or "Unknown" for the type (Phoenix): Citadel fills that in from the board."""
+    props = dict(l.split("=", 1) for l in (text or "").splitlines() if l.startswith("MEMORY_DEVICE_") and "=" in l)
+    out = []
+    for i in sorted({int(k.split("_")[2]) for k in props if k.split("_")[2].isdigit()}):
+        get = lambda f: props.get(f"MEMORY_DEVICE_{i}_{f}")
+        if get("PRESENT") == "0" or not (get("SIZE") or "").isdigit():
+            continue
+        speed = get("CONFIGURED_SPEED_MTS") or get("SPEED_MTS")
+        out.append({"type": get("TYPE"), "size": int(get("SIZE")), "mts": int(speed) if speed and speed.isdigit() else None, "form": get("FORM_FACTOR")})
+    return out
+
+
+def spec() -> dict:
+    """What the machine is: kept with the latest reading only (the collector stores no history of it), for the Fleet
+    page's Specifications card. No root needed: dmidecode would give the memory type, but it isn't worth sudo."""
+    cores = {(maybe(d + "/topology/physical_package_id"), maybe(d + "/topology/core_id"))
+             for d in (p[len(ROOT):] for p in glob.glob(path("/sys/devices/system/cpu/cpu[0-9]*")))}
+    cores.discard((None, None))
+    threads = cpu_ticks()[2]
+    maxf = maybe("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq")
+    dmi = {k: maybe("/sys/class/dmi/id/" + k) for k in ("sys_vendor", "product_name", "product_version", "board_vendor", "board_name")}
+    u = os.uname()
+    return {
+        "model": cpuinfo("Model") or (maybe("/proc/device-tree/model") or "").strip("\0") or None,
+        "dmi": {k: v for k, v in dmi.items() if v} or None,
+        "cpu": cpuinfo("model name"),
+        "cpu_part": cpuinfo("CPU part"),
+        "cores": len(cores) or threads,
+        "threads": threads,
+        "max_mhz": round(int(maxf) / 1000) if maxf and maxf.isdigit() else None,
+        "gpus": gpus_lspci(run(["lspci", "-mm"])),
+        "ram": memory_modules(run(["udevadm", "info", "-q", "property", "-p", "/sys/devices/virtual/dmi/id"])),
+        "kernel": u.release,
+        "arch": u.machine,
+    }
 
 
 def collect() -> dict:
@@ -245,6 +310,7 @@ def collect() -> dict:
         "battery": battery(),
         "pi": pi_power(run(["vcgencmd", "get_throttled"])),
         "top": top_procs(pa, pb, b[1] - a[1]),
+        "spec": spec(),
     }
 
 

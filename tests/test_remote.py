@@ -208,3 +208,21 @@ def test_magic_packet_shape():
 
 def test_guest_cannot_wake(guest_client):
     assert guest_client.post(f"{BASE}/remote/1/wake").status_code == 403
+
+
+def test_a_device_with_no_remote_desktop_is_monitoring_only(owner_client, monkeypatch):
+    """Probe-1 on Home Assistant OS (2026-11-26): viewer 'none' keeps it in Settings (and Monitoring) but off Home's tile,
+    and it can't be opened."""
+    r = owner_client.post(f"{BASE}/remote", json={"name": "Probe-1", "address": "192.168.0.79", "viewer": "none", "ssh_user": "root", "always_on": True})
+    assert r.status_code == 201, r.text
+    hid, desk = r.json()["id"], mk(owner_client, "Probe-2", "probe-2.local")
+    assert [x["viewer"] for x in cfg(owner_client)] == ["none", "krdc"]
+    assert [x["id"] for x in owner_client.get(f"{BASE}/state").json()["remote"]] == [desk]
+
+    async def fake_open(host):
+        raise AssertionError("no viewer for a monitoring-only device")
+
+    monkeypatch.setattr(procs, "open_viewer", fake_open)
+    r = owner_client.post(f"{BASE}/remote/{hid}/open")
+    assert r.status_code == 400 and "no remote desktop" in r.json()["detail"]
+    assert owner_client.post(f"{BASE}/remote", json={"name": "x", "address": "x.local", "viewer": "rdp"}).status_code == 422

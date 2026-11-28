@@ -745,6 +745,8 @@ async def delete_remote(host_id: int, request: Request):
 async def open_remote(host_id: int):
     """Opens the viewer on this PC's own screen, whichever device asked (like a desktop project)."""
     host = _remote(host_id)
+    if host["viewer"] == "none":
+        raise HTTPException(400, f"{host['name']} has no remote desktop")
     try:
         opened = await procs.open_viewer(host)
     except procs.ProcError as exc:

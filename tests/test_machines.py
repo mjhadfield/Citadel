@@ -303,3 +303,121 @@ def test_the_other_machines_switch_turns_them_all_off(hosts, owner_client):
     r = owner_client.put(f"{BASE}/alerts/settings", json={"machines": False}, headers={"X-Hub": "1"})
     assert r.status_code == 200, r.text
     assert m.alerts(AT) == []
+
+
+# ---- specifications (the Fleet page's Specifications card) --------------------------------------------------------
+
+def test_script_reports_what_the_machine_is(tmp_path):
+    root = fake_root(tmp_path, {})
+    put = lambda rel, text: ((tmp_path / rel.lstrip("/")).parent.mkdir(parents=True, exist_ok=True), (tmp_path / rel.lstrip("/")).write_text(text))
+    put("/proc/cpuinfo", "processor\t: 0\nmodel name\t: AMD Phenom(tm) II X4 955 Processor\n\nprocessor\t: 1\nmodel name\t: AMD Phenom(tm) II X4 955 Processor\n")
+    for i in (0, 1):
+        put(f"/sys/devices/system/cpu/cpu{i}/topology/core_id", f"{i}\n")
+        put(f"/sys/devices/system/cpu/cpu{i}/topology/physical_package_id", "0\n")
+    put("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq", "3200000\n")
+    put("/sys/class/dmi/id/sys_vendor", "To Be Filled By O.E.M.\n")
+    put("/sys/class/dmi/id/board_vendor", "ASUSTeK Computer INC.\n")
+    put("/sys/class/dmi/id/board_name", "M4A79XTD EVO\n")
+    sp = run_script(root)["spec"]
+    assert sp["cpu"] == "AMD Phenom(tm) II X4 955 Processor" and sp["cores"] == 2 and sp["threads"] == 2 and sp["max_mhz"] == 3200
+    assert sp["dmi"]["board_name"] == "M4A79XTD EVO" and sp["gpus"] == []          # lspci is skipped under --root
+    assert machines.spec_view({"spec": sp, "mem": {"total": 16 * GB - 300 * 2**20}, "os": "Debian"})["model"] == "ASUS M4A79XTD EVO"
+
+
+def test_script_names_raspberry_pi_os(tmp_path):
+    root = fake_root(tmp_path, {})
+    (tmp_path / "etc/os-release").write_text('ID=debian\nVERSION_ID="13"\nPRETTY_NAME="Debian GNU/Linux 13 (trixie)"\n')
+    (tmp_path / "etc/rpi-issue").write_text("Raspberry Pi reference 2026-10-01\n")
+    assert run_script(root)["os"] == "Raspberry Pi OS (Debian 13)"
+
+
+def test_lspci_graphics_cards():
+    mod = load_script()
+    text = ('00:00.0 "Host bridge" "Intel Corporation" "Device 9a14" -r01 "Dell" "Device 0a7b"\n'
+            '00:02.0 "VGA compatible controller" "Intel Corporation" "TigerLake-LP GT2 [Iris Xe Graphics]" -r01 -p00 "Dell" "Device 0a7b"\n'
+            '01:00.0 "3D controller" "NVIDIA Corporation" "GA107M [GeForce RTX 3050 Mobile]" -ra1 "Dell" "Device 0a7b"\n')
+    assert mod.gpus_lspci(text) == [{"vendor": "Intel Corporation", "device": "TigerLake-LP GT2 [Iris Xe Graphics]"},
+                                    {"vendor": "NVIDIA Corporation", "device": "GA107M [GeForce RTX 3050 Mobile]"}]
+
+
+@pytest.mark.parametrize("raw, name", [
+    ("AMD Ryzen 7 5800X3D 8-Core Processor", "AMD Ryzen 7 5800X3D"),
+    ("11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz", "Intel Core i5-1135G7"),
+    ("Intel(R) Core(TM) i7-4770K CPU @ 3.50GHz", "Intel Core i7-4770K"),
+    ("Intel(R) Pentium(R) CPU G3258 @ 3.20GHz", "Intel Pentium G3258"),
+    ("AMD Phenom(tm) II X4 955 Processor", "AMD Phenom II X4 955"),
+    (None, None),
+])
+def test_cpu_names(raw, name):
+    assert machines.cpu_name(raw) == name
+
+
+@pytest.mark.parametrize("vendor, device, name", [
+    ("NVIDIA Corporation", "GA102 [GeForce RTX 3080 Ti]", "NVIDIA GeForce RTX 3080 Ti"),
+    ("Intel Corporation", "TigerLake-LP GT2 [Iris Xe Graphics]", "Intel Iris Xe Graphics"),
+    ("Advanced Micro Devices, Inc. [AMD/ATI]", "Cape Verde PRO [Radeon HD 7750/8740 / R7 250E]", "AMD Radeon HD 7750"),
+    ("Intel Corporation", "Intel(R) HD Graphics", "Intel HD Graphics"),        # Windows' name already has the maker
+])
+def test_gpu_names(vendor, device, name):
+    assert machines.gpu_name(vendor, device) == name
+
+
+def test_ram_is_shown_as_the_size_it_was_sold_as():
+    assert [machines.ram_gb(g * GB) for g in (3.7, 7.5, 15.6, 23.4, 31.3, 64)] == [4, 8, 16, 24, 32, 64]
+    assert machines.ram_gb(None) is None
+
+
+def test_spec_view_from_real_shaped_readings():
+    gaming = {"os": "CachyOS", "mem": {"total": 33_600_000_000}, "gpu": {"name": "NVIDIA GeForce RTX 3080 Ti", "mem_total_mb": 12288.0},
+              "spec": {"dmi": {"sys_vendor": "ASUS", "product_name": "System Product Name", "board_vendor": "ASUSTeK COMPUTER INC.",
+                               "board_name": "ROG STRIX B550-F GAMING WIFI II"}, "cpu": "AMD Ryzen 7 5800X3D 8-Core Processor",
+                       "cores": 8, "threads": 16, "max_mhz": 4553, "gpus": [{"vendor": "NVIDIA Corporation", "device": "GA102 [GeForce RTX 3080 Ti]"}],
+                       "kernel": "7.3.5-2-cachyos", "arch": "x86_64"}}
+    v = machines.spec_view(gaming)
+    assert v == {"model": "ASUS ROG STRIX B550-F GAMING WIFI II", "cpu": "AMD Ryzen 7 5800X3D", "cores": 8, "threads": 16, "ghz": 4.6,
+                 "gpus": [{"name": "NVIDIA GeForce RTX 3080 Ti", "vram_gb": 12.0}], "ram_gb": 32, "ram_type": None, "ram_sticks": None,
+                 "ram_mts": None, "os": "CachyOS", "kernel": "7.3.5-2-cachyos", "arch": "x86_64"}
+    probe = {"os": "Home Assistant OS 18.5", "mem": {"total": 3_976_265_728}, "gpu": None,
+             "spec": {"model": "Raspberry Pi 4 Model B Rev 1.1", "cpu": None, "cpu_part": "0xd08", "cores": 4, "threads": 4, "max_mhz": 1500, "gpus": []}}
+    v = machines.spec_view(probe)
+    assert v["cpu"] == "Broadcom BCM2711 (Cortex-A72)" and v["gpus"] == [{"name": "VideoCore VI", "vram_gb": None}] and v["ram_gb"] == 4
+    win = {"os": "Windows 10 Pro N", "mem": {"total": 8_238_239_744}, "cpu": {"cores": 2},
+           "spec": {"dmi": {"sys_vendor": "To Be Filled By O.E.M.", "product_name": "To Be Filled By O.E.M.", "board_vendor": "ASRock", "board_name": "Z87M Pro4"},
+                    "cpu": "Intel(R) Pentium(R) CPU G3258 @ 3.20GHz", "cores": 2, "threads": 2, "max_mhz": 3200,
+                    "gpus": [{"vendor": "Intel Corporation", "device": "Intel(R) HD Graphics", "vram_mb": 1024}]}}
+    v = machines.spec_view(win)
+    assert v["model"] == "ASRock Z87M Pro4" and v["gpus"] == [{"name": "Intel HD Graphics", "vram_gb": None}]   # Intel's is shared memory
+
+
+def test_spec_view_before_the_scripts_sent_specs():
+    """A machine still on the old script (Phoenix asleep, say) shows what its reading has anyway."""
+    v = machines.spec_view({"os": "Debian GNU/Linux 13 (trixie)", "cpu": {"cores": 4}, "mem": {"total": 16 * GB},
+                            "gpu": {"name": "AMD Radeon", "mem_total_mb": 1024}})
+    assert v["cpu"] is None and v["threads"] == 4 and v["cores"] == 4 and v["ram_gb"] == 16
+    assert v["gpus"] == [{"name": "AMD Radeon", "vram_gb": 1.0}]
+    assert machines.spec_view(None) is None
+
+
+def test_memory_sticks_from_udev():
+    mod = load_script()
+    text = ("MEMORY_ARRAY_NUM_DEVICES=3\nMEMORY_DEVICE_0_SIZE=8589934592\nMEMORY_DEVICE_0_TYPE=DDR4\nMEMORY_DEVICE_0_SPEED_MTS=3200\n"
+            "MEMORY_DEVICE_0_CONFIGURED_SPEED_MTS=3000\nMEMORY_DEVICE_0_FORM_FACTOR=SODIMM\n"
+            "MEMORY_DEVICE_1_PRESENT=0\nMEMORY_DEVICE_1_TYPE=Unknown\n"
+            "MEMORY_DEVICE_12_SIZE=8589934592\nMEMORY_DEVICE_12_TYPE=DDR4\nMEMORY_DEVICE_12_SPEED_MTS=3200\n")
+    assert mod.memory_modules(text) == [{"type": "DDR4", "size": 8 * GB, "mts": 3000, "form": "SODIMM"},
+                                        {"type": "DDR4", "size": 8 * GB, "mts": 3200, "form": None}]
+    assert mod.memory_modules(None) == []
+
+
+def test_memory_type_and_sticks():
+    view = lambda ram, model=None: machines.spec_view({"mem": {"total": 16 * GB}, "spec": {"model": model, "ram": ram}})
+    v = view([{"type": "DDR4", "size": 8 * GB, "mts": 3600}] * 2)
+    assert (v["ram_type"], v["ram_sticks"], v["ram_mts"]) == ("DDR4", "2 × 8 GB", 3600)
+    assert view([{"type": "DDR3", "size": 8 * GB}, {"type": "DDR3", "size": 4 * GB}])["ram_sticks"] == "8 GB + 4 GB"
+    # Phoenix: the BIOS says "Other", the board only takes DDR3
+    phoenix = machines.spec_view({"mem": {"total": 16 * GB}, "spec": {"dmi": {"board_vendor": "ASUSTeK Computer INC.", "board_name": "M4A77T"},
+                                                                     "ram": [{"type": "Other", "size": 8 * GB, "mts": 1600}] * 2}})
+    assert (phoenix["model"], phoenix["ram_type"]) == ("ASUS M4A77T", "DDR3")
+    pi = view([], "Raspberry Pi 4 Model B Rev 1.1")
+    assert (pi["ram_type"], pi["ram_sticks"], pi["ram_mts"]) == ("LPDDR4", None, None)
+    assert view([{"type": "Other", "size": 8 * GB}])["ram_type"] is None          # unknown board: no guess

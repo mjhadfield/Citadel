@@ -139,7 +139,7 @@ function remoteForm(r = {}) {
     <div class="form-grid">
       ${field('Name', input('name', r.name, 'required maxlength="40" placeholder="e.g. Probe-1 desktop"'))}
       ${field('VNC address', input('address', r.address, 'required maxlength="253" spellcheck="false" placeholder="e.g. probe-1.local"'), 'Host name or IP address. Only for a server not on the usual port 5900: <code>host:1</code> is port 5901, <code>host::5905</code> is port 5905.')}
-      ${field('Viewer', select('viewer', [['krdc', 'KRDC (scales to the window)'], ['tigervnc', 'TigerVNC']], r.viewer || 'krdc'))}
+      ${field('Viewer', select('viewer', [['krdc', 'KRDC (scales to the window)'], ['tigervnc', 'TigerVNC'], ['none', 'None (monitoring only, no tile)']], r.viewer || 'krdc'))}
       ${field('Wake-on-LAN MAC address', input('mac', r.mac, 'maxlength="17" spellcheck="false" autocomplete="off" placeholder="blank = no wake"'))}
       ${field('Monitoring SSH user', input('ssh_user', r.ssh_user, 'maxlength="32" spellcheck="false" autocomplete="off" placeholder="blank = not monitored"'), 'Set up once with <code>tools/machines_setup.py</code>.')}
     </div>
@@ -152,7 +152,7 @@ function remoteTab() {
   const rows = list.map((r, i) => editing?.kind === 'remote' && editing.id === r.id
     ? `<li class="item item--edit">${remoteForm(r)}</li>`
     : `<li class="item"><span class="item__icon">${ico('desk')}</span>
-        <div class="item__main"><b>${esc(r.name)}</b><div class="item__sub">${esc(r.address)} · ${r.viewer === 'tigervnc' ? 'TigerVNC' : 'KRDC'}${r.mac ? ' · wakes' : ''}${r.ssh_user ? ' · monitored' : ''}${r.always_on ? ' · always on' : ''}</div></div>
+        <div class="item__main"><b>${esc(r.name)}</b><div class="item__sub">${esc(r.address)} · ${r.viewer === 'tigervnc' ? 'TigerVNC' : r.viewer === 'none' ? 'no remote desktop' : 'KRDC'}${r.mac ? ' · wakes' : ''}${r.ssh_user ? ' · monitored' : ''}${r.always_on ? ' · always on' : ''}</div></div>
         <div class="item__acts">
           ${act('move-remote', ico('up'), `data-i="${i}" data-d="-1" aria-label="Move up" ${i > 0 ? '' : 'disabled'}`, 'btn--icon')}
           ${act('move-remote', ico('down'), `data-i="${i}" data-d="1" aria-label="Move down" ${i < list.length - 1 ? '' : 'disabled'}`, 'btn--icon')}

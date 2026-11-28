@@ -79,6 +79,33 @@ $top = @($byName.GetEnumerator() | Sort-Object Value -Descending | Select-Object
     $pct = [math]::Round(100 * $_.Value / ($secs * [math]::Max(1, $cores)), 1)
     if ($pct -ge 0.5) { [ordered]@{ name = $_.Key; percent = $pct } } })
 
+# What the machine is, for the Fleet page's Specifications card (the same `spec` shape as the Linux script's; Citadel
+# tidies the names). AdapterRAM is a 32-bit field, so it can't say more than 4 GB.
+$cs = Get-CimInstance Win32_ComputerSystem
+$board = Get-CimInstance Win32_BaseBoard
+$gpus = @(Get-CimInstance Win32_VideoController | ForEach-Object {
+    [ordered]@{ vendor = [string]$_.AdapterCompatibility; device = [string]$_.Name; vram_mb = $(if ($_.AdapterRAM) { [math]::Round([double]$_.AdapterRAM / 1MB) } else { $null }) } })
+# Memory sticks: SMBIOSMemoryType is the firmware's own code (24 DDR3, 26 DDR4, 34 DDR5…), named the way Linux's udev
+# names them, so Citadel reads both the same way.
+$memTypes = @{ 18 = 'DDR'; 19 = 'DDR2'; 20 = 'DDR'; 21 = 'DDR2'; 24 = 'DDR3'; 26 = 'DDR4'; 27 = 'LPDDR'; 28 = 'LPDDR2'; 29 = 'LPDDR3'; 30 = 'LPDDR4'; 34 = 'DDR5'; 35 = 'LPDDR5' }
+$ram = @(Get-CimInstance Win32_PhysicalMemory | ForEach-Object {
+    $t = [int]$_.SMBIOSMemoryType; if (-not $memTypes.ContainsKey($t)) { $t = [int]$_.MemoryType }
+    $mts = $(if ($_.ConfiguredClockSpeed) { [int]$_.ConfiguredClockSpeed } elseif ($_.Speed) { [int]$_.Speed } else { $null })
+    [ordered]@{ type = $(if ($memTypes.ContainsKey($t)) { $memTypes[$t] } else { 'Unknown' }); size = [int64]$_.Capacity; mts = $mts; form = $(if ($_.FormFactor -eq 12) { 'SODIMM' } else { 'DIMM' }) } })
+$spec = [ordered]@{
+    model = $null
+    dmi = [ordered]@{ sys_vendor = [string]$cs.Manufacturer; product_name = [string]$cs.Model; board_vendor = [string]$board.Manufacturer; board_name = [string]$board.Product }
+    cpu = ([string]$cpu.Name).Trim()
+    cpu_part = $null
+    cores = [int]$cpu.NumberOfCores
+    threads = $cores
+    max_mhz = [int]$cpu.MaxClockSpeed
+    gpus = $gpus
+    ram = $ram
+    kernel = [string]$os.Version
+    arch = [string]$os.OSArchitecture
+}
+
 $out = [ordered]@{
     v = 1
     host = $env:COMPUTERNAME
@@ -94,5 +121,6 @@ $out = [ordered]@{
     pi = $null
     raid = $raid
     top = $top
+    spec = $spec
 }
 $out | ConvertTo-Json -Depth 4 -Compress

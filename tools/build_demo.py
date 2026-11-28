@@ -69,32 +69,40 @@ SHOT_WIDTH, SHOT_BLUR = 480, 5          # px wide, then a Gaussian blur of this 
 # Fleet (the Stats page) in the demo: no real readings leave the house (HUB_NO_MACHINES). These are the machines as they
 # were on 2026-11-18 (what each one is, not what it was doing), and demo.js makes up their history for any range from a
 # fixed seed, so every visit and every range agrees with itself. Matched to Remote Access by name; Mike's PC is "this"
-# and shows as "Citadel" (its real host name is kept out of the demo).
+# and shows as "Citadel" (its real host name is kept out of the demo). `spec` is what /stats/machines sends for the
+# Fleet page's Specifications card (app/machines.py spec_view), as each machine reported it on 2026-11-26.
 GB = 1024 ** 3
 FLEET = {
     "this": {"name": "Citadel", "os": "CachyOS", "cores": 16, "mem": 32 * GB, "swap": 48 * GB, "uptime_s": 101651,
              "gpu": {"name": "NVIDIA GeForce RTX 3080 Ti", "mem_total_mb": 12288}, "disks": [["/", 996e9, 325e9]],
+             "spec": {"model": "ASUS ROG STRIX B550-F GAMING WIFI II", "cpu": "AMD Ryzen 7 5800X3D", "cores": 8, "threads": 16, "ghz": 4.6, "gpus": [{"name": "NVIDIA GeForce RTX 3080 Ti", "vram_gb": 12.0}], "ram_gb": 32, "ram_type": "DDR4", "ram_sticks": "4 × 8 GB", "ram_mts": 3600, "os": "CachyOS", "kernel": "7.3.5-2-cachyos", "arch": "x86_64"},
              "p": {"cpu": 7, "evening": 22, "temp": 42, "temp_k": .45, "mem": 45, "swap": 8, "gpu": 6, "gpu_evening": 55,
                    "gpu_temp": 38, "spikes": 3, "procs": ["python3", "code", "brave", "ffmpeg", "kwin_wayland"]}},
     "Nasferatu": {"os": "Windows 10 Pro N", "cores": 2, "mem": 8 * GB, "swap": 1.2 * GB, "uptime_s": 6063337,
                   "disks": [["C:", 120e9, 35e9], ["D:", 12002e9, 1389e9]], "raid": {"name": "Intel Raid 5 Volume", "health": "Healthy", "status": "OK", "events_24h": 0},
+                  "spec": {"model": "ASRock Z87M Pro4", "cpu": "Intel Pentium G3258", "cores": 2, "threads": 2, "ghz": 3.2, "gpus": [{"name": "Intel HD Graphics", "vram_gb": None}], "ram_gb": 8, "ram_type": "DDR3", "ram_sticks": "1 × 8 GB", "ram_mts": 1867, "os": "Windows 10 Pro N", "kernel": "10.0.19045", "arch": "64-bit"},
                   "p": {"cpu": 2, "mem": 50, "swap": 5, "spikes": 1.2, "procs": ["MsMpEng", "svchost", "TiWorker", "SearchIndexer"]}},
     "NZXT": {"os": "CachyOS", "cores": 8, "mem": 24 * GB, "swap": 24 * GB, "uptime_s": 98103,
              "gpu": {"name": "NVIDIA GeForce GTX 1080", "mem_total_mb": 8192}, "disks": [["/", 500e9, 445e9]],
+             "spec": {"model": "ASRock Z87 Extreme4", "cpu": "Intel Core i7-4770K", "cores": 4, "threads": 8, "ghz": 4.2, "gpus": [{"name": "NVIDIA GeForce GTX 1080", "vram_gb": 8.0}], "ram_gb": 24, "ram_type": "DDR3", "ram_sticks": "3 × 8 GB", "ram_mts": 1867, "os": "CachyOS", "kernel": "7.3.5-2-cachyos", "arch": "x86_64"},
              "p": {"cpu": 2, "temp": 29, "temp_k": .5, "mem": 11, "swap": 0, "gpu": 1, "gpu_evening": 12, "gpu_temp": 37,
                    "spikes": 4, "procs": ["jellyfin", "ffmpeg", "python3", "ollama"]}},
     "Phoenix": {"os": "Debian GNU/Linux 13 (trixie)", "cores": 4, "mem": 16 * GB, "swap": 16 * GB, "uptime_s": 84422,
                 "gpu": {"name": "AMD Radeon", "mem_total_mb": 1024}, "disks": [["/", 966e9, 902e9]],
+                "spec": {"model": "ASUS M4A77T", "cpu": "AMD Phenom II X4 955", "cores": 4, "threads": 4, "ghz": 3.2, "gpus": [{"name": "AMD Radeon HD 7770", "vram_gb": 1.0}], "ram_gb": 16, "ram_type": "DDR3", "ram_sticks": "2 × 8 GB", "ram_mts": 1600, "os": "Debian GNU/Linux 13 (trixie)", "kernel": "6.12.117+deb13-amd64", "arch": "x86_64"},
                 "p": {"cpu": 1, "temp": 31, "temp_k": .4, "mem": 17, "swap": 0, "gpu": 0, "gpu_temp": 31, "spikes": .8,
                       "procs": ["restic", "rclone", "plasmashell"]}},
     "Runabout": {"os": "CachyOS", "cores": 8, "mem": 8 * GB, "swap": 8 * GB, "uptime_s": 182285, "disks": [["/", 252e9, 171e9]],
                  "battery": {"percent": 100, "status": "Full"},
+                 "spec": {"model": "Dell Latitude 3420", "cpu": "Intel Core i5-1135G7", "cores": 4, "threads": 8, "ghz": 4.2, "gpus": [{"name": "Intel Iris Xe Graphics", "vram_gb": None}], "ram_gb": 8, "ram_type": "DDR4", "ram_sticks": "1 × 8 GB", "ram_mts": 3200, "os": "CachyOS", "kernel": "7.3.5-2-cachyos", "arch": "x86_64"},
                  "p": {"cpu": 1, "temp": 44, "temp_k": .35, "mem": 24, "swap": 3, "spikes": .7, "procs": ["brave", "kwin_x11", "python3"]}},
-    "Probe-1": {"os": "Debian GNU/Linux 13 (trixie)", "cores": 4, "mem": 4 * GB, "swap": 2 * GB, "uptime_s": 9731, "disks": [["/", 31e9, 22e9]],
+    "Probe-1": {"os": "Home Assistant OS 18.5", "cores": 4, "mem": 4 * GB, "swap": 1.2 * GB, "uptime_s": 217284, "disks": [["/", 251e9, 235e9]],
+                "spec": {"model": "Raspberry Pi 4 Model B Rev 1.1", "cpu": "Broadcom BCM2711 (Cortex-A72)", "cores": 4, "threads": 4, "ghz": 1.5, "gpus": [{"name": "VideoCore VI", "vram_gb": None}], "ram_gb": 4, "ram_type": "LPDDR4", "ram_sticks": None, "ram_mts": None, "os": "Home Assistant OS 18.5", "kernel": "6.18.59-haos-raspi", "arch": "aarch64"},
                 "pi": {"throttled": "0x0", "under_voltage_now": False, "under_voltage_seen": False},
-                "p": {"cpu": 1, "temp": 49, "temp_k": .3, "mem": 12, "swap": 0, "spikes": .6, "procs": ["apt", "python3", "unattended-upgr"]}},
-    "Probe-2": {"os": "Debian GNU/Linux 13 (trixie)", "cores": 4, "mem": 4 * GB, "swap": 2 * GB, "uptime_s": 9726, "disks": [["/", 31e9, 20e9]],
+                "p": {"cpu": 1, "temp": 49, "temp_k": .3, "mem": 12, "swap": 0, "spikes": .6, "procs": ["python3"]}},
+    "Probe-2": {"os": "Raspberry Pi OS (Debian 13)", "cores": 4, "mem": 4 * GB, "swap": 2 * GB, "uptime_s": 9726, "disks": [["/", 31e9, 20e9]],
                 "pi": {"throttled": "0x0", "under_voltage_now": False, "under_voltage_seen": False},
+                "spec": {"model": "Raspberry Pi 4 Model B Rev 1.2", "cpu": "Broadcom BCM2711 (Cortex-A72)", "cores": 4, "threads": 4, "ghz": 1.5, "gpus": [{"name": "VideoCore VI", "vram_gb": None}], "ram_gb": 4, "ram_type": "LPDDR4", "ram_sticks": None, "ram_mts": None, "os": "Raspberry Pi OS (Debian 13)", "kernel": "6.18.60+rpt-rpi-v8", "arch": "aarch64"},
                 "p": {"cpu": 1, "temp": 51, "temp_k": .3, "mem": 12, "swap": 0, "spikes": .6, "procs": ["apt", "python3", "unattended-upgr"]}},
 }
 # Settings is in the demo as a read-only snapshot (settings.html, framed like the real one): these are the GETs it asks
@@ -595,16 +603,18 @@ def blur_shots(out: Path) -> dict[str, str]:
     return done
 
 
-def fleet_spec(state: dict[str, Any]) -> dict[str, Any]:
+def fleet_spec(state: dict[str, Any], config: dict[str, Any] | None = None) -> dict[str, Any]:
     """data/fleet.json for demo.js: Mike's PC, then the Remote Access devices that have a FLEET entry, in Remote Access
-    order, each on or asleep as its tile shows."""
+    order, each on or asleep as its tile shows. The order comes from Settings' list when there is one, since a device
+    with no remote desktop (Probe-1 on Home Assistant OS) has no tile; one with no tile counts as on."""
     def one(mid: str, spec: dict[str, Any], up: bool, rid: int | None, always_on: bool) -> dict[str, Any]:
         return {"id": mid, "rid": rid, "up": up, "always_on": always_on, **{k: v for k, v in spec.items()}}
     always = {"Nasferatu", "NZXT", "Probe-1", "Probe-2"}          # "Always on" in Remote Access
+    tiles = {r["id"]: r for r in state.get("remote", [])}
     out = [one("this", FLEET["this"], True, None, True)]
-    for r in state.get("remote", []):
+    for r in (config or {}).get("remote") or state.get("remote", []):
         if spec := FLEET.get(r["name"]):
-            out.append(one(f"rh{r['id']}", {"name": r["name"], **spec}, r.get("up") is not False, r["id"], r["name"] in always))
+            out.append(one(f"rh{r['id']}", {"name": r["name"], **spec}, tiles.get(r["id"], {}).get("up") is not False, r["id"], r["name"] in always))
     return {"machines": out}
 
 
@@ -747,7 +757,7 @@ def main() -> None:
             text = text.replace(old_name, new_name)
         (tmp_out / "data" / f"{key_of(path)}.json").write_text(text)
     (tmp_out / "data" / "monitoring_frames.json").write_text(json.dumps(frames, separators=(",", ":")))
-    (tmp_out / "data" / "fleet.json").write_text(json.dumps(fleet_spec(cleaned["/api/owner/state"]), separators=(",", ":")))
+    (tmp_out / "data" / "fleet.json").write_text(json.dumps(fleet_spec(cleaned["/api/owner/state"], cleaned.get("/api/owner/config")), separators=(",", ":")))
     # what was saved, so demo.js answers "not available" for anything else without asking the server (no 404s)
     (tmp_out / "data" / "index.json").write_text(json.dumps(sorted([key_of(p) for p in cleaned] + ["monitoring_frames", "fleet"])))
     shim = (TEMPLATES / "demo.js").read_text().replace("__SNAPSHOT_MS__", str(int(snap_at.timestamp() * 1000)))

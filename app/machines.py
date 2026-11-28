@@ -73,6 +73,124 @@ def ipv4(host: str) -> str | None:
         return None
 
 
+# ---- specifications (the Fleet page's Specifications card) -----------------------------------------------------------
+# The stats scripts report what the hardware calls itself (/proc/cpuinfo, lspci, DMI, WMI); these turn that into the
+# names people use. Only the latest reading carries it, so it stays current without anyone keeping a list.
+
+# What makers fill DMI fields with when they don't bother (desktop boards: the board's own name is the useful one)
+DMI_JUNK = {"", "to be filled by o.e.m.", "system product name", "system version", "default string", "system manufacturer",
+            "not applicable", "not specified", "none", "o.e.m.", "unknown", "type1productconfigid"}
+VENDORS = {"asustek computer inc.": "ASUS", "asustek computer inc": "ASUS", "dell inc.": "Dell", "nvidia corporation": "NVIDIA",
+           "intel corporation": "Intel", "advanced micro devices, inc. [amd/ati]": "AMD", "advanced micro devices, inc.": "AMD",
+           "advanced micro devices, inc": "AMD", "micro-star international co., ltd.": "MSI", "gigabyte technology co., ltd.": "Gigabyte",
+           "hewlett-packard": "HP", "lenovo": "Lenovo", "asrock": "ASRock", "ati technologies inc": "AMD"}
+ARM_CORES = {"0xd03": "Cortex-A53", "0xd08": "Cortex-A72", "0xd0b": "Cortex-A76"}
+PI_CHIPS = (("Raspberry Pi 5", "Broadcom BCM2712", "VideoCore VII", "LPDDR4X"), ("Raspberry Pi 4", "Broadcom BCM2711", "VideoCore VI", "LPDDR4"),
+            ("Raspberry Pi 3", "Broadcom BCM2837", "VideoCore IV", "LPDDR2"))
+# Boards whose firmware doesn't name the memory type ("Other"), and which only take one kind (from the board's manual)
+BOARD_MEMORY = {"ASUS M4A77T": "DDR3"}           # Phoenix
+RAM_SIZES = (1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512)
+
+
+def _vendor(v: str | None) -> str:
+    v = (v or "").strip()
+    return VENDORS.get(v.lower(), re.sub(r"\s+(Inc\.?|Corporation|Corp\.?|Co\., Ltd\.?|Ltd\.?)$", "", v, flags=re.I))
+
+
+def _clean(s: str) -> str:
+    s = re.sub(r"\((R|TM|tm)\)|®|™", "", s)
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def cpu_name(raw: str | None) -> str | None:
+    """"11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz" → "Intel Core i5-1135G7"; "AMD Ryzen 7 5800X3D 8-Core
+    Processor" → "AMD Ryzen 7 5800X3D"."""
+    if not raw:
+        return None
+    s = _clean(raw)
+    s = re.sub(r"^\d+(st|nd|rd|th) Gen ", "", s)
+    s = re.sub(r"\s*@.*$", "", s)
+    s = re.sub(r"\s+(\d+|Dual|Quad|Six|Eight)-Core Processor$|\s+Processor$|\s+CPU$", "", s, flags=re.I)
+    return re.sub(r"\s+CPU\b", "", s).strip() or None
+
+
+def gpu_name(vendor: str | None, device: str | None) -> str | None:
+    """lspci / WMI names → "NVIDIA GeForce RTX 3080 Ti", "Intel Iris Xe Graphics", "AMD Radeon HD 7750"."""
+    if not device:
+        return None
+    d = _clean(device)
+    m = re.search(r"\[(.+)\]", d)
+    if m:                                     # "GA102 [GeForce RTX 3080 Ti]": the marketing name is in the brackets
+        d = m.group(1)
+    d = d.split(" / ")[0].split("/")[0].strip()        # "Radeon HD 7750/8740 / R7 250E": the first of several
+    v = _vendor(vendor)
+    return d if not v or d.lower().startswith(v.lower()) else f"{v} {d}"
+
+
+def ram_gb(total: Any) -> int | None:
+    """The size the memory is sold as: Linux and Windows show a little less (firmware and onboard graphics keep some)."""
+    if not isinstance(total, (int, float)) or total <= 0:
+        return None
+    gib = total / 1024**3
+    return next((s for s in RAM_SIZES if s >= gib * 0.97), round(gib))
+
+
+def _memory(sp: dict[str, Any], model: str | None, pi: tuple | None) -> dict[str, Any]:
+    """The memory's type (DDR4…), its sticks ("4 × 8 GB") and speed (MT/s), from the firmware's table when it has one."""
+    sticks = [m for m in sp.get("ram") or [] if isinstance(m.get("size"), (int, float)) and m["size"] > 0]
+    named = [m["type"] for m in sticks if m.get("type") and m["type"] not in ("Other", "Unknown")]
+    kind = max(set(named), key=named.count) if named else (pi[3] if pi else BOARD_MEMORY.get(model or ""))
+    sizes = sorted({round(m["size"] / 1024**3) for m in sticks})
+    layout = f"{len(sticks)} × {sizes[0]} GB" if len(sizes) == 1 else " + ".join(f"{round(m['size'] / 1024**3)} GB" for m in sticks) if sticks else None
+    speeds = [m["mts"] for m in sticks if m.get("mts")]
+    return {"ram_type": kind, "ram_sticks": layout, "ram_mts": max(speeds) if speeds else None}
+
+
+def _model(sp: dict[str, Any]) -> str | None:
+    if sp.get("model"):
+        return _clean(sp["model"])
+    dmi = sp.get("dmi") or {}
+    ok = lambda k: (dmi.get(k) or "").strip().lower() not in DMI_JUNK
+    for vk, pk in (("sys_vendor", "product_name"), ("board_vendor", "board_name")):
+        if ok(pk):
+            v, p = _vendor(dmi.get(vk)) if ok(vk) else "", dmi[pk].strip()
+            return p if not v or p.lower().startswith(v.lower()) else f"{v} {p}"
+    return None
+
+
+def spec_view(stats: dict[str, Any] | None) -> dict[str, Any] | None:
+    """One machine's specifications from its latest reading. A script from before 2026-11-26 sends no `spec`: what the
+    reading has anyway (OS, memory, threads, the GPU's name) still shows."""
+    if not stats:
+        return None
+    sp, gpu = stats.get("spec") or {}, stats.get("gpu") or {}
+    model = _model(sp)
+    pi = next((p for p in PI_CHIPS if model and model.startswith(p[0])), None)
+    cpu = cpu_name(sp.get("cpu"))
+    if not cpu and (sp.get("cpu_part") or pi):
+        core = ARM_CORES.get((sp.get("cpu_part") or "").lower())
+        cpu = f"{pi[1]} ({core})" if pi and core else pi[1] if pi else f"ARM {core}" if core else None
+    gpus = []
+    for g in sp.get("gpus") or []:
+        name, vendor = gpu_name(g.get("vendor"), g.get("device")), _vendor(g.get("vendor"))
+        vram = g.get("vram_mb") if vendor != "Intel" else None      # an Intel chip's "VRAM" is borrowed system memory
+        if vendor == "NVIDIA" and str(gpu.get("name") or "").startswith("NVIDIA"):
+            name, vram = gpu["name"], gpu.get("mem_total_mb")        # nvidia-smi knows it best
+        elif vendor == "AMD" and gpu.get("mem_total_mb"):
+            vram = gpu["mem_total_mb"]                              # radeontop's VRAM total
+        if name:
+            gpus.append({"name": name, "vram_gb": round(vram / 1024, 1) if vram else None})
+    if not gpus and gpu.get("name"):
+        gpus.append({"name": gpu["name"], "vram_gb": round(gpu["mem_total_mb"] / 1024, 1) if gpu.get("mem_total_mb") else None})
+    if not gpus and pi:
+        gpus.append({"name": pi[2], "vram_gb": None})
+    threads = sp.get("threads") or (stats.get("cpu") or {}).get("cores")
+    return {"model": model, "cpu": cpu, "cores": sp.get("cores") or threads, "threads": threads,
+            "ghz": round(sp["max_mhz"] / 1000, 1) if sp.get("max_mhz") else None, "gpus": gpus,
+            "ram_gb": ram_gb((stats.get("mem") or {}).get("total")), **_memory(sp, model, pi), "os": stats.get("os"),
+            "kernel": sp.get("kernel"), "arch": sp.get("arch")}
+
+
 class HistoryError(Exception):
     """The collector couldn't answer a history question; the message is for Mike."""
 
@@ -214,6 +332,8 @@ class Machines:
         out = [{"id": THIS_ID, "name": THIS_NAME, "up": True, "at": self.this.get("at"), "stats": self.this.get("stats"), "error": self.this.get("error")}]
         for v in self.view():
             out.append({**v, "id": f"rh{v['id']}"})
+        for m in out:
+            m["spec"] = spec_view(m["stats"])
         return out
 
     def view(self) -> list[dict[str, Any]]:

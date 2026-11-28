@@ -99,9 +99,10 @@ async def projects_state(health: Health, active: set[str] | None = None) -> list
 
 
 def remote_state(health: Health, active: set[str]) -> list[dict[str, Any]]:
-    """The Remote Access tile: each device, whether its VNC port answers, and whether this PC has a viewer open on it."""
+    """The Remote Access tile: each device, whether its VNC port answers, and whether this PC has a viewer open on it.
+    Devices with no remote desktop (viewer 'none': only watched by Monitoring) aren't tiles."""
     with db.db() as con:
-        rows = con.execute("SELECT * FROM remote_hosts ORDER BY sort, id").fetchall()
+        rows = con.execute("SELECT * FROM remote_hosts WHERE viewer != 'none' ORDER BY sort, id").fetchall()
     out = []
     for r in rows:
         h = health.state.get(f"remote:{r['id']}")

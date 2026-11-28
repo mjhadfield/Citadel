@@ -3,6 +3,7 @@ r"""Set a machine up for Citadel's Monitoring, or undo it.
     .venv/bin/python tools/machines_setup.py <ssh target>             # e.g. jellyfin, runabout, mike@192.168.0.82
     .venv/bin/python tools/machines_setup.py <ssh target> --remove
     .venv/bin/python tools/machines_setup.py <ssh target> --remove --key citadel    # drop Citadel's old key only
+    .venv/bin/python tools/machines_setup.py homeassistant --haos      # Home Assistant OS (Probe-1)
 
 The machines are asked for their stats by the collector on NZXT (collector/citadel_collector.py, installed by
 tools/collector_setup.py), which has its own key; its public half is kept here as data/collector_ed25519.pub. Before
@@ -20,6 +21,13 @@ Run from Gaming with Mike's own SSH access. It:
 
 The install runs as a small Python program on the machine (python3 is on every Linux machine here), so it doesn't
 depend on the login shell: Runabout's is fish. Nothing needs sudo.
+
+`--haos` (Probe-1, Home Assistant OS since 2026-11-24, reached as `homeassistant`): there's no Python there, and SSH is
+Home Assistant's "Terminal & SSH" app, which rebuilds authorized_keys from its own settings every time it starts. So the
+shell version (tools/machines/citadel-stats-haos.sh) goes to the app's storage, /data, and the key line is added both to
+the app's settings (through the Supervisor, so it survives restarts and updates) and to the current authorized_keys (so
+it works straight away, without restarting the app). Mike's own key lines are never touched, and it refuses to leave
+the app without one.
 
 `--windows` (Nasferatu, an admin account) does the same with tools/machines/citadel-stats.ps1: it goes to
 C:\ProgramData\Citadel\ and the key to C:\ProgramData\ssh\administrators_authorized_keys, the file Windows' sshd reads
@@ -39,6 +47,8 @@ from app import config, machines   # noqa: E402
 import collector_setup             # noqa: E402  (tools/, beside this file)
 
 SCRIPT = ROOT / "tools" / "machines" / "citadel-stats"
+HAOS_SCRIPT = ROOT / "tools" / "machines" / "citadel-stats-haos.sh"
+HAOS_DEST = "/data/citadel-stats-haos.sh"
 PS_SCRIPT = ROOT / "tools" / "machines" / "citadel-stats.ps1"
 WIN_DIR = r"C:\ProgramData\Citadel"
 TAGS = {"collector": "citadel-collector", "citadel": "citadel-monitoring"}
@@ -96,6 +106,30 @@ else {
 }
 Set-Content -Path $auth -Value $lines -Encoding ascii
 if ($remove) { 'removed' } else { "$dir\citadel-stats.ps1" }
+'''
+
+
+# Run by bash inside Home Assistant's Terminal & SSH app (`bash -s`), after SCRIPT / KEYLINE (base64), REMOVE (0/1) and
+# TAG. jq and curl are part of the app; the Supervisor token is in the session's environment (or the app's own copy).
+HAOS_REMOTE = r'''
+set -eu
+TOKEN=${SUPERVISOR_TOKEN:-$(sed -n 's/^SUPERVISOR_TOKEN=//p' /data/.ssh/environment 2>/dev/null | tr -d '"')}
+[ -n "$TOKEN" ] || { echo "no Supervisor token in this session" >&2; exit 1; }
+sup() { curl -sf -m 10 -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" "$@"; }
+OPTS=$(sup http://supervisor/addons/self/info | jq -c '.data.options')
+[ -n "$OPTS" ] && [ "$OPTS" != null ] || { echo "couldn't read the SSH app's settings" >&2; exit 1; }
+KEYLINE=$(echo "$KEYLINE" | base64 -d)
+NEW=$(echo "$OPTS" | jq -c --arg tag " $TAG" --arg line "$KEYLINE" --argjson remove "$REMOVE" \
+  '.authorized_keys |= ([.[] | select(endswith($tag) | not)] + (if $remove == 1 then [] else [$line] end))')
+# never leave the app without one of Mike's own keys
+[ "$(echo "$NEW" | jq --arg tag " $TAG" '[.authorized_keys[] | select(endswith($tag) | not)] | length')" -gt 0 ] || { echo "the SSH app has no other key: not changing it" >&2; exit 1; }
+if [ "$REMOVE" = 1 ]; then rm -f /data/citadel-stats-haos.sh; else echo "$SCRIPT" | base64 -d > /data/citadel-stats-haos.sh; chmod 755 /data/citadel-stats-haos.sh; fi
+sup -X POST -d "{\"options\": $NEW}" http://supervisor/addons/self/options > /dev/null || { echo "the Supervisor refused the new settings" >&2; exit 1; }
+cp -p /data/.ssh/authorized_keys /data/.ssh/authorized_keys.bak-citadel
+echo "$NEW" | jq -r '.authorized_keys[]' > /data/.ssh/authorized_keys.new
+chmod 600 /data/.ssh/authorized_keys.new
+mv /data/.ssh/authorized_keys.new /data/.ssh/authorized_keys
+if [ "$REMOVE" = 1 ]; then echo removed; else echo /data/citadel-stats-haos.sh; fi
 '''
 
 
@@ -157,7 +191,7 @@ def main(argv: list[str]) -> int:
     if len(argv) < 2 or argv[1].startswith("-"):
         print(__doc__)
         return 2
-    target, remove, windows = argv[1], "--remove" in argv, "--windows" in argv
+    target, remove, windows, haos = argv[1], "--remove" in argv, "--windows" in argv, "--haos" in argv
     which = argv[argv.index("--key") + 1] if "--key" in argv else "collector"
     if which not in TAGS:
         print(f"--key is one of: {', '.join(TAGS)}")
@@ -167,7 +201,13 @@ def main(argv: list[str]) -> int:
         print("Citadel's own key is only kept to be removed now: the collector asks the machines (--key collector)")
         return 2
     pub = public_key(which)
-    if windows:
+    if haos:
+        import base64
+        keyline = f'command="sh {HAOS_DEST}",restrict ssh-ed25519 {pub} {tag}'
+        program = (f"SCRIPT={base64.b64encode(HAOS_SCRIPT.read_bytes()).decode()}\nKEYLINE={base64.b64encode(keyline.encode()).decode()}\n"
+                   f"REMOVE={int(remove)}\nTAG={tag}\n" + HAOS_REMOTE)
+        r = subprocess.run(["ssh", "-o", "BatchMode=yes", target, "bash -s"], input=program, capture_output=True, text=True)
+    elif windows:
         import base64
         import textwrap
         # wrapped at 76: Windows' stdin stalls on one very long line (FromBase64String skips the line breaks)
