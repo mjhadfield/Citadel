@@ -320,6 +320,15 @@
     var key = keyOf(url);
     if (key === 'monitoring') return monitoring();
     if (key === 'audio_level') return reply(200, { level: -60 });
+    if (url.pathname === '/api/owner/schedule') {
+      return saved('schedule').then(function (text) {
+        if (text === null) return reply(503, { detail: NOT_HERE });
+        var sc = JSON.parse(text);
+        var d = new DemoDate();
+        sc.now = d.toISOString();
+        return reply(200, sc);
+      });
+    }
     return saved(key).then(function (text) {
       if (text === null) return reply(503, { detail: NOT_HERE });
       // the server's own "now" (bins' morning/evening wording, service uptimes) follows the demo clock too

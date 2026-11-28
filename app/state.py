@@ -203,7 +203,7 @@ def compute_alerts(widgets: dict[str, dict[str, Any]], at: datetime) -> list[dic
 
     diary = widgets.get("diary", {})
     if diary.get("data"):
-        for e in diary["data"]["events"]:
+        for e in diary["data"].get("events") or []:
             if e["all_day"] or e["date"] != at.date().isoformat() or not e["time"]:
                 continue
             start = at.replace(hour=int(e["time"][:2]), minute=int(e["time"][3:]), second=0, microsecond=0)
@@ -261,27 +261,54 @@ def _f1_alerts(at: datetime) -> list[dict[str, Any]]:
 
 
 def _onsale_alerts(widgets: dict[str, dict[str, Any]], at: datetime) -> list[dict[str, Any]]:
-    """Gigs on the radar whose tickets (or a presale) go on sale later today or tomorrow."""
+    """Gigs on the radar whose tickets (or a presale) go on sale later today or tomorrow.
+    Multiple presales for the same show on the same day are grouped into one reminder."""
     out = []
     for g in _items(widgets, "radar"):
         meta = g.get("meta") or {}
         if meta.get("tribute"):
             continue
-        times = [(meta["onsale"], "tickets on sale")] if meta.get("onsale") else []
-        times += [(p["at"], p["name"]) for p in meta.get("presales") or []]
-        for iso, what in times:
+        where = meta.get("venue") or g.get("subtitle") or ""
+        gig_day = _day(date.fromisoformat(g["date"])) if FULL_DATE.match(g["date"] or "") else ""
+        base_detail = " · ".join(x for x in (where, gig_day) if x)
+
+        # Public on-sale
+        if meta.get("onsale"):
             try:
-                when = datetime.fromisoformat(iso.replace("Z", "+00:00")).astimezone(config.TZ)
+                when = datetime.fromisoformat(str(meta["onsale"]).replace("Z", "+00:00")).astimezone(config.TZ)
             except (ValueError, AttributeError):
+                when = None
+            if when is not None and when > at and (when.date() - at.date()).days <= 1:
+                out.append({"kind": "onsale", "key": f"onsale:{g['id']}:{meta['onsale']}", "icon": "bolt",
+                            "title": f"{g['artist']} tickets on sale", "detail": base_detail, "chip": _when(when, at),
+                            "level": "now" if when.date() == at.date() else "soon", "href": g.get("url") or None})
+
+        # Presales grouped by day (so Artist + O2 Priority + Co-op on the same morning fire one reminder, not three)
+        by_day: dict[date, list[tuple[datetime, str]]] = {}
+        for p in meta.get("presales") or []:
+            try:
+                when = datetime.fromisoformat(str(p["at"]).replace("Z", "+00:00")).astimezone(config.TZ)
+            except (ValueError, AttributeError, KeyError):
                 continue
             if when <= at or (when.date() - at.date()).days > 1:
                 continue
-            where = meta.get("venue") or g.get("subtitle") or ""
-            gig_day = _day(date.fromisoformat(g["date"])) if FULL_DATE.match(g["date"] or "") else ""
-            out.append({"kind": "onsale", "key": f"onsale:{g['id']}:{iso}", "icon": "bolt",
-                        "title": f"{g['artist']} {what}" if what == "tickets on sale" else f"{g['artist']} — {what}",
-                        "detail": " · ".join(x for x in (where, gig_day) if x), "chip": _when(when, at),
-                        "level": "now" if when.date() == at.date() else "soon", "href": g.get("url") or None})
+            by_day.setdefault(when.date(), []).append((when, str(p.get("name") or "Presale").strip()))
+
+        for d, entries in sorted(by_day.items()):
+            entries.sort(key=lambda x: (x[0], x[1].lower()))
+            first_when = entries[0][0]
+            names = list(dict.fromkeys(name for _, name in entries))
+            if len(names) == 1:
+                title = f"{g['artist']} — {names[0]}"
+                detail = base_detail
+                key = f"onsale:{g['id']}:{first_when.isoformat()}"
+            else:
+                title = f"{g['artist']} — {len(names)} presales"
+                detail = " · ".join(x for x in (base_detail, ", ".join(names)) if x)
+                key = f"onsale:{g['id']}:presales:{d.isoformat()}"
+            out.append({"kind": "onsale", "key": key, "icon": "bolt",
+                        "title": title, "detail": detail, "chip": _when(first_when, at),
+                        "level": "now" if d == at.date() else "soon", "href": g.get("url") or None})
     return out
 
 
@@ -308,17 +335,22 @@ def _fresh_alerts(widgets: dict[str, dict[str, Any]], at: datetime, top: int) ->
 
 
 def sync_alerts(widgets: dict[str, dict[str, Any]], at: datetime) -> list[dict[str, Any]]:
-    """Owner only: stores the last Vinyl Radar sync couldn't read (the card no longer lists them), with a Recheck that
-    re-runs the sync. One key per day and set of stores, so a dismissal holds until something else breaks."""
+    """Owner only: sync problems that need attention (Vinyl stores that failed, expired Google Calendar sign-in)."""
     if not alert_settings.settings()["down"]:
         return []
+    out: list[dict[str, Any]] = []
     errors = (widgets.get("vinyl", {}).get("data") or {}).get("errors") or []
-    if not errors:
-        return []
-    names = sorted({e.split(":")[0].strip() for e in errors})
-    return [{"kind": "sync", "key": f"sync:vinyl:{'|'.join(names)}:{at.date()}", "icon": "disc",
-             "title": f"Vinyl Radar couldn't read {len(names)} store{'s' if len(names) != 1 else ''}", "detail": ", ".join(names),
-             "chip": "Stores", "level": "soon", "action": {"label": "Recheck", "widget": "vinyl"}}]
+    if errors:
+        names = sorted({e.split(":")[0].strip() for e in errors})
+        out.append({"kind": "sync", "key": f"sync:vinyl:{'|'.join(names)}:{at.date()}", "icon": "disc",
+                    "title": f"Vinyl Radar couldn't read {len(names)} store{'s' if len(names) != 1 else ''}", "detail": ", ".join(names),
+                    "chip": "Stores", "level": "soon", "action": {"label": "Recheck", "widget": "vinyl"}})
+    from . import google_calendar as gcal
+    if gcal.is_expired():
+        out.append({"kind": "sync", "key": f"sync:diary-google:{at.date()}", "icon": "cal",
+                    "title": "Google Calendar sign-in has expired", "detail": "Reconnect in Settings → Widgets to keep syncing",
+                    "chip": "Calendar", "level": "soon"})
+    return out
 
 
 def service_alerts(projects: list[dict[str, Any]], links: list[dict[str, Any]], health: Health, monitor: Monitor | None, at: datetime) -> list[dict[str, Any]]:

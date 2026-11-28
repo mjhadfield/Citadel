@@ -139,7 +139,7 @@ def test_default_groups(owner_client):
     nav = cfg(owner_client)["shared"]
     assert [g["label"] for g in nav["groups"]] == ["Command", "Science", "Engineering"]
     groups = {p["id"]: p["group"] for p in nav["pages"]}
-    assert [i for i in ids(nav["pages"]) if groups[i] == "command"] == ["stats", "news", "music"]       # Fleet, News, Companion
+    assert [i for i in ids(nav["pages"]) if groups[i] == "command"] == ["stats", "news", "music", "schedule"]       # Fleet, News, Companion, Schedule
     assert [i for i in ids(nav["pages"]) if groups[i] == "science"] == ["listen", "media", "casino", "holodeck"]
     assert [i for i in ids(nav["pages"]) if groups[i] == "engineering"] == ["labels", "house", "lab", "controls", "routines", "ai"]
     assert groups["home"] == groups["curate"] == groups["settings"] == ""
@@ -150,7 +150,7 @@ def test_a_set_saved_before_groups_keeps_its_order_within_the_default_groups(own
     db.put_settings(navigation.KEY, {"pages": [{"id": i, "label": "", "phone": True, "rail": True} for i in
                                                ["news", "media", "music", "listen", "casino", "ai", "house", "stats", "labels", "holodeck"]]})
     order = ids(state_nav(owner_client)["pages"])
-    assert order == ["home", "news", "music", "stats", "media", "listen", "casino", "holodeck", "ai", "house", "labels",
+    assert order == ["home", "news", "music", "stats", "schedule", "media", "listen", "casino", "holodeck", "ai", "house", "labels",
                      "lab", "controls", "routines", "curate", "audio", "settings"]
 
 

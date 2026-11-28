@@ -11,6 +11,7 @@ import * as stats from './stats.js';
 import * as audio from './audio.js';
 import * as controls from './controls.js';
 import * as routines from './routines.js';
+import * as schedule from './schedule.js';
 import * as motion from './motion.js';
 import './volume.js';                      // the header's GoXLR volume buttons (Line out, Vinyl)
 
@@ -513,7 +514,7 @@ async function pollMonitoring() {
 }
 
 // ---- view router (Home / News / Media / Companion / SQL DB / Music / Casino / Odysseus / House / Stats) --------------------------------------------------------------
-const VIEWS = ['home', 'news', 'media', 'music', 'sql', 'listen', 'casino', 'ai', 'house', 'labels', 'holodeck', 'lab', 'controls', 'routines', 'stats', 'curate', 'audio', 'settings'];
+const VIEWS = ['home', 'news', 'media', 'music', 'sql', 'listen', 'casino', 'ai', 'house', 'labels', 'holodeck', 'lab', 'controls', 'routines', 'schedule', 'stats', 'curate', 'audio', 'settings'];
 // While an embedded page is showing, the phone keyboard shrinks the screen (interactive-widget=resizes-content) rather
 // than sliding over it, so the pinned page (dashboard.css, .main:has(...)) ends just above the keyboard and a chat box
 // at the bottom of it stays visible. Only on those pages: Home, News and Music keep the browser's default.
@@ -584,6 +585,7 @@ function route() {
   audio.onView(v);                                  // the Audio page (audio.js): the GoXLR, through the hub
   controls.onView(v);                               // the Controls page (controls.js): Home Assistant lights & scenes
   routines.onView(v);                               // the Routines page (routines.js): Home Assistant's routine times
+  schedule.onView(v);                               // the Unified Schedule page (schedule.js): Calendar, Gigs, F1, Bins, Releases, Vinyl, House, Poker
 }
 function markCurrent() {
   $$('.rail a[data-view], .tabbar a[data-view], #more-sheet a[data-view]').forEach(a => {

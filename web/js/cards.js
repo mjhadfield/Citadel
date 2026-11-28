@@ -9,6 +9,7 @@ import { contentCards } from './content-cards.js';
 export const ui = { pending: {}, selected: null, logText: '', wxDay: null };
 
 const COLOURS = { violet: 'var(--accent-hi)', silver: 'var(--silver)', indigo: '#6d5bd0' };
+const diaryColour = c => (/^#[0-9a-f]{3,8}$/i.test(c || '') ? c : (COLOURS[c] || COLOURS.violet));
 const staleChip = w => (w.error ? ' <span class="chip chip--warn">stale</span>' : '');
 const empty = (icon, title, text, chip = '') =>
   `<div class="empty">${ico(icon)}<div class="empty__title">${esc(title)}</div><p>${esc(text)}</p>${chip ? `<span class="chip">${esc(chip)}</span>` : ''}</div>`;
@@ -181,7 +182,10 @@ function addDays(iso, n) { const d = parseDate(iso); d.setDate(d.getDate() + n);
 
 function diary(s, ctx) {
   const w = s.widgets.diary;
-  if (!w.configured) return { meta: 'not set up', body: empty('cal', 'Connect a calendar', 'Add a Google Calendar secret iCal address in settings.') };
+  if (!w.configured) return { meta: 'not set up', body: empty('cal', 'Connect a calendar', 'Connect Google Calendar or add an iCal address in settings.') };
+  if (w.data?.google_expired && !w.data?.events?.length) {
+    return { meta: 'sign-in expired', body: empty('cal', 'Google Calendar sign-in expired', 'Reconnect Google Calendar in Settings → Widgets.') };
+  }
   if (!w.data?.events) return { meta: w.error ? 'error' : 'loading', body: empty('cal', w.error ? "Couldn't read the calendar" : 'Loading…', w.error || '') };
 
   const today = s.now.slice(0, 10), tomorrow = addDays(today, 1);
@@ -201,13 +205,15 @@ function diary(s, ctx) {
     const label = date === today ? `Today<span> · ${esc(fmtDay(date))}</span>` : date === tomorrow ? `Tomorrow<span> · ${esc(fmtDay(date))}</span>` : esc(fmtDay(date));
     const rows = evs.map(e => {
       const sub = [e.until ? `until ${fmtDay(e.until)}` : '', e.location].filter(Boolean).join(' · ');
-      return `<li class="ev" style="--cal:${COLOURS[e.colour] || COLOURS.violet}"><span class="ev__t">${e.all_day ? 'All day' : esc(e.time)}</span><span class="ev__bar"></span>
-        <div class="ev__main"><div class="ev__title">${esc(e.title)}</div>${sub ? `<div class="ev__sub">${esc(sub)}</div>` : ''}</div></li>`;
+      const titleHtml = e.href ? `<a href="${esc(safeUrl(e.href))}" target="_blank" rel="noopener">${esc(e.title)}</a>` : esc(e.title);
+      return `<li class="ev" style="--cal:${esc(diaryColour(e.colour))}"><span class="ev__t">${e.all_day ? 'All day' : esc(e.time)}</span><span class="ev__bar"></span>
+        <div class="ev__main"><div class="ev__title">${titleHtml}</div>${sub ? `<div class="ev__sub">${esc(sub)}</div>` : ''}</div></li>`;
     }).join('');
     return `<div class="dg${compact ? '' : ' more'}"${compact ? '' : ' hidden'}><div class="day${date <= tomorrow ? ' day--next' : ''}">${label}</div><ul class="rows">${rows}</ul></div>`;
   }).join('');
+  const expChip = w.data.google_expired ? ' <span class="chip chip--warn">reconnect</span>' : '';
   return {
-    meta: `${esc(w.data.calendars[0]?.name || 'calendar')} · ${esc(hhmm(w.fetched_at))}${staleChip(w)}`,
+    meta: `${esc(w.data.calendars[0]?.name || 'calendar')} · ${esc(hhmm(w.fetched_at))}${staleChip(w)}${expChip}`,
     body: html ? `<div class="cols">${html}</div>` : empty('cal', 'Nothing planned', `No events in the next ${range} days.`),
   };
 }
@@ -224,27 +230,29 @@ function calendarFull(s, ctx, w, today, tomorrow) {
       byDay.get(d).push(e);
     }
   }
-  const colour = e => COLOURS[e.colour] || COLOURS.violet;
+  const colour = e => diaryColour(e.colour);
   const when = e => (e.all_day ? 'All day' : esc(e.time));
   const label = d => (d === today ? 'Today' : d === tomorrow ? 'Tomorrow' : esc(fmtDay(d)));
   const day = (iso, col) => {
     const evs = byDay.get(iso);
     if (!evs) return {};
-    const pop = `<span class="cd__pop" role="tooltip"><span class="cd__ph">${label(iso)}</span>${evs.map(e => `<span class="cd__pe" style="--cal:${colour(e)}">
+    const pop = `<span class="cd__pop" role="tooltip"><span class="cd__ph">${label(iso)}</span>${evs.map(e => `<span class="cd__pe" style="--cal:${esc(colour(e))}">
       <span class="cd__pt">${when(e)}</span><span class="cd__pm"><span class="cd__pn">${esc(e.title)}</span>${e.location ? `<span class="cd__pl">${esc(e.location)}</span>` : ''}</span></span>`).join('')}</span>`;
     return { cls: ` cd--ev${col >= 4 ? ' cd--r' : ''}`, attrs: ` tabindex="0" aria-label="${esc(fmtDay(iso))}: ${evs.length} event${evs.length === 1 ? '' : 's'}"`,
-      html: `${evs.slice(0, 3).map(e => `<i style="--sw:${colour(e)}"></i>`).join('')}${pop}` };
+      html: `${evs.slice(0, 3).map(e => `<i style="--sw:${esc(colour(e))}"></i>`).join('')}${pop}` };
   };
   const months = [0, 1, 2].map(i => monthGrid(new Date(t.getFullYear(), t.getMonth() + i, 1), today, day)).join('');
   const cals = w.data.calendars || [];
-  const legend = cals.length > 1 ? `<div class="cal__legend">${cals.map(c => `<span style="--sw:${COLOURS[c.colour] || COLOURS.violet}"><i></i>${esc(c.name)}</span>`).join('')}</div>` : '';
+  const legend = cals.length > 1 ? `<div class="cal__legend">${cals.map(c => `<span style="--sw:${esc(diaryColour(c.colour))}"><i></i>${esc(c.name)}</span>`).join('')}</div>` : '';
   const days = [...byDay].filter(([d]) => d <= cutoff).sort(([a], [b]) => (a < b ? -1 : 1));
   const rows = days.map(([d, evs]) => `<li class="crow${d === today ? ' crow--today' : ''}"><span class="crow__d">${label(d)}</span><div class="crow__evs">${evs.map(e => {
     const sub = [e.until && e.until !== d ? `until ${fmtDay(e.until)}` : '', e.location].filter(Boolean).join(' · ');
-    return `<div class="crow__e" style="--cal:${colour(e)}"><span class="crow__t">${when(e)}</span><div class="crow__m"><div class="crow__n">${esc(e.title)}</div>${sub ? `<div class="crow__s">${esc(sub)}</div>` : ''}</div></div>`;
+    const titleHtml = e.href ? `<a href="${esc(safeUrl(e.href))}" target="_blank" rel="noopener">${esc(e.title)}</a>` : esc(e.title);
+    return `<div class="crow__e" style="--cal:${esc(colour(e))}"><span class="crow__t">${when(e)}</span><div class="crow__m"><div class="crow__n">${titleHtml}</div>${sub ? `<div class="crow__s">${esc(sub)}</div>` : ''}</div></div>`;
   }).join('')}</div></li>`).join('');
+  const expChip = w.data.google_expired ? ' <span class="chip chip--warn">reconnect</span>' : '';
   return {
-    meta: `${esc(cals[0]?.name || 'calendar')} · ${esc(hhmm(w.fetched_at))}${staleChip(w)}`,
+    meta: `${esc(cals[0]?.name || 'calendar')} · ${esc(hhmm(w.fetched_at))}${staleChip(w)}${expChip}`,
     // phones put the days coming up first and the calendars under them (dashboard.css .calx)
     body: `<div class="calx"><div class="calm calm--diary">${months}${legend}</div><div class="now__label hud">Coming up</div>
       ${rows ? `<ul class="crows">${rows}</ul>` : `<p class="note crows__none">Nothing planned in the next ${range} days.</p>`}</div>`,

@@ -902,9 +902,53 @@ async def put_widget_settings(widget_id: str, values: dict[str, Any], request: R
     except ValueError as exc:
         raise HTTPException(422, str(exc))
     db.put_settings(w.id, merged)
+    from . import logbook
+    logbook.learn(w.secrets(merged))
     notify.widget(w.id)                    # screens redraw with the new settings now, not only once the refresh has finished
     request.app.state.scheduler.refresh(w.id)
     return w.public_settings(merged)
+
+
+# ---- Google Calendar OAuth (app/google_calendar.py) ----------------------------------------------
+
+@router.post("/diary/google/login")
+async def diary_google_login():
+    from . import google_calendar as gcal
+    try:
+        return {"url": gcal.login_url(), "redirect_uri": gcal.redirect_uri()}
+    except gcal.GoogleCalendarError as exc:
+        raise HTTPException(422, str(exc))
+
+
+@router.post("/diary/google/logout")
+async def diary_google_logout(request: Request):
+    from . import google_calendar as gcal
+    gcal.disconnect()
+    notify.config()
+    request.app.state.scheduler.refresh("diary")
+    return {"ok": True}
+
+
+@router.post("/diary/google/calendars/refresh")
+async def diary_google_calendars_refresh():
+    from . import google_calendar as gcal
+    try:
+        await gcal.refresh_calendar_list()
+    except gcal.GoogleCalendarError as exc:
+        raise HTTPException(502, str(exc))
+    notify.config()
+    return gcal.public_status()
+
+
+# ---- Unified Schedule page (app/schedule.py) -----------------------------------------------------
+
+@router.get("/schedule")
+async def get_schedule(start: str | None = None, end: str | None = None):
+    from . import schedule
+    try:
+        return schedule.build(start, end)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
 
 
 # ---- devices, screens, pairing -------------------------------------------------------------------

@@ -233,6 +233,7 @@ def snapshot(scratch: Path) -> tuple[dict[str, Any], list[dict[str, Any]], list[
             return out[path]
 
         get("/api/owner/state")
+        get("/api/owner/schedule")
         news = get("/api/owner/news")
         get("/api/owner/news/front")
         get("/api/owner/news/archive?")
@@ -398,6 +399,38 @@ SCRUB = [re.compile(r"https?://(localhost|127\.0\.0\.1|10\.|192\.168\.|\{host\})
          re.compile(r"\bGaming\b")]                       # the PC's host name
 
 
+def censor_schedule(data: dict[str, Any]) -> dict[str, Any]:
+    """Unified Schedule in the demo: redact diary titles/places/links, collapse personal calendars into one generic
+    'Calendar' source (no calendar names), strip gig notes/orders, drop private House & Poker."""
+    events = []
+    counts: dict[str, int] = {}
+    for ev in data.get("events") or []:
+        layer = ev.get("layer")
+        is_diary = ev.get("kind") == "diary" or layer == "diary" or str(layer or "").startswith("cal:")
+        if layer in ("house", "poker"):
+            continue
+        if is_diary:
+            layer = "diary"
+            ev = {**ev, "layer": "diary", "layers": ["diary"], "kind": "diary", "title": REDACTED, "subtitle": "", "location": "", "detail": "", "href": None,
+                  "meta": {"cal": "Calendar", "cals": ["Calendar"], "status": "confirmed", "source": "ical"}}
+        elif layer == "gigs":
+            meta = dict(ev.get("meta") or {})
+            if isinstance(meta.get("gig"), dict):
+                meta["gig"] = clean_gig(meta["gig"])
+            ev = {**ev, "detail": "", "href": None, "meta": meta}
+        events.append(ev)
+        counts[layer] = counts.get(layer, 0) + 1
+    sources = [{"id": "diary", "kind": "diary", "label": "Calendar", "icon": "cal", "available": True, "count": counts.get("diary", 0)}]
+    for s in data.get("sources") or []:
+        if s.get("kind") == "diary" or s["id"] == "diary" or str(s["id"]).startswith("cal:"):
+            continue
+        if s["id"] in ("house", "poker"):
+            sources.append({**s, "available": False, "count": 0})
+        else:
+            sources.append({**s, "count": counts.get(s["id"], 0)})
+    return scrub({**data, "google_expired": False, "sources": sources, "events": events})
+
+
 def censor_settings(path: str, data: Any) -> Any:
     """Settings, read-only: everything that shows how it works stays (sections, feeds, shops, schedules, artists, the
     log's own lines); addresses, folders, commands, keys, device details, the bins' property number, the radar's
@@ -426,7 +459,18 @@ def censor_settings(path: str, data: Any) -> Any:
         if "weather" in w and w["weather"]["settings"].get("latlong"):
             w["weather"]["settings"]["latlong"] = REDACTED
         if "diary" in w:
-            w["diary"]["settings"]["calendars"] = [{**c, "name": "Calendar"} for c in w["diary"]["settings"].get("calendars", [])]
+            ds = w["diary"]["settings"]
+            ds["calendars"] = [{**c, "name": "Calendar"} for c in ds.get("calendars", [])]
+            if ds.get("google_client_id"):
+                ds["google_client_id"] = REDACTED
+            ds["google_calendar_ids"] = []
+            ds["google_home_calendar_ids"] = []
+            if isinstance(ds.get("google"), dict):
+                g = ds["google"]
+                g["client_id"] = REDACTED if g.get("client_id") else ""
+                g["account"] = REDACTED if g.get("account") else ""
+                g["redirect_uri"] = ""
+                g["calendars"] = [{**c, "id": f"cal-{i + 1}", "name": "Calendar"} for i, c in enumerate(g.get("calendars") or [])]
         if "shortcuts" in w:
             sc = w["shortcuts"]["settings"]
             sc["shortcuts"] = [{**x, "label": REDACTED, "url": REDACTED_URL, "icon_mode": "builtin", "icon": "globe", "image": ""}
@@ -616,7 +660,8 @@ LEAKS = [
     (re.compile(r"\b192\.168\.\d{1,3}\.\d{1,3}"), "a LAN address"),
     (re.compile(r"\b100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.\d{1,3}\.\d{1,3}\b"), "a Tailscale address"),
     (re.compile(r"/home/mike"), "a home folder path"),
-    (re.compile(r"calendar\.google\.com/calendar/ical|/private-[0-9A-Za-z_-]{8,}"), "a calendar address"),
+    (re.compile(r"calendar\.google\.com/calendar/(?:ical|event)|/private-[0-9A-Za-z_-]{8,}"), "a calendar address"),
+    (re.compile(r"\bya29\.[A-Za-z0-9._-]{20,}|1//[0-9A-Za-z_-]{20,}"), "a Google OAuth token"),
     (re.compile(r"ticketmaster\.[a-z.]+/user/"), "a Ticketmaster order link"),
     (re.compile(r'"Gaming"'), "the PC's hostname"),            # not checked in news files: "Gaming" is a real topic tag there
     (re.compile(r"/enrol/[A-Za-z0-9_-]{8,}"), "an enrolment link"),
@@ -682,6 +727,8 @@ def main() -> None:
     for path, data in responses.items():
         if path == "/api/owner/state":
             data = censor_state(data)
+        elif path == "/api/owner/schedule":
+            data = censor_schedule(data)
         elif path.startswith("/api/owner/music"):
             data = censor_music(path, data)
         elif path in SETTINGS_GETS:

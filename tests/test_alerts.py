@@ -163,6 +163,14 @@ def test_on_sale_reminder_covers_today_and_tomorrow():
     assert got(gig(tomorrow_ten, tribute=True)) == []
     pre = got(gig(None, [{"at": (AT + timedelta(hours=3)).isoformat(), "name": "Artist presale"}]))[0]
     assert pre["title"] == "Trivium — Artist presale" and pre["chip"] == "Today 12:00" and pre["level"] == "now"
+    # Multiple presales on the same day group into one reminder instead of spamming the strip
+    multi = got(gig(None, [
+        {"at": (AT + timedelta(hours=3)).isoformat(), "name": "Artist presale"},
+        {"at": (AT + timedelta(hours=3)).isoformat(), "name": "Priority from O2"},
+        {"at": (AT + timedelta(hours=3)).isoformat(), "name": "Co-op presale"},
+    ]))
+    assert len(multi) == 1
+    assert multi[0]["title"] == "Trivium — 3 presales" and "Co-op presale" in multi[0]["detail"] and "Priority from O2" in multi[0]["detail"]
     assert got(gig("not a date")) == []
 
 

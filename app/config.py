@@ -31,6 +31,8 @@ TZ = ZoneInfo(_env("HUB_TZ", "Europe/London"))
 # MusicBrainz asks API clients to identify themselves. A public URL is enough — no personal address is sent.
 CONTACT = _env("HUB_CONTACT", "+https://www.mikehadfield.co.uk")
 MUSIC_DB = Path(_env("HUB_MUSIC_DB", str(PROJECTS_DIR / "MusicDatabase" / "data" / "music.sqlite")))
+HOUSE_DB = Path(_env("HUB_HOUSE_DB", str(PROJECTS_DIR / "HomeImprovements" / "data" / "house.sqlite")))
+POKER_DB = Path(_env("HUB_POKER_DB", str(PROJECTS_DIR / "PokerCompanion" / "data" / "poker.sqlite")))
 # Test/dev switch: widgets are registered but never fetch (no network, no external services).
 NO_FETCH = _env("HUB_NO_FETCH") == "1"
 DISK_SERVER_URL = _env("HUB_DISK_SERVER_URL", "http://127.0.0.1:8765/disks.json")

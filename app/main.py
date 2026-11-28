@@ -10,7 +10,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import api_content, api_maintenance, api_music, api_news, api_owner, api_screens, auth, config, content, coverart, db, logbook, machines, maintenance, monitor, musicbrainz, netlog, notify, procs, seed, state
+from . import api_content, api_maintenance, api_music, api_news, api_owner, api_screens, auth, config, content, coverart, db, google_calendar, logbook, machines, maintenance, monitor, musicbrainz, netlog, notify, procs, seed, state
 from .health import Health
 from .music import store as music_store
 from .music.rotator import Rotator
@@ -123,6 +123,7 @@ async def lifespan(app: FastAPI):
     app.state.controls = _controls.ControlsState()        # the Controls page's known HA light/scene allow-list (app/controls.py)
     app.state.volume = _volume.Volume(goxlr=app.state.goxlr)    # the header's GoXLR volume buttons; mutes them once per boot
     music_store.learn_secrets()
+    google_calendar.learn_secrets()
     await health.start()
     await scheduler.start()
     await mon.start()
@@ -264,6 +265,25 @@ async def enrol_redeem(token: str, request: Request):
     resp = RedirectResponse("/", status_code=303)
     resp.set_cookie(auth.COOKIE, cookie, max_age=auth.COOKIE_MAX_AGE, httponly=True, samesite="lax", path="/")
     return resp
+
+
+@app.get("/diary/google/callback", include_in_schema=False)
+async def google_calendar_callback(request: Request, code: str = "", state: str = "", error: str = ""):
+    """OAuth return page for Google Calendar (runs on 127.0.0.1 — validated by one-time state, no owner cookie needed)."""
+    def page(title: str, text: str, status: int = 200) -> HTMLResponse:
+        return HTMLResponse(f"""<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Citadel · Google Calendar</title><link rel="stylesheet" href="/static/css/tokens.css"><link rel="stylesheet" href="/static/css/components.css">
+<link rel="stylesheet" href="/static/css/guest.css"></head><body><main class="guest"><div class="guest__wrap"><span class="wordmark">Citadel</span>
+<p class="guest__hello">{html.escape(title)}</p><p>{html.escape(text)}</p></div></main></body></html>""", status_code=status)
+    if error:
+        return page("Google Calendar sign-in cancelled", "Nothing was changed. You can close this tab.", 400)
+    try:
+        who = await google_calendar.finish_login(code, state)
+    except google_calendar.GoogleCalendarError as e:
+        return page("Couldn't connect Google Calendar", str(e), 400)
+    notify.config()
+    request.app.state.scheduler.refresh("diary")
+    return page(f"Google Calendar connected — {who}", "You can close this tab. Pick which calendars to sync in Settings → Widgets.")
 
 
 # ---- guest API (no auth: deliberately tiny) ------------------------------------------------------
