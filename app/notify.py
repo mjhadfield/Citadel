@@ -34,3 +34,8 @@ def volume() -> None:
 def audio() -> None:
     """The GoXLR's state changed (app/goxlr.py): the Audio page re-reads it."""
     bus.publish("audio", {})
+
+
+def padd() -> None:
+    """PADD Dropzone, Notes, or Shopping list changed: open PADD screens re-fetch."""
+    bus.publish("padd", {})

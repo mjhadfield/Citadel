@@ -10,7 +10,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import api_content, api_maintenance, api_music, api_news, api_owner, api_screens, auth, config, content, coverart, db, google_calendar, logbook, machines, maintenance, monitor, musicbrainz, netlog, notify, procs, seed, state
+from . import api_content, api_maintenance, api_music, api_news, api_owner, api_padd, api_screens, auth, config, content, coverart, db, google_calendar, logbook, machines, maintenance, monitor, musicbrainz, netlog, notify, padd as _padd, procs, seed, state
 from .health import Health
 from .music import store as music_store
 from .music.rotator import Rotator
@@ -121,6 +121,7 @@ async def lifespan(app: FastAPI):
     app.state.goxlr = _goxlr.GoXLR(config.GOXLR_URL)      # the one connection to the GoXLR daemon (Audio page + header volume)
     app.state.audio_unsaved = _audio.Unsaved()            # the Audio page's "unsaved changes" marks (app/audio.py)
     app.state.controls = _controls.ControlsState()        # the Controls page's known HA light/scene allow-list (app/controls.py)
+    app.state.padd_lists = _padd.PaddListsState()         # the PADD page's known HA todo.* allow-list (app/padd.py)
     app.state.volume = _volume.Volume(goxlr=app.state.goxlr)    # the header's GoXLR volume buttons; mutes them once per boot
     music_store.learn_secrets()
     google_calendar.learn_secrets()
@@ -294,6 +295,8 @@ async def guest_api(request: Request):
 
 
 app.include_router(api_owner.router)
+app.include_router(api_padd.router)
+app.include_router(api_padd.public)
 app.include_router(api_maintenance.router)
 app.include_router(api_content.router)
 app.include_router(api_music.router)

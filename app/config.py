@@ -57,6 +57,8 @@ BACKUP_UNIT = _env("HUB_BACKUP_UNIT", "citadel-backup.service")
 # The token belongs to HA's non-admin "Citadel" user, saved by HomeLab's set-token.sh; no file = the job is "not set up".
 HA_URL = (_env("HUB_HA_URL", "http://192.168.0.79") or "").rstrip("/")
 HA_TOKEN_FILE = Path(_env("HUB_HA_TOKEN_FILE", str(Path.home() / ".config" / "home-assistant" / "token")))
+# ZebraLab on this PC (PADD's "Send to ZebraLab" bridge for dropped PDFs and images). None under HUB_NO_FETCH.
+ZEBRALAB_URL = (_env("HUB_ZEBRALAB_URL", None if NO_FETCH else "http://127.0.0.1:8710") or "").rstrip("/")
 
 
 def ensure_dirs() -> None:

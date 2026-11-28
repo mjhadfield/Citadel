@@ -80,6 +80,19 @@ const paths = {
   wsnow:  '<path d="M7 15h10a3.5 3.5 0 0 0 .4-6.98 5 5 0 0 0-9.7-.7A3.2 3.2 0 0 0 7 15zM8.5 19h.01M12 20h.01M15.5 19h.01"/>',
   wstorm: '<path d="M7 15h10a3.5 3.5 0 0 0 .4-6.98 5 5 0 0 0-9.7-.7A3.2 3.2 0 0 0 7 15zM13 15l-2.5 4h3L11.5 22"/>',
   wfog:   '<path d="M6 12h12a3.5 3.5 0 0 0 .2-7 5 5 0 0 0-9.6-.6A3 3 0 0 0 6 12zM4 16h16M6 20h12"/>',
+  padd:   '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/><circle cx="15.5" cy="17.5" r="1"/>',
+  copy:   '<rect x="9" y="9" width="11" height="11" rx="1.5"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/>',
+  upload: '<path d="M12 16V4M7 9l5-5 5 5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>',
+  download:'<path d="M12 4v12M7 11l5 5 5-5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>',
+  qr:     '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM19 14h2v2M14 19h2v2M19 19h2v2"/>',
+  note:   '<path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 11h6M9 15h6"/>',
+  file:   '<path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5"/>',
+  image:  '<rect x="3" y="5" width="18" height="14" rx="1.5"/><circle cx="8.5" cy="10" r="1.5"/><path d="M21 16l-5-5-4 4-2.5-2.5L3 19"/>',
+  code:   '<path d="M8 8l-4 4 4 4M16 8l4 4-4 4M14 5l-4 14"/>',
+  archive:'<rect x="3" y="4" width="18" height="4"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M10 12h4"/>',
+  send:   '<path d="M21 3L10 14M21 3l-6 18-5-7-7-5z"/>',
+  back:   '<path d="M19 12H5M11 6l-6 6 6 6"/>',
+  edit:   '<path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
 };
 
 const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');

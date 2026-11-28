@@ -341,6 +341,7 @@
   html[data-family="lcars"][data-theme="lcars25"][data-page="schedule"] .top__ctx { --lc-c: var(--lc-6); }
   html[data-family="lcars"][data-theme="lcars25"][data-page="labels"] .top__ctx,
   html[data-family="lcars"][data-theme="lcars25"][data-page="controls"] .top__ctx,
+  html[data-family="lcars"][data-theme="lcars25"][data-page="padd"] .top__ctx,
   html[data-family="lcars"][data-theme="lcars25"][data-page="curate"] .top__ctx { --lc-c: var(--lc-2); }
   /* Narrower screens: framed pages keep only the Bookmarks button, so the row never overflows */
   @media (max-width: 1500px) {

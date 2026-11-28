@@ -42,6 +42,7 @@ PAGES: tuple[tuple[str, str, bool, bool, str, str], ...] = (
     ("news", "News", True, True, "news", "command"),
     ("music", "Companion", True, True, "disc", "command"),
     ("schedule", "Schedule", True, True, "cal", "command"),
+    ("padd", "PADD", True, True, "padd", "command"),
     ("listen", "Music", True, True, "wave", "science"),
     ("media", "Media", True, True, "film", "science"),
     ("casino", "Casino", True, True, "spade", "science"),

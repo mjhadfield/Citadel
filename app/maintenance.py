@@ -96,8 +96,10 @@ PRUNE_DAYS = {"release": 400, "radar": 30, "vinyl": 120}
 
 
 def _do_tidy() -> dict[str, int]:
+    from . import padd as _padd
     now = int(time.time())
-    out = {"log_entries": logbook.prune(), "dismissed_alerts": alerts.prune(), "items": sum(content.prune(kind, older_than_days=days) for kind, days in PRUNE_DAYS.items())}
+    out = {"log_entries": logbook.prune(), "dismissed_alerts": alerts.prune(), "items": sum(content.prune(kind, older_than_days=days) for kind, days in PRUNE_DAYS.items()),
+           "padd_temps": _padd.prune_orphan_temps()}
     with db.db() as con:
         out["expired_links"] = con.execute("DELETE FROM enrol_tokens WHERE expires_at < ? OR used = 1", (now,)).rowcount \
             + con.execute("DELETE FROM pairings WHERE expires_at < ?", (now,)).rowcount

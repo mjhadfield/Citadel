@@ -83,6 +83,7 @@ html[data-family="lcars"] .rail [data-view="lab"] { --lc-c: var(--lc-4); }
 html[data-family="lcars"] .rail [data-view="controls"] { --lc-c: var(--lc-2); }
 html[data-family="lcars"] .rail [data-view="routines"] { --lc-c: var(--lc-1); }
 html[data-family="lcars"] .rail [data-view="schedule"] { --lc-c: var(--lc-6); }
+html[data-family="lcars"] .rail [data-view="padd"] { --lc-c: var(--lc-2); }
 html[data-family="lcars"] .rail [data-view="stats"] { --lc-c: var(--lc-1); }
 html[data-family="lcars"] .rail [data-view="curate"] { --lc-c: var(--lc-2); }
 html[data-family="lcars"] .rail [data-view="audio"] { --lc-c: var(--lc-3); }
